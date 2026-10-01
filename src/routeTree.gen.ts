@@ -10,33 +10,193 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApplicationsRouteImport } from './routes/applications'
+import { Route as AuditRouteImport } from './routes/audit'
+import { Route as CredentialsRouteImport } from './routes/credentials'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as UsageRouteImport } from './routes/usage'
+import { Route as MessagesIndexRouteImport } from './routes/messages.index'
+import { Route as MessagesMessageIdRouteImport } from './routes/messages.$messageId'
+import { Route as MessagesSendRouteImport } from './routes/messages.send'
+import { Route as PlatformHealthRouteImport } from './routes/platform.health'
+import { Route as PlatformProvidersRouteImport } from './routes/platform.providers'
+import { Route as PlatformTenantsRouteImport } from './routes/platform.tenants'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApplicationsRoute = ApplicationsRouteImport.update({
+  id: '/applications',
+  path: '/applications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CredentialsRoute = CredentialsRouteImport.update({
+  id: '/credentials',
+  path: '/credentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsageRoute = UsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesIndexRoute = MessagesIndexRouteImport.update({
+  id: '/messages/',
+  path: '/messages/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesMessageIdRoute = MessagesMessageIdRouteImport.update({
+  id: '/messages/$messageId',
+  path: '/messages/$messageId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MessagesSendRoute = MessagesSendRouteImport.update({
+  id: '/messages/send',
+  path: '/messages/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformHealthRoute = PlatformHealthRouteImport.update({
+  id: '/platform/health',
+  path: '/platform/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformProvidersRoute = PlatformProvidersRouteImport.update({
+  id: '/platform/providers',
+  path: '/platform/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformTenantsRoute = PlatformTenantsRouteImport.update({
+  id: '/platform/tenants',
+  path: '/platform/tenants',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/applications': typeof ApplicationsRoute
+  '/audit': typeof AuditRoute
+  '/credentials': typeof CredentialsRoute
+  '/docs': typeof DocsRoute
+  '/templates': typeof TemplatesRoute
+  '/usage': typeof UsageRoute
+  '/messages/$messageId': typeof MessagesMessageIdRoute
+  '/messages/send': typeof MessagesSendRoute
+  '/platform/health': typeof PlatformHealthRoute
+  '/platform/providers': typeof PlatformProvidersRoute
+  '/platform/tenants': typeof PlatformTenantsRoute
+  '/messages/': typeof MessagesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/applications': typeof ApplicationsRoute
+  '/audit': typeof AuditRoute
+  '/credentials': typeof CredentialsRoute
+  '/docs': typeof DocsRoute
+  '/templates': typeof TemplatesRoute
+  '/usage': typeof UsageRoute
+  '/messages/$messageId': typeof MessagesMessageIdRoute
+  '/messages/send': typeof MessagesSendRoute
+  '/platform/health': typeof PlatformHealthRoute
+  '/platform/providers': typeof PlatformProvidersRoute
+  '/platform/tenants': typeof PlatformTenantsRoute
+  '/messages': typeof MessagesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/applications': typeof ApplicationsRoute
+  '/audit': typeof AuditRoute
+  '/credentials': typeof CredentialsRoute
+  '/docs': typeof DocsRoute
+  '/templates': typeof TemplatesRoute
+  '/usage': typeof UsageRoute
+  '/messages/$messageId': typeof MessagesMessageIdRoute
+  '/messages/send': typeof MessagesSendRoute
+  '/platform/health': typeof PlatformHealthRoute
+  '/platform/providers': typeof PlatformProvidersRoute
+  '/platform/tenants': typeof PlatformTenantsRoute
+  '/messages/': typeof MessagesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/applications'
+    | '/audit'
+    | '/credentials'
+    | '/docs'
+    | '/templates'
+    | '/usage'
+    | '/messages/$messageId'
+    | '/messages/send'
+    | '/platform/health'
+    | '/platform/providers'
+    | '/platform/tenants'
+    | '/messages/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/applications'
+    | '/audit'
+    | '/credentials'
+    | '/docs'
+    | '/templates'
+    | '/usage'
+    | '/messages/$messageId'
+    | '/messages/send'
+    | '/platform/health'
+    | '/platform/providers'
+    | '/platform/tenants'
+    | '/messages'
+  id:
+    | '__root__'
+    | '/'
+    | '/applications'
+    | '/audit'
+    | '/credentials'
+    | '/docs'
+    | '/templates'
+    | '/usage'
+    | '/messages/$messageId'
+    | '/messages/send'
+    | '/platform/health'
+    | '/platform/providers'
+    | '/platform/tenants'
+    | '/messages/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApplicationsRoute: typeof ApplicationsRoute
+  AuditRoute: typeof AuditRoute
+  CredentialsRoute: typeof CredentialsRoute
+  DocsRoute: typeof DocsRoute
+  TemplatesRoute: typeof TemplatesRoute
+  UsageRoute: typeof UsageRoute
+  MessagesMessageIdRoute: typeof MessagesMessageIdRoute
+  MessagesSendRoute: typeof MessagesSendRoute
+  PlatformHealthRoute: typeof PlatformHealthRoute
+  PlatformProvidersRoute: typeof PlatformProvidersRoute
+  PlatformTenantsRoute: typeof PlatformTenantsRoute
+  MessagesIndexRoute: typeof MessagesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +208,107 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/applications': {
+      id: '/applications'
+      path: '/applications'
+      fullPath: '/applications'
+      preLoaderRoute: typeof ApplicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/credentials': {
+      id: '/credentials'
+      path: '/credentials'
+      fullPath: '/credentials'
+      preLoaderRoute: typeof CredentialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/usage': {
+      id: '/usage'
+      path: '/usage'
+      fullPath: '/usage'
+      preLoaderRoute: typeof UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/': {
+      id: '/messages/'
+      path: '/messages'
+      fullPath: '/messages/'
+      preLoaderRoute: typeof MessagesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/$messageId': {
+      id: '/messages/$messageId'
+      path: '/messages/$messageId'
+      fullPath: '/messages/$messageId'
+      preLoaderRoute: typeof MessagesMessageIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/messages/send': {
+      id: '/messages/send'
+      path: '/messages/send'
+      fullPath: '/messages/send'
+      preLoaderRoute: typeof MessagesSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/health': {
+      id: '/platform/health'
+      path: '/platform/health'
+      fullPath: '/platform/health'
+      preLoaderRoute: typeof PlatformHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/providers': {
+      id: '/platform/providers'
+      path: '/platform/providers'
+      fullPath: '/platform/providers'
+      preLoaderRoute: typeof PlatformProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/tenants': {
+      id: '/platform/tenants'
+      path: '/platform/tenants'
+      fullPath: '/platform/tenants'
+      preLoaderRoute: typeof PlatformTenantsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApplicationsRoute: ApplicationsRoute,
+  AuditRoute: AuditRoute,
+  CredentialsRoute: CredentialsRoute,
+  DocsRoute: DocsRoute,
+  TemplatesRoute: TemplatesRoute,
+  UsageRoute: UsageRoute,
+  MessagesMessageIdRoute: MessagesMessageIdRoute,
+  MessagesSendRoute: MessagesSendRoute,
+  PlatformHealthRoute: PlatformHealthRoute,
+  PlatformProvidersRoute: PlatformProvidersRoute,
+  PlatformTenantsRoute: PlatformTenantsRoute,
+  MessagesIndexRoute: MessagesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
