@@ -23,7 +23,7 @@ function mulberry32(seed: number) {
   };
 }
 const rng = mulberry32(20261001);
-const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
+const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)]!;
 const int = (min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min;
 const pad = (n: number, w: number) => String(n).padStart(w, "0");
 
@@ -112,7 +112,7 @@ export const MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
     templateName: template?.name ?? null,
     status,
     createdAt: iso(created),
-    updatedAt: events[events.length - 1].at,
+    updatedAt: events[events.length - 1]!.at,
     tenantName: "Al Noor Financial Services",
     correlationId: `cor_${Math.floor(rng() * 1e12).toString(36)}${Math.floor(rng() * 1e8).toString(36)}`,
     segments: channel === "sms" ? int(1, 3) : 1,

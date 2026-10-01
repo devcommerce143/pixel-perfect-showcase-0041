@@ -4,7 +4,7 @@ import { STATUS_DEFS, TONE_CLASSES } from "./status";
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {
   const { t } = useI18n();
-  const def = STATUS_DEFS[status] ?? STATUS_DEFS.draft;
+  const def = STATUS_DEFS[status] ?? STATUS_DEFS["draft"]!;
   const Icon = def.icon;
   return (
     <span
