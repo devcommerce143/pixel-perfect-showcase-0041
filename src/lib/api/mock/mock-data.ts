@@ -91,7 +91,7 @@ function buildEvents(status: MessageStatus, created: number): MessageEvent[] {
   return ev;
 }
 
-export const MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
+const RAW_MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
   const created = BASE_TIME - i * int(4, 14) * MIN - int(0, 59) * 1000;
   const app = pick(APPLICATIONS.filter((a) => a.status === "active"));
   const channel = pick(app.channels);
@@ -124,6 +124,8 @@ export const MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
     events,
   };
 });
+
+export const MESSAGES: Message[] = [...RAW_MESSAGES].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
 export const CREDENTIALS: ApiCredential[] = [
   { id: "CRD-00412", applicationName: "Dolf LMS", clientId: "dc-app-00182-prod", keyPrefix: "dck_live_7Hq2", status: "active", scopes: ["messages:send", "messages:read"], createdAt: iso(BASE_TIME - 120 * DAY), expiresAt: iso(BASE_TIME + 245 * DAY), lastUsedAt: iso(BASE_TIME - 2 * MIN) },
