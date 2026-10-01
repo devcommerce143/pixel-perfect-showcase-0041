@@ -5,7 +5,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
     <div className="flex flex-col gap-3 border-b bg-card px-4 py-4 md:flex-row md:items-end md:justify-between md:px-6">
       <div className="min-w-0">
         <h1 className="text-page-title">{title}</h1>
-        {description && <p className="mt-0.5 text-secondary max-w-3xl">{description}</p>}
+        {description && <p className="mt-0.5 text-subtle max-w-3xl">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>

@@ -23,7 +23,7 @@ function mulberry32(seed: number) {
   };
 }
 const rng = mulberry32(20261001);
-const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
+const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)]!;
 const int = (min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min;
 const pad = (n: number, w: number) => String(n).padStart(w, "0");
 
@@ -91,7 +91,7 @@ function buildEvents(status: MessageStatus, created: number): MessageEvent[] {
   return ev;
 }
 
-export const MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
+const RAW_MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
   const created = BASE_TIME - i * int(4, 14) * MIN - int(0, 59) * 1000;
   const app = pick(APPLICATIONS.filter((a) => a.status === "active"));
   const channel = pick(app.channels);
@@ -112,7 +112,7 @@ export const MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
     templateName: template?.name ?? null,
     status,
     createdAt: iso(created),
-    updatedAt: events[events.length - 1].at,
+    updatedAt: events[events.length - 1]!.at,
     tenantName: "Al Noor Financial Services",
     correlationId: `cor_${Math.floor(rng() * 1e12).toString(36)}${Math.floor(rng() * 1e8).toString(36)}`,
     segments: channel === "sms" ? int(1, 3) : 1,
@@ -124,6 +124,8 @@ export const MESSAGES: Message[] = Array.from({ length: 240 }, (_, i) => {
     events,
   };
 });
+
+export const MESSAGES: Message[] = [...RAW_MESSAGES].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
 export const CREDENTIALS: ApiCredential[] = [
   { id: "CRD-00412", applicationName: "Dolf LMS", clientId: "dc-app-00182-prod", keyPrefix: "dck_live_7Hq2", status: "active", scopes: ["messages:send", "messages:read"], createdAt: iso(BASE_TIME - 120 * DAY), expiresAt: iso(BASE_TIME + 245 * DAY), lastUsedAt: iso(BASE_TIME - 2 * MIN) },

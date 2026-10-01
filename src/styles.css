@@ -172,7 +172,7 @@
   font-size: 0.875rem;
   line-height: 1.375rem;
 }
-@utility text-secondary {
+@utility text-subtle {
   font-size: 0.8125rem;
   line-height: 1.25rem;
   color: var(--color-muted-foreground);

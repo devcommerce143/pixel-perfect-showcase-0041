@@ -13,7 +13,7 @@ export function EmptyState({ icon: Icon = Inbox, title, body, action }: { icon?:
         <Icon className="size-5" aria-hidden />
       </div>
       <p className="text-card-title">{title}</p>
-      {body && <p className="text-secondary max-w-md">{body}</p>}
+      {body && <p className="text-subtle max-w-md">{body}</p>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );

@@ -88,7 +88,7 @@ function MessageDetail() {
           <Section title={t("msg.timeline")} className="xl:col-span-2 self-start">
             <ol className="relative px-4 py-4">
               {m.events.map((e, i) => {
-                const def = STATUS_DEFS[e.status];
+                const def = STATUS_DEFS[e.status] ?? STATUS_DEFS["draft"]!;
                 const Icon = def.icon;
                 const last = i === m.events.length - 1;
                 return (

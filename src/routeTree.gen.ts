@@ -14,13 +14,23 @@ import { Route as ApplicationsRouteImport } from './routes/applications'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsageRouteImport } from './routes/usage'
+import { Route as UsersRouteImport } from './routes/users'
+import { Route as WebhooksRouteImport } from './routes/webhooks'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesMessageIdRouteImport } from './routes/messages.$messageId'
+import { Route as MessagesBulkRouteImport } from './routes/messages.bulk'
 import { Route as MessagesSendRouteImport } from './routes/messages.send'
+import { Route as PlatformApiClientsRouteImport } from './routes/platform.api-clients'
+import { Route as PlatformChannelsRouteImport } from './routes/platform.channels'
+import { Route as PlatformConfigRouteImport } from './routes/platform.config'
 import { Route as PlatformHealthRouteImport } from './routes/platform.health'
+import { Route as PlatformPlansRouteImport } from './routes/platform.plans'
 import { Route as PlatformProvidersRouteImport } from './routes/platform.providers'
+import { Route as PlatformRoutingRouteImport } from './routes/platform.routing'
 import { Route as PlatformTenantsRouteImport } from './routes/platform.tenants'
 
 const IndexRoute = IndexRouteImport.update({
@@ -48,6 +58,16 @@ const DocsRoute = DocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
@@ -56,6 +76,16 @@ const TemplatesRoute = TemplatesRouteImport.update({
 const UsageRoute = UsageRouteImport.update({
   id: '/usage',
   path: '/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WebhooksRoute = WebhooksRouteImport.update({
+  id: '/webhooks',
+  path: '/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MessagesIndexRoute = MessagesIndexRouteImport.update({
@@ -68,9 +98,29 @@ const MessagesMessageIdRoute = MessagesMessageIdRouteImport.update({
   path: '/messages/$messageId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MessagesBulkRoute = MessagesBulkRouteImport.update({
+  id: '/messages/bulk',
+  path: '/messages/bulk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MessagesSendRoute = MessagesSendRouteImport.update({
   id: '/messages/send',
   path: '/messages/send',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformApiClientsRoute = PlatformApiClientsRouteImport.update({
+  id: '/platform/api-clients',
+  path: '/platform/api-clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformChannelsRoute = PlatformChannelsRouteImport.update({
+  id: '/platform/channels',
+  path: '/platform/channels',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformConfigRoute = PlatformConfigRouteImport.update({
+  id: '/platform/config',
+  path: '/platform/config',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlatformHealthRoute = PlatformHealthRouteImport.update({
@@ -78,9 +128,19 @@ const PlatformHealthRoute = PlatformHealthRouteImport.update({
   path: '/platform/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlatformPlansRoute = PlatformPlansRouteImport.update({
+  id: '/platform/plans',
+  path: '/platform/plans',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlatformProvidersRoute = PlatformProvidersRouteImport.update({
   id: '/platform/providers',
   path: '/platform/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformRoutingRoute = PlatformRoutingRouteImport.update({
+  id: '/platform/routing',
+  path: '/platform/routing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlatformTenantsRoute = PlatformTenantsRouteImport.update({
@@ -95,12 +155,22 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/credentials': typeof CredentialsRoute
   '/docs': typeof DocsRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/templates': typeof TemplatesRoute
   '/usage': typeof UsageRoute
+  '/users': typeof UsersRoute
+  '/webhooks': typeof WebhooksRoute
   '/messages/$messageId': typeof MessagesMessageIdRoute
+  '/messages/bulk': typeof MessagesBulkRoute
   '/messages/send': typeof MessagesSendRoute
+  '/platform/api-clients': typeof PlatformApiClientsRoute
+  '/platform/channels': typeof PlatformChannelsRoute
+  '/platform/config': typeof PlatformConfigRoute
   '/platform/health': typeof PlatformHealthRoute
+  '/platform/plans': typeof PlatformPlansRoute
   '/platform/providers': typeof PlatformProvidersRoute
+  '/platform/routing': typeof PlatformRoutingRoute
   '/platform/tenants': typeof PlatformTenantsRoute
   '/messages/': typeof MessagesIndexRoute
 }
@@ -110,12 +180,22 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/credentials': typeof CredentialsRoute
   '/docs': typeof DocsRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/templates': typeof TemplatesRoute
   '/usage': typeof UsageRoute
+  '/users': typeof UsersRoute
+  '/webhooks': typeof WebhooksRoute
   '/messages/$messageId': typeof MessagesMessageIdRoute
+  '/messages/bulk': typeof MessagesBulkRoute
   '/messages/send': typeof MessagesSendRoute
+  '/platform/api-clients': typeof PlatformApiClientsRoute
+  '/platform/channels': typeof PlatformChannelsRoute
+  '/platform/config': typeof PlatformConfigRoute
   '/platform/health': typeof PlatformHealthRoute
+  '/platform/plans': typeof PlatformPlansRoute
   '/platform/providers': typeof PlatformProvidersRoute
+  '/platform/routing': typeof PlatformRoutingRoute
   '/platform/tenants': typeof PlatformTenantsRoute
   '/messages': typeof MessagesIndexRoute
 }
@@ -126,12 +206,22 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/credentials': typeof CredentialsRoute
   '/docs': typeof DocsRoute
+  '/reports': typeof ReportsRoute
+  '/settings': typeof SettingsRoute
   '/templates': typeof TemplatesRoute
   '/usage': typeof UsageRoute
+  '/users': typeof UsersRoute
+  '/webhooks': typeof WebhooksRoute
   '/messages/$messageId': typeof MessagesMessageIdRoute
+  '/messages/bulk': typeof MessagesBulkRoute
   '/messages/send': typeof MessagesSendRoute
+  '/platform/api-clients': typeof PlatformApiClientsRoute
+  '/platform/channels': typeof PlatformChannelsRoute
+  '/platform/config': typeof PlatformConfigRoute
   '/platform/health': typeof PlatformHealthRoute
+  '/platform/plans': typeof PlatformPlansRoute
   '/platform/providers': typeof PlatformProvidersRoute
+  '/platform/routing': typeof PlatformRoutingRoute
   '/platform/tenants': typeof PlatformTenantsRoute
   '/messages/': typeof MessagesIndexRoute
 }
@@ -143,12 +233,22 @@ export interface FileRouteTypes {
     | '/audit'
     | '/credentials'
     | '/docs'
+    | '/reports'
+    | '/settings'
     | '/templates'
     | '/usage'
+    | '/users'
+    | '/webhooks'
     | '/messages/$messageId'
+    | '/messages/bulk'
     | '/messages/send'
+    | '/platform/api-clients'
+    | '/platform/channels'
+    | '/platform/config'
     | '/platform/health'
+    | '/platform/plans'
     | '/platform/providers'
+    | '/platform/routing'
     | '/platform/tenants'
     | '/messages/'
   fileRoutesByTo: FileRoutesByTo
@@ -158,12 +258,22 @@ export interface FileRouteTypes {
     | '/audit'
     | '/credentials'
     | '/docs'
+    | '/reports'
+    | '/settings'
     | '/templates'
     | '/usage'
+    | '/users'
+    | '/webhooks'
     | '/messages/$messageId'
+    | '/messages/bulk'
     | '/messages/send'
+    | '/platform/api-clients'
+    | '/platform/channels'
+    | '/platform/config'
     | '/platform/health'
+    | '/platform/plans'
     | '/platform/providers'
+    | '/platform/routing'
     | '/platform/tenants'
     | '/messages'
   id:
@@ -173,12 +283,22 @@ export interface FileRouteTypes {
     | '/audit'
     | '/credentials'
     | '/docs'
+    | '/reports'
+    | '/settings'
     | '/templates'
     | '/usage'
+    | '/users'
+    | '/webhooks'
     | '/messages/$messageId'
+    | '/messages/bulk'
     | '/messages/send'
+    | '/platform/api-clients'
+    | '/platform/channels'
+    | '/platform/config'
     | '/platform/health'
+    | '/platform/plans'
     | '/platform/providers'
+    | '/platform/routing'
     | '/platform/tenants'
     | '/messages/'
   fileRoutesById: FileRoutesById
@@ -189,12 +309,22 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   CredentialsRoute: typeof CredentialsRoute
   DocsRoute: typeof DocsRoute
+  ReportsRoute: typeof ReportsRoute
+  SettingsRoute: typeof SettingsRoute
   TemplatesRoute: typeof TemplatesRoute
   UsageRoute: typeof UsageRoute
+  UsersRoute: typeof UsersRoute
+  WebhooksRoute: typeof WebhooksRoute
   MessagesMessageIdRoute: typeof MessagesMessageIdRoute
+  MessagesBulkRoute: typeof MessagesBulkRoute
   MessagesSendRoute: typeof MessagesSendRoute
+  PlatformApiClientsRoute: typeof PlatformApiClientsRoute
+  PlatformChannelsRoute: typeof PlatformChannelsRoute
+  PlatformConfigRoute: typeof PlatformConfigRoute
   PlatformHealthRoute: typeof PlatformHealthRoute
+  PlatformPlansRoute: typeof PlatformPlansRoute
   PlatformProvidersRoute: typeof PlatformProvidersRoute
+  PlatformRoutingRoute: typeof PlatformRoutingRoute
   PlatformTenantsRoute: typeof PlatformTenantsRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
 }
@@ -236,6 +366,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/templates': {
       id: '/templates'
       path: '/templates'
@@ -248,6 +392,20 @@ declare module '@tanstack/react-router' {
       path: '/usage'
       fullPath: '/usage'
       preLoaderRoute: typeof UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/webhooks': {
+      id: '/webhooks'
+      path: '/webhooks'
+      fullPath: '/webhooks'
+      preLoaderRoute: typeof WebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/messages/': {
@@ -264,11 +422,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MessagesMessageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/messages/bulk': {
+      id: '/messages/bulk'
+      path: '/messages/bulk'
+      fullPath: '/messages/bulk'
+      preLoaderRoute: typeof MessagesBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/messages/send': {
       id: '/messages/send'
       path: '/messages/send'
       fullPath: '/messages/send'
       preLoaderRoute: typeof MessagesSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/api-clients': {
+      id: '/platform/api-clients'
+      path: '/platform/api-clients'
+      fullPath: '/platform/api-clients'
+      preLoaderRoute: typeof PlatformApiClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/channels': {
+      id: '/platform/channels'
+      path: '/platform/channels'
+      fullPath: '/platform/channels'
+      preLoaderRoute: typeof PlatformChannelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/config': {
+      id: '/platform/config'
+      path: '/platform/config'
+      fullPath: '/platform/config'
+      preLoaderRoute: typeof PlatformConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/platform/health': {
@@ -278,11 +464,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlatformHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/platform/plans': {
+      id: '/platform/plans'
+      path: '/platform/plans'
+      fullPath: '/platform/plans'
+      preLoaderRoute: typeof PlatformPlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/platform/providers': {
       id: '/platform/providers'
       path: '/platform/providers'
       fullPath: '/platform/providers'
       preLoaderRoute: typeof PlatformProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform/routing': {
+      id: '/platform/routing'
+      path: '/platform/routing'
+      fullPath: '/platform/routing'
+      preLoaderRoute: typeof PlatformRoutingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/platform/tenants': {
@@ -301,12 +501,22 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   CredentialsRoute: CredentialsRoute,
   DocsRoute: DocsRoute,
+  ReportsRoute: ReportsRoute,
+  SettingsRoute: SettingsRoute,
   TemplatesRoute: TemplatesRoute,
   UsageRoute: UsageRoute,
+  UsersRoute: UsersRoute,
+  WebhooksRoute: WebhooksRoute,
   MessagesMessageIdRoute: MessagesMessageIdRoute,
+  MessagesBulkRoute: MessagesBulkRoute,
   MessagesSendRoute: MessagesSendRoute,
+  PlatformApiClientsRoute: PlatformApiClientsRoute,
+  PlatformChannelsRoute: PlatformChannelsRoute,
+  PlatformConfigRoute: PlatformConfigRoute,
   PlatformHealthRoute: PlatformHealthRoute,
+  PlatformPlansRoute: PlatformPlansRoute,
   PlatformProvidersRoute: PlatformProvidersRoute,
+  PlatformRoutingRoute: PlatformRoutingRoute,
   PlatformTenantsRoute: PlatformTenantsRoute,
   MessagesIndexRoute: MessagesIndexRoute,
 }

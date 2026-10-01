@@ -18,9 +18,9 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, dense
   columns: Column<T>[];
   rows: T[] | undefined;
   rowKey: (row: T) => string;
-  onRowClick?: (row: T) => void;
-  loading?: boolean;
-  dense?: boolean;
+  onRowClick?: ((row: T) => void) | undefined;
+  loading?: boolean | undefined;
+  dense?: boolean | undefined;
 }) {
   const { t } = useI18n();
   if (loading && !rows) return <TableSkeleton />;

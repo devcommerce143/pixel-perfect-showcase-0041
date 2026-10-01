@@ -45,7 +45,7 @@ function SendMessage() {
   const requiresTemplate = channel === "whatsapp";
 
   const errors = useMemo(() => {
-    const e: Record<string, string> = {};
+    const e: Partial<Record<"app" | "recipient" | "template" | "body" | "subject", string>> = {};
     if (!appId) e.app = t("send.required");
     if (!recipient) e.recipient = t("send.required");
     else if (channel === "email" ? !EMAIL.test(recipient) : !PHONE.test(recipient.replace(/\s/g, ""))) e.recipient = channel === "email" ? t("send.invalidEmail") : t("send.invalidPhone");
@@ -65,7 +65,7 @@ function SendMessage() {
     setTouched(true);
     if (Object.keys(errors).length === 0) mutation.mutate();
   };
-  const err = (k: string) => touched && errors[k] ? <p id={`${k}-err`} className="text-xs text-danger">{errors[k]}</p> : null;
+  const err = (k: keyof typeof errors) => touched && errors[k] ? <p id={`${k}-err`} className="text-xs text-danger">{errors[k]}</p> : null;
 
   const changeChannel = (c: Channel) => { setChannel(c); setAppId(""); setTemplateId(NONE); setBody(""); setTouched(false); };
   const pickTemplate = (id: string) => {
