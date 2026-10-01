@@ -79,7 +79,7 @@ function MessageDetail() {
                 <Field label={t("common.updatedAt")}>{formatDateTime(m.updatedAt, locale)}</Field>
               </dl>
             </Section>
-            <Section title={t("msg.detail.content" as never) === "msg.detail.content" ? t("send.body") : t("send.body")}>
+            <Section title={t("send.body")}>
               <p className="whitespace-pre-wrap px-4 py-3 text-body" dir="auto">{m.preview}</p>
               <p className="flex items-center gap-1.5 border-t bg-surface-subtle px-4 py-2 text-caption"><Info className="size-3.5" />{t("msg.masked")}</p>
             </Section>
