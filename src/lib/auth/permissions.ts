@@ -17,6 +17,9 @@ export type Permission =
   | "credentials.view"
   | "credentials.manage"
   | "webhooks.view"
+  | "webhooks.manage"
+  | "users.manage"
+  | "settings.manage"
   | "reports.view"
   | "usage.view"
   | "users.view"
@@ -44,6 +47,9 @@ const CLIENT_ADMIN: Permission[] = [
   "credentials.view",
   "credentials.manage",
   "webhooks.view",
+  "webhooks.manage",
+  "users.manage",
+  "settings.manage",
   "reports.view",
   "usage.view",
   "users.view",

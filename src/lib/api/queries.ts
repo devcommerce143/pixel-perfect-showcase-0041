@@ -34,4 +34,19 @@ export const queries = {
       placeholderData: keepPreviousData,
     }),
   providers: () => queryOptions({ queryKey: ["providers"], queryFn: () => api.listProviders() }),
+  bulkJobs: () => queryOptions({ queryKey: ["bulkJobs"], queryFn: () => api.listBulkJobs() }),
+  webhooks: () => queryOptions({ queryKey: ["webhooks"], queryFn: () => api.listWebhooks() }),
+  users: () => queryOptions({ queryKey: ["users"], queryFn: () => api.listUsers() }),
+  settings: () => queryOptions({ queryKey: ["settings"], queryFn: () => api.getSettings() }),
+  report: () => queryOptions({ queryKey: ["report"], queryFn: () => api.getReport() }),
+  plans: () => queryOptions({ queryKey: ["plans"], queryFn: () => api.listPlans() }),
+  channels: () => queryOptions({ queryKey: ["channels"], queryFn: () => api.listChannels() }),
+  routing: () => queryOptions({ queryKey: ["routing"], queryFn: () => api.listRoutingRules() }),
+  platformClients: (p: ListParams) =>
+    queryOptions({
+      queryKey: ["platformClients", p],
+      queryFn: () => api.listPlatformClients(p),
+      placeholderData: keepPreviousData,
+    }),
+  config: () => queryOptions({ queryKey: ["config"], queryFn: () => api.listConfig() }),
 };
