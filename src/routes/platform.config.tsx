@@ -20,9 +20,8 @@ function Config() {
   const columns: Column<ConfigParam>[] = [
     { id: "k", header: t("cfg.key"), cell: (c) => <span dir="ltr" className="font-mono text-xs font-medium">{c.key}</span> },
     { id: "v", header: t("common.value"), cell: (c) => <code dir="ltr" className="rounded-sm bg-muted px-1.5 py-0.5 text-xs">{c.value}</code> },
-    { id: "c", header: t("common.category" as never) === "common.category" ? "" : "", className: "hidden", cell: () => null },
     { id: "d", header: t("common.description"), className: "hidden md:table-cell", cell: (c) => <span className="text-muted-foreground">{c.description}</span> },
-  ].filter((c) => c.id !== "c");
+  ];
   const groups = [...new Set((q.data ?? []).map((c) => c.category))];
   return (
     <>
