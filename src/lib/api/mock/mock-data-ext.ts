@@ -15,10 +15,10 @@ export const BULK_JOBS: BulkJob[] = [
 ];
 
 export const WEBHOOKS: Webhook[] = [
-  { id: "WHK-0021", url: "https://crm.alnoor-fs.example/hooks/dolf", applicationName: "Dolf CRM", events: ["message.delivered", "message.failed"], status: "active", lastDeliveryAt: iso(BASE_TIME - 2 * MIN), successRate: 99.6 },
-  { id: "WHK-0024", url: "https://lms.alnoor-fs.example/api/notify/status", applicationName: "Dolf LMS", events: ["message.delivered", "message.failed", "message.read"], status: "active", lastDeliveryAt: iso(BASE_TIME - 9 * MIN), successRate: 97.2 },
-  { id: "WHK-0030", url: "https://portal.alnoor-fs.example/webhooks/bulk", applicationName: "Customer Portal", events: ["bulk_job.completed"], status: "active", lastDeliveryAt: iso(BASE_TIME - 5 * 60 * MIN), successRate: 100 },
-  { id: "WHK-0017", url: "https://kiosk.alnoor-fs.example/cb", applicationName: "Branch Kiosk Integration", events: ["message.sent"], status: "disabled", lastDeliveryAt: iso(BASE_TIME - 45 * DAY), successRate: 0 },
+  { id: "WHK-0021", url: "https://crm.alnoor-fs.example/hooks/dolf", applicationName: "Dolf CRM", events: ["message.delivered", "message.failed"], status: "active", signingConfigured: true, lastDeliveryAt: iso(BASE_TIME - 2 * MIN), successRate: 99.6, deliveries: [] },
+  { id: "WHK-0024", url: "https://lms.alnoor-fs.example/api/notify/status", applicationName: "Dolf LMS", events: ["message.delivered", "message.failed", "message.read"], status: "active", signingConfigured: true, lastDeliveryAt: iso(BASE_TIME - 9 * MIN), successRate: 97.2, deliveries: [] },
+  { id: "WHK-0030", url: "https://portal.alnoor-fs.example/webhooks/bulk", applicationName: "Customer Portal", events: ["bulk_job.completed"], status: "active", signingConfigured: true, lastDeliveryAt: iso(BASE_TIME - 5 * 60 * MIN), successRate: 100, deliveries: [] },
+  { id: "WHK-0017", url: "https://kiosk.alnoor-fs.example/cb", applicationName: "Branch Kiosk Integration", events: ["message.sent"], status: "disabled", signingConfigured: true, lastDeliveryAt: iso(BASE_TIME - 45 * DAY), successRate: 0, deliveries: [] },
 ];
 
 export const USERS: PortalUser[] = [
@@ -42,10 +42,10 @@ export const SETTINGS: TenantSettings = {
 };
 
 export const PLANS: Plan[] = [
-  { id: "PLN-STARTER", name: "Starter", status: "active", tenants: 2, entitlements: [{ channel: "sms", monthly: 25_000 }, { channel: "whatsapp", monthly: 5_000 }, { channel: "email", monthly: 20_000 }], features: ["Portal sending", "REST API", "Standard support"] },
-  { id: "PLN-BUSINESS", name: "Business", status: "active", tenants: 5, entitlements: [{ channel: "sms", monthly: 120_000 }, { channel: "whatsapp", monthly: 40_000 }, { channel: "email", monthly: 80_000 }], features: ["Bulk jobs", "Webhooks", "Templates approval", "Business-hours support"] },
-  { id: "PLN-ENTERPRISE", name: "Enterprise", status: "active", tenants: 3, entitlements: [{ channel: "sms", monthly: 260_000 }, { channel: "whatsapp", monthly: 150_000 }, { channel: "email", monthly: 90_000 }], features: ["Dedicated sender IDs", "IP allowlisting", "Audit export", "24/7 support"] },
-  { id: "PLN-GOV", name: "Government", status: "draft", tenants: 0, entitlements: [{ channel: "sms", monthly: 500_000 }, { channel: "whatsapp", monthly: 0 }, { channel: "email", monthly: 200_000 }], features: ["In-kingdom data residency", "Extended retention"] },
+  { id: "PLN-STARTER", code: "STARTER", name: "Starter", description: "Core messaging for smaller teams.", status: "active", tpsLimit: 10, tenants: 2, entitlements: [{ channel: "sms", monthly: 25_000 }, { channel: "whatsapp", monthly: 5_000 }, { channel: "email", monthly: 20_000 }], bulkMessaging: false, apiAccess: true, webhooks: false, reporting: true, features: ["Standard support"] },
+  { id: "PLN-BUSINESS", code: "BUSINESS", name: "Business", description: "Higher volumes and integrated workflows.", status: "active", tpsLimit: 50, tenants: 5, entitlements: [{ channel: "sms", monthly: 120_000 }, { channel: "whatsapp", monthly: 40_000 }, { channel: "email", monthly: 80_000 }], bulkMessaging: true, apiAccess: true, webhooks: true, reporting: true, features: ["Templates approval", "Business-hours support"] },
+  { id: "PLN-ENTERPRISE", code: "ENTERPRISE", name: "Enterprise", description: "Flexible messaging for large organizations.", status: "active", tpsLimit: 200, tenants: 3, entitlements: [{ channel: "sms", monthly: 260_000 }, { channel: "whatsapp", monthly: 150_000 }, { channel: "email", monthly: 90_000 }], bulkMessaging: true, apiAccess: true, webhooks: true, reporting: true, features: ["Dedicated sender IDs", "IP allowlisting", "Audit export", "24/7 support"] },
+  { id: "PLN-GOV", code: "GOV", name: "Government", description: "Government messaging with regional requirements.", status: "draft", tpsLimit: 100, tenants: 0, entitlements: [{ channel: "sms", monthly: 500_000 }, { channel: "whatsapp", monthly: 0 }, { channel: "email", monthly: 200_000 }], bulkMessaging: true, apiAccess: true, webhooks: true, reporting: true, features: ["In-kingdom data residency", "Extended retention"] },
 ];
 
 export const CHANNELS: ChannelConfig[] = [

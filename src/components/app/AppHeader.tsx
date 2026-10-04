@@ -46,6 +46,7 @@ function Breadcrumbs() {
 export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { collapsed: boolean; onToggleCollapse: () => void; onOpenMobile: () => void }) {
   const { t, locale, setLocale } = useI18n();
   const { user, isPlatform, setDevRole } = useSession();
+  const isDevelopment = import.meta.env.DEV;
   const initials = user.name.split(" ").map((p) => p[0]).slice(0, 2).join("");
 
   return (
@@ -119,12 +120,14 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
               <div className="text-sm font-medium">{user.name}</div>
               <div className="text-caption">{user.email}</div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="flex items-center gap-1.5 text-label"><UserCog className="size-3.5" />{t("header.switchRole")}</DropdownMenuLabel>
-            <DropdownMenuRadioGroup value={user.role} onValueChange={(v) => setDevRole(v as never)}>
-              {ROLES.map((r) => <DropdownMenuRadioItem key={r} value={r}>{t(`role.${r}`)}</DropdownMenuRadioItem>)}
-            </DropdownMenuRadioGroup>
-            <DropdownMenuSeparator />
+            {isDevelopment && <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="flex items-center gap-1.5 text-label"><UserCog className="size-3.5" />{t("header.switchRole")}</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={user.role} onValueChange={(v) => setDevRole(v as never)}>
+                {ROLES.map((r) => <DropdownMenuRadioItem key={r} value={r}>{t(`role.${r}`)}</DropdownMenuRadioItem>)}
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+            </>}
             <DropdownMenuItem><LogOut className="size-4 rtl:-scale-x-100" />{t("header.signOut")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

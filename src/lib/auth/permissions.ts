@@ -27,13 +27,20 @@ export type Permission =
   | "settings.view"
   | "docs.view"
   | "platform.tenants"
+  | "platform.tenants.manage"
   | "platform.plans"
+  | "platform.plans.manage"
   | "platform.channels"
+  | "platform.channels.manage"
   | "platform.providers"
+  | "platform.providers.manage"
   | "platform.routing"
+  | "platform.routing.manage"
   | "platform.health"
   | "platform.apiClients"
-  | "platform.config";
+  | "platform.apiClients.manage"
+  | "platform.config"
+  | "platform.config.manage";
 
 const CLIENT_ADMIN: Permission[] = [
   "dashboard.view",
@@ -65,19 +72,28 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
     "messages.bulk",
     "templates.view",
     "apps.view",
+    "apps.manage",
     "reports.view",
     "usage.view",
     "users.view",
     "audit.view",
     "docs.view",
     "platform.tenants",
+    "platform.tenants.manage",
+    "users.manage",
     "platform.plans",
+    "platform.plans.manage",
     "platform.channels",
+    "platform.channels.manage",
     "platform.providers",
+    "platform.providers.manage",
     "platform.routing",
+    "platform.routing.manage",
     "platform.health",
     "platform.apiClients",
+    "platform.apiClients.manage",
     "platform.config",
+    "platform.config.manage",
   ]),
   client_admin: new Set(CLIENT_ADMIN),
   operator: new Set<Permission>([

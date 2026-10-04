@@ -45,6 +45,7 @@ export interface Template {
   category: "Authentication" | "Transactional" | "Notification" | "Marketing";
   language: "en" | "ar";
   status: TemplateStatus;
+  subject: string | null;
   version: number;
   updatedAt: string;
   body: string;
@@ -56,6 +57,7 @@ export interface Application {
   environment: "production" | "sandbox";
   status: "active" | "disabled";
   channels: Channel[];
+  scopes: string[];
   credentialCount: number;
   createdAt: string;
   lastActivityAt: string;
@@ -86,10 +88,20 @@ export interface AuditEvent {
 
 export interface Tenant {
   id: string;
+  code: string;
   name: string;
   plan: string;
   status: "active" | "suspended" | "trial";
+  contactName: string;
+  contactEmail: string;
+  enabledChannels: Channel[];
+  defaultLanguage: "en" | "ar";
+  timezone: string;
+  quotas: Record<Channel, number>;
+  tpsLimit: number;
+  notes: string;
   users: number;
+  applications: number;
   messages30d: number;
   quotaPct: number;
   region: string;
@@ -102,11 +114,21 @@ export interface Provider {
   channel: Channel;
   type: "Primary" | "Failover";
   status: "healthy" | "degraded" | "unavailable";
+  enabled: boolean;
+  secretConfigured: boolean;
   latencyMs: number;
   successRate: number;
   priority: number;
   region: string;
   checkedAt: string;
+}
+
+export interface ProviderConfigInput {
+  name: string;
+  channel: Channel;
+  type: Provider["type"];
+  priority: number;
+  region: string;
 }
 
 export interface TrendPoint {
@@ -172,8 +194,20 @@ export interface BulkJob {
   total: number;
   delivered: number;
   failed: number;
+  pending?: number;
+  rejected?: number;
+  results?: BulkRecipientResult[];
   createdAt: string;
   createdBy: string;
+}
+export interface BulkRecipient {
+  recipient: string;
+  variables: Record<string, string>;
+}
+export interface BulkRecipientResult {
+  recipient: string;
+  status: "delivered" | "failed" | "rejected";
+  errorMessage: string | null;
 }
 export interface CreateBulkJobInput {
   name: string;
@@ -181,6 +215,7 @@ export interface CreateBulkJobInput {
   applicationId: string;
   templateId: string | null;
   recipients: number;
+  recipientRows?: BulkRecipient[];
   idempotencyKey: string;
 }
 
@@ -191,8 +226,18 @@ export interface Webhook {
   applicationName: string;
   events: WebhookEvent[];
   status: "active" | "disabled";
+  signingConfigured: boolean;
   lastDeliveryAt: string | null;
   successRate: number;
+  deliveries: WebhookDelivery[];
+}
+export interface WebhookDelivery {
+  id: string;
+  event: WebhookEvent;
+  at: string;
+  result: "success" | "failure";
+  statusCode: number;
+  attempt: number;
 }
 
 export interface PortalUser {
@@ -224,10 +269,17 @@ export interface ReportSummary {
 
 export interface Plan {
   id: string;
+  code: string;
   name: string;
-  status: "active" | "draft";
+  description: string;
+  status: "active" | "draft" | "inactive" | "archived";
+  tpsLimit: number;
   tenants: number;
   entitlements: { channel: Channel; monthly: number }[];
+  bulkMessaging: boolean;
+  apiAccess: boolean;
+  webhooks: boolean;
+  reporting: boolean;
   features: string[];
 }
 

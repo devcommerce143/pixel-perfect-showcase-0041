@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Info, Loader2, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { CHANNEL_META } from "@/components/app/ChannelLabel";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +30,7 @@ const NONE = "__none";
 
 function SendMessage() {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const apps = useQuery(queries.applications());
   const templates = useQuery(queries.templates({ status: "approved" }));
   const [channel, setChannel] = useState<Channel>("sms");
@@ -37,40 +39,65 @@ function SendMessage() {
   const [templateId, setTemplateId] = useState(NONE);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState(false);
   const [lastId, setLastId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const channelApps = (apps.data ?? []).filter((a) => a.status === "active" && a.channels.includes(channel));
   const channelTemplates = (templates.data?.items ?? []).filter((tp) => tp.channel === channel);
   const requiresTemplate = channel === "whatsapp";
+  const selectedTemplate = channelTemplates.find((item) => item.id === templateId);
+  const variableNames = Array.from(new Set(selectedTemplate?.body.match(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)?.map((match) => match.replace(/[{}\s]/g, "")) ?? []));
+  const renderedBody = selectedTemplate
+    ? selectedTemplate.body.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (match, key: string) => variableValues[key]?.trim() || match)
+    : body;
+  const missingVariables = variableNames.some((key) => !variableValues[key]?.trim());
+  const smsUnicode = Array.from(renderedBody).some((character) => character.charCodeAt(0) > 0x7f);
+  const smsSegments = Math.max(1, Math.ceil(renderedBody.length / (smsUnicode ? 70 : 160)));
 
   const errors = useMemo(() => {
-    const e: Partial<Record<"app" | "recipient" | "template" | "body" | "subject", string>> = {};
+    const e: Partial<Record<"app" | "recipient" | "template" | "body" | "subject" | "variables", string>> = {};
     if (!appId) e.app = t("send.required");
     if (!recipient) e.recipient = t("send.required");
     else if (channel === "email" ? !EMAIL.test(recipient) : !PHONE.test(recipient.replace(/\s/g, ""))) e.recipient = channel === "email" ? t("send.invalidEmail") : t("send.invalidPhone");
     if (requiresTemplate && templateId === NONE) e.template = t("send.whatsappTemplateOnly");
-    if (!body) e.body = t("send.required");
+    if (!renderedBody.trim()) e.body = t("send.required");
+    if (missingVariables) e.variables = t("send.variablesRequired");
     if (channel === "email" && !subject) e.subject = t("send.required");
     return e;
-  }, [appId, recipient, channel, templateId, body, subject, requiresTemplate, t]);
+  }, [appId, recipient, channel, templateId, renderedBody, subject, requiresTemplate, missingVariables, t]);
 
   const mutation = useMutation({
-    mutationFn: () => api.sendMessage({ channel, applicationId: appId, recipient, templateId: templateId === NONE ? null : templateId, subject, body, idempotencyKey: crypto.randomUUID() }),
-    onSuccess: (r) => { setLastId(r.id); toast.success(t("send.success", { id: r.id })); setRecipient(""); setTouched(false); },
+    mutationFn: () => api.sendMessage({ channel, applicationId: appId, recipient, templateId: templateId === NONE ? null : templateId, subject, body: renderedBody, idempotencyKey: crypto.randomUUID() }),
+    onSuccess: async (r) => {
+      setConfirmOpen(false);
+      setLastId(r.id);
+      toast.success(t("send.success", { id: r.id }));
+      setRecipient("");
+      setTouched(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["messages"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: ["report"] }),
+      ]);
+    },
   });
 
   const submit = (ev: React.FormEvent) => {
     ev.preventDefault();
     setTouched(true);
-    if (Object.keys(errors).length === 0) mutation.mutate();
+    if (Object.keys(errors).length === 0) setConfirmOpen(true);
   };
   const err = (k: keyof typeof errors) => touched && errors[k] ? <p id={`${k}-err`} className="text-xs text-danger">{errors[k]}</p> : null;
 
-  const changeChannel = (c: Channel) => { setChannel(c); setAppId(""); setTemplateId(NONE); setBody(""); setTouched(false); };
+  const changeChannel = (c: Channel) => { setChannel(c); setAppId(""); setTemplateId(NONE); setBody(""); setSubject(""); setVariableValues({}); setTouched(false); };
   const pickTemplate = (id: string) => {
     setTemplateId(id);
-    setBody(id === NONE ? "" : channelTemplates.find((x) => x.id === id)?.body ?? "");
+    const template = channelTemplates.find((item) => item.id === id);
+    setBody(id === NONE ? "" : template?.body ?? "");
+    setSubject(id === NONE ? "" : template?.subject ?? "");
+    setVariableValues({});
   };
 
   return (
@@ -134,10 +161,12 @@ function SendMessage() {
                 </div>
               )}
 
+              {variableNames.length > 0 && <div className="space-y-3 rounded-md border bg-surface-subtle p-3"><h3 className="text-sm font-medium">{t("send.templateVariables")}</h3><div className="grid gap-3 sm:grid-cols-2">{variableNames.map((key) => <div key={key} className="space-y-1.5"><Label htmlFor={`variable-${key}`}>{key} *</Label><Input id={`variable-${key}`} value={variableValues[key] ?? ""} onChange={(event) => setVariableValues({ ...variableValues, [key]: event.target.value })} aria-invalid={!!(touched && !variableValues[key]?.trim())} /></div>)}</div>{err("variables")}</div>}
+
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="body">{t("send.body")}</Label>
-                <Textarea id="body" dir="auto" rows={6} value={body} onChange={(e) => setBody(e.target.value)} readOnly={templateId !== NONE} aria-invalid={!!(touched && errors.body)} />
-                <div className="flex justify-between">{err("body") ?? <span />}<span className="text-caption tabular-nums">{t("send.chars", { count: body.length })}</span></div>
+                <Textarea id="body" dir="auto" rows={6} value={renderedBody} onChange={(e) => setBody(e.target.value)} readOnly={templateId !== NONE} aria-invalid={!!(touched && errors.body)} />
+                <div className="flex justify-between">{err("body") ?? <span />}<span className="text-caption tabular-nums">{t("send.chars", { count: renderedBody.length })}{channel === "sms" ? ` · ${t("send.smsSegments", { count: smsSegments, encoding: t(smsUnicode ? "tpl.unicode" : "tpl.gsm") })}` : ""}</span></div>
               </div>
             </div>
             <div className="flex items-center justify-between gap-3 border-t bg-surface-subtle px-5 py-3">
@@ -164,6 +193,12 @@ function SendMessage() {
           </Section>
         </div>
       </PageBody>
+      <AlertDialog open={confirmOpen} onOpenChange={(value) => !mutation.isPending && setConfirmOpen(value)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>{t("send.confirmTitle")}</AlertDialogTitle><AlertDialogDescription>{t("send.confirmBody", { channel: t(`channel.${channel}`), recipient })}</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction disabled={mutation.isPending} onClick={(event) => { event.preventDefault(); mutation.mutate(); }}>{mutation.isPending ? t("send.submitting") : t("send.confirm")}</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

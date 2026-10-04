@@ -1,5 +1,4 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { RadioTower } from "lucide-react";
 import { getNavigation, findNavMatch } from "@/config/navigation";
 import { useSession } from "@/lib/auth/session";
 import { useI18n } from "@/lib/i18n/i18n";
@@ -16,8 +15,8 @@ export function AppSidebar({ collapsed, onNavigate }: { collapsed: boolean; onNa
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className={cn("flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-4")}>
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-          <RadioTower className="size-4" aria-hidden />
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white shadow-sm">
+          <img src="/connect-logo.png" alt="" aria-hidden="true" className="size-8 object-contain" />
         </div>
         {!collapsed && (
           <div className="min-w-0 leading-tight">

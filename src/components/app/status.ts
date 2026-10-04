@@ -29,6 +29,8 @@ export const STATUS_DEFS: Record<string, { tone: Tone; icon: LucideIcon }> = {
   suspended: { tone: "danger", icon: Ban },
   draft: { tone: "neutral", icon: MinusCircle },
   disabled: { tone: "neutral", icon: MinusCircle },
+    inactive: { tone: "neutral", icon: MinusCircle },
+    archived: { tone: "neutral", icon: MinusCircle },
   expired: { tone: "neutral", icon: MinusCircle },
 };
 

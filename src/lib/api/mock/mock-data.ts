@@ -33,24 +33,24 @@ const MIN = 60_000;
 const DAY = 86_400_000;
 
 export const APPLICATIONS: Application[] = [
-  { id: "APP-00182", name: "Dolf LMS", environment: "production", status: "active", channels: ["sms", "email"], credentialCount: 2, createdAt: iso(BASE_TIME - 210 * DAY), lastActivityAt: iso(BASE_TIME - 2 * MIN) },
-  { id: "APP-00187", name: "Dolf CRM", environment: "production", status: "active", channels: ["sms", "whatsapp", "email"], credentialCount: 1, createdAt: iso(BASE_TIME - 180 * DAY), lastActivityAt: iso(BASE_TIME - 6 * MIN) },
-  { id: "APP-00203", name: "Customer Mobile App", environment: "production", status: "active", channels: ["sms", "whatsapp"], credentialCount: 2, createdAt: iso(BASE_TIME - 96 * DAY), lastActivityAt: iso(BASE_TIME - 1 * MIN) },
-  { id: "APP-00211", name: "Customer Portal", environment: "production", status: "active", channels: ["email", "sms"], credentialCount: 1, createdAt: iso(BASE_TIME - 64 * DAY), lastActivityAt: iso(BASE_TIME - 24 * MIN) },
-  { id: "APP-00219", name: "Customer Portal (UAT)", environment: "sandbox", status: "active", channels: ["email", "sms", "whatsapp"], credentialCount: 1, createdAt: iso(BASE_TIME - 40 * DAY), lastActivityAt: iso(BASE_TIME - 3 * DAY) },
-  { id: "APP-00224", name: "Branch Kiosk Integration", environment: "production", status: "disabled", channels: ["sms"], credentialCount: 0, createdAt: iso(BASE_TIME - 300 * DAY), lastActivityAt: iso(BASE_TIME - 45 * DAY) },
+  { id: "APP-00182", name: "Dolf LMS", environment: "production", status: "active", channels: ["sms", "email"], scopes: ["messages:send", "messages:read"], credentialCount: 2, createdAt: iso(BASE_TIME - 210 * DAY), lastActivityAt: iso(BASE_TIME - 2 * MIN) },
+  { id: "APP-00187", name: "Dolf CRM", environment: "production", status: "active", channels: ["sms", "whatsapp", "email"], scopes: ["messages:send", "messages:read", "templates:read"], credentialCount: 1, createdAt: iso(BASE_TIME - 180 * DAY), lastActivityAt: iso(BASE_TIME - 6 * MIN) },
+  { id: "APP-00203", name: "Customer Mobile App", environment: "production", status: "active", channels: ["sms", "whatsapp"], scopes: ["messages:send"], credentialCount: 2, createdAt: iso(BASE_TIME - 96 * DAY), lastActivityAt: iso(BASE_TIME - 1 * MIN) },
+  { id: "APP-00211", name: "Customer Portal", environment: "production", status: "active", channels: ["email", "sms"], scopes: ["messages:send", "messages:read"], credentialCount: 1, createdAt: iso(BASE_TIME - 64 * DAY), lastActivityAt: iso(BASE_TIME - 24 * MIN) },
+  { id: "APP-00219", name: "Customer Portal (UAT)", environment: "sandbox", status: "active", channels: ["email", "sms", "whatsapp"], scopes: ["messages:send", "messages:read", "templates:read"], credentialCount: 1, createdAt: iso(BASE_TIME - 40 * DAY), lastActivityAt: iso(BASE_TIME - 3 * DAY) },
+  { id: "APP-00224", name: "Branch Kiosk Integration", environment: "production", status: "disabled", channels: ["sms"], scopes: ["messages:send"], credentialCount: 0, createdAt: iso(BASE_TIME - 300 * DAY), lastActivityAt: iso(BASE_TIME - 45 * DAY) },
 ];
 
 export const TEMPLATES: Template[] = [
-  { id: "TPL-0101", name: "otp_login_en", channel: "sms", category: "Authentication", language: "en", status: "approved", version: 3, updatedAt: iso(BASE_TIME - 12 * DAY), body: "Your Al Noor verification code is {{code}}. It expires in 5 minutes. Do not share it." },
-  { id: "TPL-0102", name: "otp_login_ar", channel: "sms", category: "Authentication", language: "ar", status: "approved", version: 2, updatedAt: iso(BASE_TIME - 1 * DAY), body: "رمز التحقق الخاص بك هو {{code}}. صالح لمدة 5 دقائق. لا تشاركه مع أحد." },
-  { id: "TPL-0110", name: "payment_confirmation", channel: "whatsapp", category: "Transactional", language: "en", status: "approved", version: 4, updatedAt: iso(BASE_TIME - 20 * DAY), body: "Payment of SAR {{amount}} to {{merchant}} was completed on {{date}}. Ref {{reference}}." },
-  { id: "TPL-0111", name: "payment_confirmation_ar", channel: "whatsapp", category: "Transactional", language: "ar", status: "pending", version: 1, updatedAt: iso(BASE_TIME - 2 * DAY), body: "تم سداد مبلغ {{amount}} ريال إلى {{merchant}} بتاريخ {{date}}. المرجع {{reference}}." },
-  { id: "TPL-0120", name: "statement_ready", channel: "email", category: "Notification", language: "en", status: "approved", version: 6, updatedAt: iso(BASE_TIME - 33 * DAY), body: "Dear {{name}}, your monthly statement for {{month}} is now available in the customer portal." },
-  { id: "TPL-0121", name: "course_enrolment", channel: "email", category: "Notification", language: "en", status: "approved", version: 2, updatedAt: iso(BASE_TIME - 8 * DAY), body: "You have been enrolled in {{course}}. Sessions begin on {{start_date}}." },
-  { id: "TPL-0130", name: "appointment_reminder", channel: "whatsapp", category: "Notification", language: "ar", status: "rejected", version: 1, updatedAt: iso(BASE_TIME - 5 * DAY), body: "تذكير بموعدك في فرع {{branch}} يوم {{date}} الساعة {{time}}." },
-  { id: "TPL-0140", name: "card_dispatch", channel: "sms", category: "Transactional", language: "en", status: "approved", version: 1, updatedAt: iso(BASE_TIME - 50 * DAY), body: "Your new card ending {{last4}} has been dispatched and will arrive within 3 business days." },
-  { id: "TPL-0150", name: "ramadan_offer_2027", channel: "email", category: "Marketing", language: "ar", status: "draft", version: 1, updatedAt: iso(BASE_TIME - 3 * 60 * MIN), body: "عروض رمضان الحصرية لعملاء النور. اكتشف المزيد عبر بوابة العملاء." },
+  { id: "TPL-0101", name: "otp_login_en", channel: "sms", category: "Authentication", language: "en", status: "approved", subject: null, version: 3, updatedAt: iso(BASE_TIME - 12 * DAY), body: "Your Al Noor verification code is {{code}}. It expires in 5 minutes. Do not share it." },
+  { id: "TPL-0102", name: "otp_login_ar", channel: "sms", category: "Authentication", language: "ar", status: "approved", subject: null, version: 2, updatedAt: iso(BASE_TIME - 1 * DAY), body: "رمز التحقق الخاص بك هو {{code}}. صالح لمدة 5 دقائق. لا تشاركه مع أحد." },
+  { id: "TPL-0110", name: "payment_confirmation", channel: "whatsapp", category: "Transactional", language: "en", status: "approved", subject: null, version: 4, updatedAt: iso(BASE_TIME - 20 * DAY), body: "Payment of SAR {{amount}} to {{merchant}} was completed on {{date}}. Ref {{reference}}." },
+  { id: "TPL-0111", name: "payment_confirmation_ar", channel: "whatsapp", category: "Transactional", language: "ar", status: "pending", subject: null, version: 1, updatedAt: iso(BASE_TIME - 2 * DAY), body: "تم سداد مبلغ {{amount}} ريال إلى {{merchant}} بتاريخ {{date}}. المرجع {{reference}}." },
+  { id: "TPL-0120", name: "statement_ready", channel: "email", category: "Notification", language: "en", status: "approved", subject: "Your monthly statement is ready", version: 6, updatedAt: iso(BASE_TIME - 33 * DAY), body: "Dear {{name}}, your monthly statement for {{month}} is now available in the customer portal." },
+  { id: "TPL-0121", name: "course_enrolment", channel: "email", category: "Notification", language: "en", status: "approved", subject: "Course enrolment confirmed", version: 2, updatedAt: iso(BASE_TIME - 8 * DAY), body: "You have been enrolled in {{course}}. Sessions begin on {{start_date}}." },
+  { id: "TPL-0130", name: "appointment_reminder", channel: "whatsapp", category: "Notification", language: "ar", status: "rejected", subject: null, version: 1, updatedAt: iso(BASE_TIME - 5 * DAY), body: "تذكير بموعدك في فرع {{branch}} يوم {{date}} الساعة {{time}}." },
+  { id: "TPL-0140", name: "card_dispatch", channel: "sms", category: "Transactional", language: "en", status: "approved", subject: null, version: 1, updatedAt: iso(BASE_TIME - 50 * DAY), body: "Your new card ending {{last4}} has been dispatched and will arrive within 3 business days." },
+  { id: "TPL-0150", name: "ramadan_offer_2027", channel: "email", category: "Marketing", language: "ar", status: "draft", subject: "عروض رمضان", version: 1, updatedAt: iso(BASE_TIME - 3 * 60 * MIN), body: "عروض رمضان الحصرية لعملاء النور. اكتشف المزيد عبر بوابة العملاء." },
 ];
 
 const STATUS_WEIGHTS: [MessageStatus, number][] = [
@@ -180,9 +180,19 @@ export const TENANTS: Tenant[] = [
 ].map(([name, plan, status, users, vol, q], i) => ({
   id: `TEN-${pad(12 + i * 3, 5)}`,
   name: name as string,
+  code: `TEN-${pad(12 + i * 3, 5)}`,
   plan: plan as string,
   status: status as Tenant["status"],
+  contactName: "Tenant administrator",
+  contactEmail: `admin${i + 1}@example.com`,
+  enabledChannels: ["sms", "whatsapp", "email"],
+  defaultLanguage: "en",
+  timezone: "Asia/Riyadh",
+  quotas: { sms: 100_000, whatsapp: 50_000, email: 50_000 },
+  tpsLimit: 25,
+  notes: "",
   users: users as number,
+  applications: 2,
   messages30d: vol as number,
   quotaPct: q as number,
   region: i % 3 === 2 ? "KSA-West" : "KSA-Central",
@@ -190,11 +200,11 @@ export const TENANTS: Tenant[] = [
 }));
 
 export const PROVIDERS: Provider[] = [
-  { id: "PRV-SMS-01", name: "SMS Gateway A", channel: "sms", type: "Primary", status: "healthy", latencyMs: 820, successRate: 98.7, priority: 1, region: "KSA", checkedAt: iso(BASE_TIME - 1 * MIN) },
-  { id: "PRV-SMS-02", name: "SMS Gateway B", channel: "sms", type: "Failover", status: "degraded", latencyMs: 2140, successRate: 94.2, priority: 2, region: "KSA", checkedAt: iso(BASE_TIME - 1 * MIN) },
-  { id: "PRV-WA-01", name: "WhatsApp Business Platform", channel: "whatsapp", type: "Primary", status: "healthy", latencyMs: 610, successRate: 99.1, priority: 1, region: "Global", checkedAt: iso(BASE_TIME - 2 * MIN) },
-  { id: "PRV-EM-01", name: "Email Relay A", channel: "email", type: "Primary", status: "healthy", latencyMs: 340, successRate: 99.4, priority: 1, region: "EU", checkedAt: iso(BASE_TIME - 1 * MIN) },
-  { id: "PRV-EM-02", name: "Email Relay B", channel: "email", type: "Failover", status: "unavailable", latencyMs: 0, successRate: 0, priority: 2, region: "ME", checkedAt: iso(BASE_TIME - 4 * MIN) },
+  { id: "PRV-SMS-01", name: "SMS Gateway A", channel: "sms", type: "Primary", status: "healthy", enabled: true, secretConfigured: true, latencyMs: 820, successRate: 98.7, priority: 1, region: "KSA", checkedAt: iso(BASE_TIME - 1 * MIN) },
+  { id: "PRV-SMS-02", name: "SMS Gateway B", channel: "sms", type: "Failover", status: "degraded", enabled: true, secretConfigured: true, latencyMs: 2140, successRate: 94.2, priority: 2, region: "KSA", checkedAt: iso(BASE_TIME - 1 * MIN) },
+  { id: "PRV-WA-01", name: "WhatsApp Business Platform", channel: "whatsapp", type: "Primary", status: "healthy", enabled: true, secretConfigured: true, latencyMs: 610, successRate: 99.1, priority: 1, region: "Global", checkedAt: iso(BASE_TIME - 2 * MIN) },
+  { id: "PRV-EM-01", name: "Email Relay A", channel: "email", type: "Primary", status: "healthy", enabled: true, secretConfigured: true, latencyMs: 340, successRate: 99.4, priority: 1, region: "EU", checkedAt: iso(BASE_TIME - 1 * MIN) },
+  { id: "PRV-EM-02", name: "Email Relay B", channel: "email", type: "Failover", status: "unavailable", enabled: false, secretConfigured: true, latencyMs: 0, successRate: 0, priority: 2, region: "ME", checkedAt: iso(BASE_TIME - 4 * MIN) },
 ];
 
 export function buildTrend() {

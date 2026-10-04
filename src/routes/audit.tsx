@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Bot, Download, User } from "lucide-react";
+import { toast } from "sonner";
 import { DataTable, TablePagination, TableToolbar, type Column } from "@/components/app/DataTable";
 import { FilterSelect } from "@/components/app/FilterSelect";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
@@ -21,10 +22,28 @@ export const Route = createFileRoute("/audit")({
 
 function Audit() {
   const { t, locale } = useI18n();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [result, setResult] = useState("all");
   const [page, setPage] = useState(1);
   const q = useQuery(queries.audit({ page, pageSize: 20, search, status: result }));
+  const exportAudit = async () => {
+    if (!q.data?.total) return;
+    const all = await queryClient.fetchQuery(queries.audit({ page: 1, pageSize: q.data.total, search, status: result }));
+    const cell = (value: string) => {
+      const text = value.replace(/^[=+@-]/, "'$&");
+      return `"${text.replaceAll('"', '""')}"`;
+    };
+    const rows = [["id", "at", "actor", "actor_type", "action", "resource", "result", "ip"], ...all.items.map((event) => [event.id, event.at, event.actor, event.actorType, event.action, event.resource, event.result, event.ip])];
+    const csv = rows.map((row) => row.map(cell).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `dolf-connect-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(t("audit.exported"));
+  };
   const columns: Column<AuditEvent>[] = [
     { id: "time", header: t("audit.time"), cell: (a) => <span className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDateTime(a.at, locale)}</span> },
     { id: "actor", header: t("audit.actor"), cell: (a) => (
@@ -40,7 +59,7 @@ function Audit() {
   return (
     <>
       <PageHeader title={t("audit.title")} description={t("audit.subtitle")}
-        actions={<Button variant="outline" size="sm"><Download className="size-4" />{t("common.export")}</Button>} />
+        actions={<Button variant="outline" size="sm" disabled={!q.data?.total} onClick={() => void exportAudit()}><Download className="size-4" />{t("common.export")}</Button>} />
       <PageBody>
         <Section>
           <TableToolbar search={search} onSearch={(v) => { setSearch(v); setPage(1); }} placeholder={t("audit.search")}>

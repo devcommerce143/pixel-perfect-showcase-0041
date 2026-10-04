@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle } from "lucide-react";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { useI18n, type MessageKey } from "@/lib/i18n/i18n";
@@ -42,14 +41,16 @@ function Docs() {
             </ul>
           </nav>
           <div className="flex flex-col gap-4">
-            <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft px-4 py-2.5 text-[0.8125rem] text-warning">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />{t("docs.tbd")}
-            </div>
             <Section title={t("docs.auth")}><p id="docs.auth" className="px-4 py-3 text-body">{t("docs.authBody")}</p></Section>
             <Section title={t("docs.send")} description={t("docs.illustrative")}>
               <p id="docs.send" className="px-4 pt-3 text-body">{t("docs.sendBody")}</p>
               <pre dir="ltr" className="m-4 overflow-x-auto rounded-md bg-sidebar p-4 font-mono text-xs leading-5 text-sidebar-foreground">{SAMPLE}</pre>
             </Section>
+            <Section title={t("docs.bulk")}><p id="docs.bulk" className="px-4 py-3 text-body">{t("docs.bulkBody")}</p></Section>
+            <Section title={t("docs.templates")}><p id="docs.templates" className="px-4 py-3 text-body">{t("docs.templatesBody")}</p></Section>
+            <Section title={t("docs.status")}><p id="docs.status" className="px-4 py-3 text-body">{t("docs.statusBody")}</p></Section>
+            <Section title={t("docs.webhooks")}><p id="docs.webhooks" className="px-4 py-3 text-body">{t("docs.webhooksBody")}</p></Section>
+            <Section title={t("docs.errors")}><p id="docs.errors" className="px-4 py-3 text-body">{t("docs.errorsBody")}</p></Section>
             <Section title={t("docs.idempotency")}><p id="docs.idempotency" className="px-4 py-3 text-body">{t("docs.idempotencyBody")}</p></Section>
           </div>
         </div>

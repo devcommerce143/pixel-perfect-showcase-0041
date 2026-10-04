@@ -25,6 +25,27 @@ function Reports() {
   const r = useQuery(queries.report());
   const d = useQuery(queries.dashboard());
   const total = r.data?.sampleSize ?? 1;
+  const exportReport = () => {
+    if (!r.data || !d.data) return;
+    const cell = (value: string | number) => {
+      const text = String(value).replace(/^[=+@-]/, "'$&");
+      return `"${text.replaceAll('"', '""')}"`;
+    };
+    const rows = [
+      [t("rep.exportSection"), t("common.name"), t("common.total"), t("status.failed")],
+      ...r.data.byStatus.map((item) => [t("rep.status"), t(`status.${item.status}`), item.count, ""]),
+      ...r.data.byApplication.map((item) => [t("rep.application"), item.applicationName, item.count, item.failed]),
+      ...[...d.data.trend].reverse().map((item) => [t("rep.daily"), item.date, item.delivered + item.failed + item.pending, item.failed]),
+    ];
+    const csv = rows.map((row) => row.map(cell).join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `dolf-connect-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success(t("rep.exported"));
+  };
 
   const daily: Column<TrendPoint>[] = [
     { id: "d", header: t("common.date"), cell: (p) => <span className="tabular-nums">{formatShortDay(p.date, locale)}</span> },
@@ -38,7 +59,7 @@ function Reports() {
   return (
     <>
       <PageHeader title={t("rep.title")} description={t("rep.subtitle")}
-        actions={<Button size="sm" variant="outline" onClick={() => toast.success(t("rep.exported"))}><Download className="size-4" />{t("common.export")}</Button>} />
+        actions={<Button size="sm" variant="outline" disabled={!r.data || !d.data} onClick={exportReport}><Download className="size-4" />{t("common.export")}</Button>} />
       <PageBody>
         {!r.data ? <TableSkeleton /> : (
           <div className="grid gap-4 lg:grid-cols-2">

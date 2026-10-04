@@ -65,11 +65,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("client_admin");
 
   useEffect(() => {
+    if (!import.meta.env.DEV) return;
     const stored = window.localStorage.getItem(STORAGE_KEY) as Role | null;
     if (stored && stored in DEV_USERS) setRole(stored);
   }, []);
 
   const setDevRole = useCallback((next: Role) => {
+    if (!import.meta.env.DEV) return;
     setRole(next);
     window.localStorage.setItem(STORAGE_KEY, next);
   }, []);
