@@ -9,6 +9,7 @@ export function AppSidebar({ collapsed, onNavigate }: { collapsed: boolean; onNa
   const { t, dir } = useI18n();
   const { user, can, isPlatform } = useSession();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (!user) return null;
   const groups = getNavigation(user.role, can);
   const active = findNavMatch(groups, pathname);
 
@@ -28,7 +29,7 @@ export function AppSidebar({ collapsed, onNavigate }: { collapsed: boolean; onNa
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3" aria-label={t("app.name")}>
+      <nav className="sidebar-scroll flex-1 overflow-y-auto py-3" aria-label={t("app.name")}>
         {groups.map((group) => (
           <div key={group.id} className="mb-3 px-2">
             {group.labelKey && !collapsed && (

@@ -13,6 +13,9 @@ import { queries } from "@/lib/api/queries";
 import type { AuditEvent } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/i18n";
+import { useSession } from "@/lib/auth/session";
+import { useGlobalTenantContext } from "@/lib/tenant-context";
+import type { SenderIdentityActor } from "@/lib/api/types";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/audit")({
@@ -22,19 +25,24 @@ export const Route = createFileRoute("/audit")({
 
 function Audit() {
   const { t, locale } = useI18n();
+  const { user, isPlatform } = useSession();
+  const { tenantId: selectedTenantId } = useGlobalTenantContext();
+  const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [result, setResult] = useState("all");
   const [page, setPage] = useState(1);
-  const q = useQuery(queries.audit({ page, pageSize: 20, search, status: result }));
+  const tenantScopeId = selectedTenantId ?? (!isPlatform ? actor.tenantId ?? undefined : undefined);
+  const auditQuery = { page, pageSize: 20, search, status: result, ...(tenantScopeId ? { tenantId: tenantScopeId } : {}) };
+  const q = useQuery(queries.audit(auditQuery, actor));
   const exportAudit = async () => {
     if (!q.data?.total) return;
-    const all = await queryClient.fetchQuery(queries.audit({ page: 1, pageSize: q.data.total, search, status: result }));
+    const all = await queryClient.fetchQuery(queries.audit({ ...auditQuery, page: 1, pageSize: q.data.total }, actor));
     const cell = (value: string) => {
       const text = value.replace(/^[=+@-]/, "'$&");
       return `"${text.replaceAll('"', '""')}"`;
     };
-    const rows = [["id", "at", "actor", "actor_type", "action", "resource", "result", "ip"], ...all.items.map((event) => [event.id, event.at, event.actor, event.actorType, event.action, event.resource, event.result, event.ip])];
+    const rows = [["id", "at", ...(isPlatform && !selectedTenantId ? [t("common.tenant")] : []), "actor", "actor_type", "action", "resource", "result", "ip"], ...all.items.map((event) => [event.id, event.at, ...(isPlatform && !selectedTenantId ? [event.tenantName ?? event.tenantId ?? ""] : []), event.actor, event.actorType, event.action, event.resource, event.result, event.ip])];
     const csv = rows.map((row) => row.map(cell).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
@@ -46,6 +54,7 @@ function Audit() {
   };
   const columns: Column<AuditEvent>[] = [
     { id: "time", header: t("audit.time"), cell: (a) => <span className="whitespace-nowrap tabular-nums text-muted-foreground">{formatDateTime(a.at, locale)}</span> },
+    ...(isPlatform && !selectedTenantId ? [{ id: "tenant", header: t("common.tenant"), cell: (a: AuditEvent) => a.tenantName ?? a.tenantId ?? "—", className: "hidden lg:table-cell" }] : []),
     { id: "actor", header: t("audit.actor"), cell: (a) => (
       <span className="inline-flex items-center gap-1.5">
         {a.actorType === "service" ? <Bot className="size-4 text-muted-foreground" aria-label={t("audit.service")} /> : <User className="size-4 text-muted-foreground" aria-hidden />}

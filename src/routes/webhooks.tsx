@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
-import type { Webhook, WebhookEvent } from "@/lib/api/types";
+import type { SenderIdentityActor, Webhook, WebhookEvent } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
 import { formatDateTime, formatPercent } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/i18n";
@@ -32,10 +32,11 @@ const EVENTS: WebhookEvent[] = ["message.sent", "message.delivered", "message.fa
 
 function Webhooks() {
   const { t, locale } = useI18n();
-  const { can } = useSession();
+  const { can, user } = useSession();
+  const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
   const qc = useQueryClient();
   const q = useQuery(queries.webhooks());
-  const apps = useQuery(queries.applications());
+  const apps = useQuery(queries.applications(actor));
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Webhook | null>(null);

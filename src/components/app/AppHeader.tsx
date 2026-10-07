@@ -1,21 +1,26 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, BookOpen, Building2, ChevronRight, Languages, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserCog } from "lucide-react";
-import { Fragment } from "react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { Bell, BookOpen, Building2, Check, ChevronDown, ChevronRight, Languages, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup,
   DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { findNavMatch, getNavigation } from "@/config/navigation";
-import { ROLES } from "@/lib/auth/permissions";
+import { queries } from "@/lib/api/queries";
 import { useSession } from "@/lib/auth/session";
+import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { useI18n, type Locale } from "@/lib/i18n/i18n";
 
 function Breadcrumbs() {
   const { t } = useI18n();
   const { user, can } = useSession();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (!user) return null;
   const match = findNavMatch(getNavigation(user.role, can), pathname);
   const crumbs: { label: string; to?: string }[] = [];
   if (match) {
@@ -45,9 +50,27 @@ function Breadcrumbs() {
 
 export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { collapsed: boolean; onToggleCollapse: () => void; onOpenMobile: () => void }) {
   const { t, locale, setLocale } = useI18n();
-  const { user, isPlatform, setDevRole } = useSession();
-  const isDevelopment = import.meta.env.DEV;
+  const { user, isPlatform, can, signOut } = useSession();
+  const { tenantId, setTenantId } = useGlobalTenantContext();
+  const router = useRouter();
+  const [tenantSelectorOpen, setTenantSelectorOpen] = useState(false);
+  const tenantsQuery = useQuery({
+    ...queries.tenants({ page: 1, pageSize: 100, filters: { status: "all" }, sortBy: "name", sortDirection: "asc" }),
+    enabled: isPlatform,
+  });
+  const selectableTenants = (tenantsQuery.data?.items ?? []).filter((tenant) => tenant.status === "active" || tenant.status === "trial");
+  const selectedTenant = selectableTenants.find((tenant) => tenant.id === tenantId);
+  useEffect(() => {
+    if (isPlatform && tenantId && tenantsQuery.data && !selectableTenants.some((tenant) => tenant.id === tenantId)) setTenantId(undefined);
+  }, [isPlatform, selectableTenants, setTenantId, tenantId, tenantsQuery.data]);
+  if (!user) return null;
   const initials = user.name.split(" ").map((p) => p[0]).slice(0, 2).join("");
+  const organizationName = user.tenantName ?? t("header.dolftech");
+  const accountTarget = can("settings.view") ? "/settings" : can("platform.config") ? "/platform/config" : null;
+  const handleSignOut = async () => {
+    await signOut();
+    await router.navigate({ to: "/login" as never, replace: true });
+  };
 
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-card px-3 md:px-4">
@@ -66,10 +89,44 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
           <Input placeholder={t("header.search")} aria-label={t("header.search")} className="h-8 w-80 bg-surface-subtle ps-8" />
         </div>
 
-        <div className="mx-1 hidden h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs text-muted-foreground md:flex">
-          <Building2 className="size-3.5" aria-hidden />
-          <span className="max-w-48 truncate font-medium text-foreground">{isPlatform ? t("header.allTenants") : user.tenantName}</span>
-        </div>
+        {isPlatform ? (
+          <Popover open={tenantSelectorOpen} onOpenChange={setTenantSelectorOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="mx-1 h-8 min-w-0 max-w-40 gap-1.5 px-2 sm:max-w-56" aria-label={t("header.tenantContext")}>
+                <Building2 className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate text-xs font-medium">{selectedTenant?.name ?? (tenantId || t("header.allTenants"))}</span>
+                <ChevronDown className="size-3.5 shrink-0" aria-hidden />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[min(22rem,calc(100vw-1rem))] p-0">
+              <Command>
+                <CommandInput placeholder={t("header.searchTenants")} aria-label={t("header.searchTenants")} />
+                <CommandList>
+                  <CommandEmpty>{t("common.noResults")}</CommandEmpty>
+                  <CommandGroup>
+                    <CommandItem value={t("header.allTenants")} onSelect={() => { setTenantId(undefined); setTenantSelectorOpen(false); }}>
+                      <Check className={`size-4 ${tenantId ? "opacity-0" : ""}`} aria-hidden />
+                      {t("header.allTenants")}
+                    </CommandItem>
+                  </CommandGroup>
+                  <CommandGroup>
+                    {selectableTenants.map((tenant) => (
+                      <CommandItem key={tenant.id} value={`${tenant.name} ${tenant.id}`} onSelect={() => { setTenantId(tenant.id); setTenantSelectorOpen(false); }}>
+                        <Check className={`size-4 ${tenant.id === tenantId ? "opacity-100" : "opacity-0"}`} aria-hidden />
+                        <span className="truncate">{tenant.name}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <div className="mx-1 flex h-8 min-w-0 max-w-40 items-center gap-1.5 rounded-md border px-2 text-xs text-muted-foreground sm:max-w-56 sm:px-2.5">
+            <Building2 className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate font-medium text-foreground">{organizationName}</span>
+          </div>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -120,15 +177,10 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
               <div className="text-sm font-medium">{user.name}</div>
               <div className="text-caption">{user.email}</div>
             </DropdownMenuLabel>
-            {isDevelopment && <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="flex items-center gap-1.5 text-label"><UserCog className="size-3.5" />{t("header.switchRole")}</DropdownMenuLabel>
-              <DropdownMenuRadioGroup value={user.role} onValueChange={(v) => setDevRole(v as never)}>
-                {ROLES.map((r) => <DropdownMenuRadioItem key={r} value={r}>{t(`role.${r}`)}</DropdownMenuRadioItem>)}
-              </DropdownMenuRadioGroup>
-              <DropdownMenuSeparator />
-            </>}
-            <DropdownMenuItem><LogOut className="size-4 rtl:-scale-x-100" />{t("header.signOut")}</DropdownMenuItem>
+            <DropdownMenuLabel className="font-normal text-caption">{organizationName}</DropdownMenuLabel>
+            {accountTarget && <DropdownMenuItem asChild><Link to={accountTarget as never}>{t("header.accountSettings")}</Link></DropdownMenuItem>}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={(event) => { event.preventDefault(); void handleSignOut(); }}><LogOut className="size-4 rtl:-scale-x-100" />{t("header.signOut")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

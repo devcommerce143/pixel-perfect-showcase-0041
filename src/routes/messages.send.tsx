@@ -14,10 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
-import type { Channel } from "@/lib/api/types";
+import type { Channel, SenderIdentityActor } from "@/lib/api/types";
+import { useSession } from "@/lib/auth/session";
 import { useI18n } from "@/lib/i18n/i18n";
 import { pageHead } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import { renderTemplateVariables } from "@/lib/api/template-variables";
 
 export const Route = createFileRoute("/messages/send")({
   head: () => pageHead("Send Message", "Send a single SMS, WhatsApp or Email message through Dolf Connect managed channels."),
@@ -30,11 +32,14 @@ const NONE = "__none";
 
 function SendMessage() {
   const { t } = useI18n();
+  const { user } = useSession();
+  const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
   const queryClient = useQueryClient();
-  const apps = useQuery(queries.applications());
-  const templates = useQuery(queries.templates({ status: "approved" }));
+  const apps = useQuery(queries.applications(actor));
+  const templates = useQuery(queries.templates({}, actor));
   const [channel, setChannel] = useState<Channel>("sms");
   const [appId, setAppId] = useState("");
+  const [senderIdentityId, setSenderIdentityId] = useState("");
   const [recipient, setRecipient] = useState("");
   const [templateId, setTemplateId] = useState(NONE);
   const [subject, setSubject] = useState("");
@@ -44,21 +49,21 @@ function SendMessage() {
   const [lastId, setLastId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const channelApps = (apps.data ?? []).filter((a) => a.status === "active" && a.channels.includes(channel));
-  const channelTemplates = (templates.data?.items ?? []).filter((tp) => tp.channel === channel);
+  const channelApps = (apps.data ?? []).filter((a) => a.tenantId === actor.tenantId && a.status === "active" && a.channels.includes(channel));
+  const senderIdentities = useQuery(queries.sendableSenderIdentities(actor, appId, channel));
+  const channelTemplates = (templates.data?.items ?? []).filter((template) => template.channel === channel && (channel === "whatsapp" ? template.status === "approved" : template.status === "active"));
   const requiresTemplate = channel === "whatsapp";
   const selectedTemplate = channelTemplates.find((item) => item.id === templateId);
-  const variableNames = Array.from(new Set(selectedTemplate?.body.match(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)?.map((match) => match.replace(/[{}\s]/g, "")) ?? []));
-  const renderedBody = selectedTemplate
-    ? selectedTemplate.body.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (match, key: string) => variableValues[key]?.trim() || match)
-    : body;
+  const variableNames = selectedTemplate?.variables ?? [];
+  const renderedBody = selectedTemplate ? renderTemplateVariables(selectedTemplate.body, variableValues) : body;
   const missingVariables = variableNames.some((key) => !variableValues[key]?.trim());
   const smsUnicode = Array.from(renderedBody).some((character) => character.charCodeAt(0) > 0x7f);
   const smsSegments = Math.max(1, Math.ceil(renderedBody.length / (smsUnicode ? 70 : 160)));
 
   const errors = useMemo(() => {
-    const e: Partial<Record<"app" | "recipient" | "template" | "body" | "subject" | "variables", string>> = {};
+    const e: Partial<Record<"app" | "sender" | "recipient" | "template" | "body" | "subject" | "variables", string>> = {};
     if (!appId) e.app = t("send.required");
+    if (!senderIdentityId || !(senderIdentities.data ?? []).some((identity) => identity.id === senderIdentityId)) e.sender = t("send.senderRequired");
     if (!recipient) e.recipient = t("send.required");
     else if (channel === "email" ? !EMAIL.test(recipient) : !PHONE.test(recipient.replace(/\s/g, ""))) e.recipient = channel === "email" ? t("send.invalidEmail") : t("send.invalidPhone");
     if (requiresTemplate && templateId === NONE) e.template = t("send.whatsappTemplateOnly");
@@ -66,10 +71,10 @@ function SendMessage() {
     if (missingVariables) e.variables = t("send.variablesRequired");
     if (channel === "email" && !subject) e.subject = t("send.required");
     return e;
-  }, [appId, recipient, channel, templateId, renderedBody, subject, requiresTemplate, missingVariables, t]);
+  }, [appId, senderIdentityId, senderIdentities.data, recipient, channel, templateId, renderedBody, subject, requiresTemplate, missingVariables, t]);
 
   const mutation = useMutation({
-    mutationFn: () => api.sendMessage({ channel, applicationId: appId, recipient, templateId: templateId === NONE ? null : templateId, subject, body: renderedBody, idempotencyKey: crypto.randomUUID() }),
+    mutationFn: () => api.sendMessage({ channel, applicationId: appId, senderIdentityId, recipient, templateId: templateId === NONE ? null : templateId, subject, body: renderedBody, idempotencyKey: crypto.randomUUID() }, actor),
     onSuccess: async (r) => {
       setConfirmOpen(false);
       setLastId(r.id);
@@ -91,7 +96,7 @@ function SendMessage() {
   };
   const err = (k: keyof typeof errors) => touched && errors[k] ? <p id={`${k}-err`} className="text-xs text-danger">{errors[k]}</p> : null;
 
-  const changeChannel = (c: Channel) => { setChannel(c); setAppId(""); setTemplateId(NONE); setBody(""); setSubject(""); setVariableValues({}); setTouched(false); };
+  const changeChannel = (c: Channel) => { setChannel(c); setAppId(""); setSenderIdentityId(""); setTemplateId(NONE); setBody(""); setSubject(""); setVariableValues({}); setTouched(false); };
   const pickTemplate = (id: string) => {
     setTemplateId(id);
     const template = channelTemplates.find((item) => item.id === id);
@@ -127,7 +132,7 @@ function SendMessage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="app">{t("send.application")}</Label>
-                  <Select value={appId} onValueChange={setAppId}>
+                  <Select value={appId} onValueChange={(value) => { setAppId(value); setSenderIdentityId(""); }}>
                     <SelectTrigger id="app" aria-invalid={!!(touched && errors.app)}><SelectValue placeholder={t("send.selectApp")} /></SelectTrigger>
                     <SelectContent>{channelApps.map((a) => <SelectItem key={a.id} value={a.id}>{a.name} · {a.id}</SelectItem>)}</SelectContent>
                   </Select>
@@ -139,6 +144,15 @@ function SendMessage() {
                     placeholder={channel === "email" ? "name@company.example" : "+9665XXXXXXXX"} aria-invalid={!!(touched && errors.recipient)} className="font-mono text-[0.8125rem]" />
                   {err("recipient") ?? <p className="text-caption">{channel === "email" ? t("send.recipientHintEmail") : t("send.recipientHintPhone")}</p>}
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="sender-identity">{t("send.senderIdentity")}</Label>
+                <Select value={senderIdentityId} onValueChange={setSenderIdentityId} disabled={!appId || senderIdentities.isLoading || !(senderIdentities.data?.length)}>
+                  <SelectTrigger id="sender-identity" aria-invalid={!!(touched && errors.sender)}><SelectValue placeholder={t("send.selectSenderIdentity")} /></SelectTrigger>
+                  <SelectContent>{(senderIdentities.data ?? []).map((identity) => <SelectItem key={identity.id} value={identity.id}>{identity.displayName ? `${identity.displayName} · ${identity.identityValue}` : identity.identityValue}</SelectItem>)}</SelectContent>
+                </Select>
+                {err("sender") ?? (!appId ? <p className="text-caption">{t("send.selectAppFirst")}</p> : !senderIdentities.isLoading && !senderIdentities.data?.length ? <p className="text-caption">{t("send.noEligibleSender")}</p> : <p className="text-caption">{t("send.senderEligibilityHint")}</p>)}
               </div>
 
               <div className="flex flex-col gap-1.5">

@@ -10,9 +10,11 @@ import { StatusBadge } from "@/components/app/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { QuotaBar } from "@/features/usage/QuotaMeter";
 import { queries } from "@/lib/api/queries";
-import type { TrendPoint } from "@/lib/api/types";
+import type { SenderIdentityActor, TrendPoint } from "@/lib/api/types";
 import { formatNumber, formatPercent, formatShortDay } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/i18n";
+import { useSession } from "@/lib/auth/session";
+import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { pageHead } from "@/lib/seo";
 
 export const Route = createFileRoute("/reports")({
@@ -22,11 +24,13 @@ export const Route = createFileRoute("/reports")({
 
 function Reports() {
   const { t, locale } = useI18n();
-  const r = useQuery(queries.report());
-  const d = useQuery(queries.dashboard());
+  const { user } = useSession();
+  const { tenantId: selectedTenantId } = useGlobalTenantContext();
+  const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
+  const r = useQuery(queries.report(actor, selectedTenantId));
   const total = r.data?.sampleSize ?? 1;
   const exportReport = () => {
-    if (!r.data || !d.data) return;
+    if (!r.data) return;
     const cell = (value: string | number) => {
       const text = String(value).replace(/^[=+@-]/, "'$&");
       return `"${text.replaceAll('"', '""')}"`;
@@ -35,7 +39,7 @@ function Reports() {
       [t("rep.exportSection"), t("common.name"), t("common.total"), t("status.failed")],
       ...r.data.byStatus.map((item) => [t("rep.status"), t(`status.${item.status}`), item.count, ""]),
       ...r.data.byApplication.map((item) => [t("rep.application"), item.applicationName, item.count, item.failed]),
-      ...[...d.data.trend].reverse().map((item) => [t("rep.daily"), item.date, item.delivered + item.failed + item.pending, item.failed]),
+      ...[...r.data.trend].reverse().map((item) => [t("rep.daily"), item.date, item.delivered + item.failed + item.pending, item.failed]),
     ];
     const csv = rows.map((row) => row.map(cell).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
@@ -59,7 +63,7 @@ function Reports() {
   return (
     <>
       <PageHeader title={t("rep.title")} description={t("rep.subtitle")}
-        actions={<Button size="sm" variant="outline" disabled={!r.data || !d.data} onClick={exportReport}><Download className="size-4" />{t("common.export")}</Button>} />
+        actions={<Button size="sm" variant="outline" disabled={!r.data} onClick={exportReport}><Download className="size-4" />{t("common.export")}</Button>} />
       <PageBody>
         {!r.data ? <TableSkeleton /> : (
           <div className="grid gap-4 lg:grid-cols-2">
@@ -86,7 +90,7 @@ function Reports() {
           </div>
         )}
         <Section title={t("rep.daily")}>
-          <DataTable dense columns={daily} rows={d.data ? [...d.data.trend].reverse() : undefined} loading={d.isLoading} rowKey={(p) => p.date} />
+          <DataTable dense columns={daily} rows={r.data ? [...r.data.trend].reverse() : undefined} loading={r.isLoading} rowKey={(p) => p.date} />
         </Section>
       </PageBody>
     </>

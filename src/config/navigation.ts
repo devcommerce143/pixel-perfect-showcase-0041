@@ -1,5 +1,5 @@
 import {
-  Activity, AppWindow, BarChart3, BookOpen, Building2, CreditCard, FileText, Gauge, History, KeyRound,
+  Activity, AppWindow, BarChart3, BookOpen, Building2, CreditCard, FileText, Fingerprint, Gauge, History, KeyRound,
   Layers, LayoutDashboard, type LucideIcon, Network, RadioTower, ScrollText, Send, Settings, Settings2,
   ShieldCheck, Split, Users, Webhook, Workflow,
 } from "lucide-react";
@@ -38,6 +38,7 @@ const PLATFORM_NAV: NavGroup[] = [
   {
     id: "platform", labelKey: "nav.group.platform", items: [
       { id: "channels", labelKey: "nav.channels", to: "/platform/channels", icon: RadioTower, permission: "platform.channels" },
+      { id: "senderIdentities", labelKey: "nav.senderIdentities", to: "/sender-identities", icon: Fingerprint, permission: "platform.senderIdentities" },
       { id: "providers", labelKey: "nav.providers", to: "/platform/providers", icon: Network, permission: "platform.providers" },
       { id: "routing", labelKey: "nav.routing", to: "/platform/routing", icon: Split, permission: "platform.routing" },
       { id: "health", labelKey: "nav.health", to: "/platform/health", icon: Activity, permission: "platform.health" },
@@ -46,6 +47,7 @@ const PLATFORM_NAV: NavGroup[] = [
   {
     id: "integration", labelKey: "nav.group.integration", items: [
       { id: "apps", labelKey: "nav.applications", to: "/applications", icon: AppWindow, permission: "apps.view" },
+      { id: "credentials", labelKey: "nav.credentials", to: "/credentials", icon: KeyRound, permission: "credentials.view" },
       { id: "apiClients", labelKey: "nav.apiClients", to: "/platform/api-clients", icon: Workflow, permission: "platform.apiClients" },
     ],
   },
@@ -85,6 +87,7 @@ const CLIENT_NAV: NavGroup[] = [
   },
   {
     id: "admin", labelKey: "nav.group.administration", items: [
+      { id: "senderIdentities", labelKey: "nav.senderIdentities", to: "/sender-identities", icon: Fingerprint, permission: "senderIdentities.view" },
       { id: "users", labelKey: "nav.users", to: "/users", icon: Users, permission: "users.view" },
       { id: "audit", labelKey: "nav.audit", to: "/audit", icon: ShieldCheck, permission: "audit.view" },
       { id: "settings", labelKey: "nav.settings", to: "/settings", icon: Settings, permission: "settings.view" },

@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  retainSearchParams,
   useRouter,
   HeadContent,
   Scripts,
@@ -14,7 +15,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider } from "@/lib/i18n/i18n";
 import { SessionProvider } from "@/lib/auth/session";
-import { AppShell } from "@/components/app/AppShell";
+import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -67,6 +68,8 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  validateSearch: (search: Record<string, unknown>) => typeof search["tenantId"] === "string" ? { tenantId: search["tenantId"] } : {},
+  search: { middlewares: [retainSearchParams(["tenantId"])] },
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -116,9 +119,7 @@ function RootComponent() {
       <I18nProvider>
         <SessionProvider>
           <TooltipProvider delayDuration={200}>
-            <AppShell>
-              <Outlet />
-            </AppShell>
+            <AuthBoundary />
             <Toaster position="bottom-right" />
           </TooltipProvider>
         </SessionProvider>

@@ -17,16 +17,20 @@ export function QuotaBar({ pct, className }: { pct: number; className?: string }
   return (
     <div className={cn("relative h-2 overflow-hidden rounded-full bg-muted", className)} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
       <div className={cn("h-full rounded-full", BAR[tone])} style={{ width: `${Math.min(pct, 100)}%` }} />
-      <div className="absolute inset-y-0 start-[80%] w-px bg-card" aria-hidden />
-      <div className="absolute inset-y-0 start-[90%] w-px bg-card" aria-hidden />
+      <div className="absolute inset-y-0 inset-s-[80%] w-px bg-card" aria-hidden />
+      <div className="absolute inset-y-0 inset-s-[90%] w-px bg-card" aria-hidden />
     </div>
   );
 }
 
-export function QuotaMeter({ used, limit }: { used: number; limit: number }) {
+export function QuotaMeter({ used, limit, platformView = false }: { used: number; limit: number; platformView?: boolean }) {
   const { t, locale } = useI18n();
-  const pct = (used / limit) * 100;
-  const alertKey = pct >= 100 ? "dash.threshold100" : pct >= 90 ? "dash.threshold90" : pct >= 80 ? "dash.threshold80" : null;
+  const pct = limit > 0 ? (used / limit) * 100 : 0;
+  const threshold = pct >= 100 ? 100 : pct >= 90 ? 90 : pct >= 80 ? 80 : null;
+  const alertKey = threshold === null ? null : threshold === 100
+    ? platformView ? "usage.threshold100" : "dash.threshold100"
+    : threshold === 90 ? platformView ? "usage.threshold90" : "dash.threshold90"
+      : platformView ? "usage.threshold80" : "dash.threshold80";
   const tone = quotaTone(pct);
   return (
     <div className="flex flex-col gap-3 p-4">

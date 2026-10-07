@@ -14,7 +14,9 @@ import { Route as ApplicationsRouteImport } from './routes/applications'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as CredentialsRouteImport } from './routes/credentials'
 import { Route as DocsRouteImport } from './routes/docs'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SenderIdentitiesRouteImport } from './routes/sender-identities'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsageRouteImport } from './routes/usage'
@@ -58,9 +60,19 @@ const DocsRoute = DocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SenderIdentitiesRoute = SenderIdentitiesRouteImport.update({
+  id: '/sender-identities',
+  path: '/sender-identities',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -155,7 +167,9 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/credentials': typeof CredentialsRoute
   '/docs': typeof DocsRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/sender-identities': typeof SenderIdentitiesRoute
   '/settings': typeof SettingsRoute
   '/templates': typeof TemplatesRoute
   '/usage': typeof UsageRoute
@@ -180,7 +194,9 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/credentials': typeof CredentialsRoute
   '/docs': typeof DocsRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/sender-identities': typeof SenderIdentitiesRoute
   '/settings': typeof SettingsRoute
   '/templates': typeof TemplatesRoute
   '/usage': typeof UsageRoute
@@ -206,7 +222,9 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/credentials': typeof CredentialsRoute
   '/docs': typeof DocsRoute
+  '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/sender-identities': typeof SenderIdentitiesRoute
   '/settings': typeof SettingsRoute
   '/templates': typeof TemplatesRoute
   '/usage': typeof UsageRoute
@@ -233,7 +251,9 @@ export interface FileRouteTypes {
     | '/audit'
     | '/credentials'
     | '/docs'
+    | '/login'
     | '/reports'
+    | '/sender-identities'
     | '/settings'
     | '/templates'
     | '/usage'
@@ -258,7 +278,9 @@ export interface FileRouteTypes {
     | '/audit'
     | '/credentials'
     | '/docs'
+    | '/login'
     | '/reports'
+    | '/sender-identities'
     | '/settings'
     | '/templates'
     | '/usage'
@@ -283,7 +305,9 @@ export interface FileRouteTypes {
     | '/audit'
     | '/credentials'
     | '/docs'
+    | '/login'
     | '/reports'
+    | '/sender-identities'
     | '/settings'
     | '/templates'
     | '/usage'
@@ -309,7 +333,9 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   CredentialsRoute: typeof CredentialsRoute
   DocsRoute: typeof DocsRoute
+  LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
+  SenderIdentitiesRoute: typeof SenderIdentitiesRoute
   SettingsRoute: typeof SettingsRoute
   TemplatesRoute: typeof TemplatesRoute
   UsageRoute: typeof UsageRoute
@@ -366,11 +392,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
       fullPath: '/reports'
       preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sender-identities': {
+      id: '/sender-identities'
+      path: '/sender-identities'
+      fullPath: '/sender-identities'
+      preLoaderRoute: typeof SenderIdentitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -501,7 +541,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   CredentialsRoute: CredentialsRoute,
   DocsRoute: DocsRoute,
+  LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
+  SenderIdentitiesRoute: SenderIdentitiesRoute,
   SettingsRoute: SettingsRoute,
   TemplatesRoute: TemplatesRoute,
   UsageRoute: UsageRoute,
