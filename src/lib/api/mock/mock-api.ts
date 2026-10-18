@@ -1018,6 +1018,17 @@ export function createMockApi(): DolfConnectApi {
       const rows = plans.map((plan) => ({ ...plan, tenants: tenants.filter((tenant) => tenant.subscription.planId === plan.id).length, entitlements: plan.entitlements.map((e) => ({ ...e })), features: [...plan.features] }));
       return slicePlanPage(rows, query);
     },
+    async getPlan(id) {
+      await delay();
+      const plan = plans.find((item) => item.id === id);
+      if (!plan) throw new Error("Plan was not found");
+      return {
+        ...plan,
+        tenants: tenants.filter((tenant) => tenant.subscription.planId === plan.id).length,
+        entitlements: plan.entitlements.map((item) => ({ ...item })),
+        features: [...plan.features],
+      };
+    },
     async createPlan(input) {
       await delay(500);
       validatePlanInput(input);

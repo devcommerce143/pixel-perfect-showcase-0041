@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Check, Info, Plus } from "lucide-react";
 import { ChannelLabel } from "@/components/app/ChannelLabel";
@@ -17,7 +17,17 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "@/lib/api/client";
+import { api, apiMode } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/http/errors";
+import {
+  changedPlanEditFields,
+  copyPlanEditFields,
+  displayPlanEditFieldValue,
+  displayPlanEditValue,
+  mergePlanEditAfterRefresh,
+  PlanUpdateError,
+  type PlanEditField,
+} from "@/lib/api/http/plan-editing";
 import { queries } from "@/lib/api/queries";
 import type { Channel, Plan, PlanFeatureKey, QuotaPolicy } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
@@ -26,6 +36,18 @@ import { useI18n, type MessageKey } from "@/lib/i18n/i18n";
 import { pageHead } from "@/lib/seo";
 
 const CHANNELS: Channel[] = ["sms", "whatsapp", "email"];
+const PLAN_STATUS_TRANSITIONS: Record<Plan["status"], readonly Plan["status"][]> = {
+  draft: ["active", "archived"],
+  active: ["inactive"],
+  inactive: ["active", "archived"],
+  archived: [],
+};
+const MOCK_PLAN_STATUS_ACTIONS: Record<Plan["status"], readonly Plan["status"][]> = {
+  draft: ["active", "archived"],
+  active: ["inactive", "archived"],
+  inactive: ["active", "archived"],
+  archived: [],
+};
 const FEATURES: { key: PlanFeatureKey; label: MessageKey }[] = [
   { key: "api_access", label: "plans.apiAccess" },
   { key: "bulk_messaging", label: "plans.bulkMessaging" },
@@ -85,6 +107,43 @@ function planDraft(plan: Plan): PlanDraft {
   };
 }
 
+type PlanSaveVariables = {
+  id: string | null;
+  input: Omit<Plan, "id" | "tenants">;
+  baseline: Plan | null;
+};
+
+function planInputFromDraft(draft: PlanDraft, code: string): Omit<Plan, "id" | "tenants"> {
+  return {
+    code,
+    name: draft.name.trim(),
+    description: draft.description.trim(),
+    status: draft.status,
+    tpsLimit: Number(draft.tpsLimit),
+    quotaPolicy: draft.quotaPolicy,
+    entitlements: CHANNELS.map((channel) => ({
+      channel,
+      enabled: draft.channels[channel].enabled,
+      monthly: draft.channels[channel].enabled ? Number(draft.channels[channel].monthly) : 0,
+    })),
+    features: FEATURES.filter((feature) => draft.features[feature.key]).map((feature) => feature.key),
+  };
+}
+
+function planFromDraft(baseline: Plan, draft: PlanDraft): Plan {
+  const input = planInputFromDraft(draft, baseline.code);
+  return { ...baseline, ...input, status: baseline.status };
+}
+
+function planEditFieldLabel(field: PlanEditField, t: (key: MessageKey) => string): string {
+  if (field === "name") return t("plans.name");
+  if (field === "description") return t("common.description");
+  if (field === "tpsLimit") return t("plans.tps");
+  if (field === "quotaPolicy") return t("plans.quotaPolicy");
+  if (field === "features") return t("plans.features");
+  return `${t("plans.entitlements")} · ${field.slice("channel:".length).toUpperCase()}`;
+}
+
 export const Route = createFileRoute("/platform/plans")({
   head: () => pageHead("Subscriptions & Plans", "Plan catalogue and tenant subscriptions."),
   component: () => <RequirePermission permission="platform.plans"><Plans /></RequirePermission>,
@@ -104,24 +163,89 @@ function Plans() {
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<PlanDraft>(emptyPlanDraft);
+  const [editBaseline, setEditBaseline] = useState<Plan | null>(null);
+  const [partialUpdate, setPartialUpdate] = useState<PlanUpdateError | null>(null);
+  const [refreshBlocked, setRefreshBlocked] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const saving = useRef(false);
+  const statusSaving = useRef(false);
   const save = useMutation({
-    mutationFn: (input: Omit<Plan, "id" | "tenants">) => editingId ? api.updatePlan(editingId, input) : api.createPlan(input),
-    onSuccess: async (plan) => {
-      toast.success(t(editingId ? "plans.saved" : "plans.created"));
-      await queryClient.invalidateQueries({ queryKey: ["plans"] });
+    mutationFn: ({ id, input, baseline }: PlanSaveVariables) =>
+      id ? api.updatePlan(id, input, baseline ?? undefined) : api.createPlan(input),
+    retry: false,
+    onSuccess: async (plan, variables) => {
+      toast.success(t(variables.id ? "plans.saved" : "plans.created"));
+      if (
+        !variables.baseline ||
+        variables.baseline.status !== plan.status ||
+        changedPlanEditFields(variables.baseline, plan).length > 0
+      ) {
+        await queryClient.invalidateQueries({ queryKey: ["plans"] });
+      }
       setOpen(false);
       setError("");
+      setPartialUpdate(null);
+      setEditBaseline(null);
       setSelected(plan);
     },
-    onError: (cause) => setError(cause instanceof Error && cause.message.includes("code already") ? t("plans.codeExists") : t("plans.saveError")),
+    onError: async (cause, variables) => {
+      if (cause instanceof PlanUpdateError) {
+        setPartialUpdate(cause);
+        setError("");
+        setRefreshBlocked(!cause.latest);
+        if (cause.latest) {
+          const merged = mergePlanEditAfterRefresh(cause.original, cause.draft, cause.latest);
+          setEditBaseline(cause.latest);
+          setDraft(planDraft(merged));
+        } else if (variables.baseline) {
+          setEditBaseline(variables.baseline);
+        }
+        if (cause.latest || Object.keys(cause.confirmedValues).length > 0) {
+          try {
+            await queryClient.invalidateQueries({ queryKey: ["plans"] });
+          } catch {
+            setError(t("plans.catalogRefreshFailed"));
+          }
+        }
+        return;
+      }
+      if (cause instanceof ApiError && cause.statusCode === 409) {
+        setError(/plan code.*already|code already/i.test(cause.message) ? t("plans.codeExists") : t("plans.conflictError"));
+      } else if (cause instanceof Error && /code already/i.test(cause.message)) {
+        setError(t("plans.codeExists"));
+      } else if (cause instanceof ApiError && cause.statusCode === 400) {
+        setError(t("plans.validationError"));
+      } else {
+        setError(t("plans.saveError"));
+      }
+    },
+    onSettled: () => {
+      saving.current = false;
+    },
   });
   const changeStatus = useMutation({
     mutationFn: (input: { plan: Plan; status: Plan["status"] }) => api.setPlanStatus(input.plan.id, input.status),
+    retry: false,
     onSuccess: async (_, input) => {
       toast.success(t(input.status === "archived" ? "plans.archived" : "plans.statusChanged"));
-      await queryClient.invalidateQueries({ queryKey: ["plans"] });
       setSelected({ ...input.plan, status: input.status });
       setStatusTarget(null);
+      try {
+        await queryClient.invalidateQueries({ queryKey: ["plans"] });
+      } catch {
+        toast.error(t("plans.catalogRefreshFailed"));
+      }
+    },
+    onError: (cause) => {
+      const message = cause instanceof ApiError && cause.statusCode === 400
+        ? t("plans.statusValidationError")
+        : cause instanceof ApiError && cause.statusCode === 409
+          ? t("plans.statusConflict")
+          : t("plans.statusError");
+      toast.error(message);
+    },
+    onSettled: () => {
+      statusSaving.current = false;
     },
   });
   const normalizedCode = draft.code.trim().toUpperCase();
@@ -142,26 +266,23 @@ function Plans() {
     setDraft((current) => ({ ...current, channels: { ...current.channels, [channel]: { ...current.channels[channel], ...value } } }));
   };
   const submit = () => {
+    if (saving.current || refreshBlocked || (partialUpdate?.conflicts.length ?? 0) > 0) return;
     setTouched(true);
     setError("");
     if (!valid) return;
+    saving.current = true;
+    setPartialUpdate(null);
     save.mutate({
-      code: normalizedCode,
-      name: draft.name.trim(),
-      description: draft.description.trim(),
-      status: draft.status,
-      tpsLimit: tpsValue,
-      quotaPolicy: draft.quotaPolicy,
-      entitlements: CHANNELS.map((channel) => {
-        const entitlement = draft.channels[channel];
-        const quota = Number(entitlement.monthly);
-        return { channel, enabled: entitlement.enabled, monthly: Number.isSafeInteger(quota) && quota >= 0 ? quota : 0 };
-      }),
-      features: FEATURES.filter((feature) => draft.features[feature.key]).map((feature) => feature.key),
+      id: editingId,
+      input: planInputFromDraft(draft, editingId && editBaseline ? editBaseline.code : normalizedCode),
+      baseline: editingId ? editBaseline : null,
     });
   };
   const openCreate = () => {
     setEditingId(null);
+    setEditBaseline(null);
+    setPartialUpdate(null);
+    setRefreshBlocked(false);
     setDraft(emptyPlanDraft());
     setTouched(false);
     setError("");
@@ -171,12 +292,67 @@ function Plans() {
     if (plan.status === "archived") return;
     setSelected(null);
     setEditingId(plan.id);
+    setEditBaseline(plan);
+    setPartialUpdate(null);
+    setRefreshBlocked(false);
     setDraft(planDraft(plan));
     setTouched(false);
     setError("");
     setOpen(true);
   };
+  const refreshAfterPartialFailure = async () => {
+    if (!editingId || !partialUpdate || refreshing) return;
+    setRefreshing(true);
+    let latest: Plan;
+    try {
+      latest = await api.getPlan(editingId);
+    } catch {
+      setRefreshBlocked(true);
+      setError(t("plans.partialRefreshFailed"));
+      setRefreshing(false);
+      return;
+    }
+    const refreshed = new PlanUpdateError({
+      original: partialUpdate.original,
+      draft: partialUpdate.draft,
+      latest,
+      confirmedValues: partialUpdate.confirmedValues,
+      reviewRequiredFields: partialUpdate.reviewRequiredFields,
+      failure: partialUpdate.failure,
+    });
+    const merged = mergePlanEditAfterRefresh(refreshed.original, refreshed.draft, latest);
+    setEditBaseline(latest);
+    setDraft(planDraft(merged));
+    setPartialUpdate(refreshed);
+    setRefreshBlocked(false);
+    setError("");
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["plans"] });
+    } catch {
+      setError(t("plans.catalogRefreshFailed"));
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  const useServerConflictValues = () => {
+    if (!partialUpdate?.latest || partialUpdate.conflicts.length === 0) return;
+    const latest = partialUpdate.latest;
+    const currentDraft = planFromDraft(latest, draft);
+    setDraft(planDraft(copyPlanEditFields(currentDraft, latest, partialUpdate.conflicts)));
+    setPartialUpdate(null);
+    setError("");
+  };
+  const keepDraftConflictValues = () => {
+    if (!partialUpdate?.latest || partialUpdate.conflicts.length === 0) return;
+    setPartialUpdate(null);
+    setError("");
+  };
   const requestStatus = (plan: Plan, status: Plan["status"]) => setStatusTarget({ plan, status });
+  const confirmStatusChange = () => {
+    if (statusSaving.current || !statusTarget) return;
+    statusSaving.current = true;
+    changeStatus.mutate(statusTarget);
+  };
   const showPlanStatus = (status: Plan["status"]) => t(`status.${status}` as MessageKey);
   return (
     <>
@@ -213,10 +389,77 @@ function Plans() {
         )}
       </PageBody>
 
-      <Sheet open={open} onOpenChange={(value) => !save.isPending && setOpen(value)}>
+      <Sheet
+        open={open}
+        onOpenChange={(value) => {
+          if (save.isPending || refreshing) return;
+          if (!value && (refreshBlocked || (partialUpdate && partialUpdate.latest?.status !== "archived"))) return;
+          setOpen(value);
+        }}
+      >
         <SheetContent side={dir === "rtl" ? "left" : "right"} className="w-full overflow-y-auto sm:max-w-xl">
           <SheetHeader><SheetTitle>{t(editingId ? "plans.editTitle" : "plans.createTitle")}</SheetTitle><SheetDescription>{t(editingId ? "plans.editDescription" : "plans.createDescription")}</SheetDescription></SheetHeader>
           <form className="flex flex-col gap-5 px-4 pb-6" onSubmit={(event) => { event.preventDefault(); submit(); }} noValidate>
+            {partialUpdate && <section role="alert" className="space-y-3 rounded-md border border-warning/30 bg-warning-soft p-3 text-sm">
+              <h3 className="font-semibold">{t("plans.partialSaveTitle")}</h3>
+              <p>{t("plans.partialSaveFailureReason", {
+                message: partialUpdate.failure instanceof Error ? partialUpdate.failure.message : t("plans.partialSaveFailed"),
+              })}</p>
+              {partialUpdate.latest ? <>
+                <p>{t("plans.partialSaveRefreshed")}</p>
+                {Object.keys(partialUpdate.confirmedValues).length > 0 && <div>
+                  <p className="font-medium">{t("plans.partialSaveAcknowledged")}</p>
+                  <ul className="list-inside list-disc">{Object.entries(partialUpdate.confirmedValues).map(([field, value]) => (
+                    <li key={field}>{planEditFieldLabel(field as PlanEditField, t)}: {displayPlanEditValue(value, field as PlanEditField)}</li>
+                  ))}</ul>
+                </div>}
+                <div>
+                  <p className="font-medium">{t("plans.partialSaveCurrentValues")}</p>
+                  <ul className="list-inside list-disc">{partialUpdate.attemptedFields.map((field) => (
+                    <li key={field}>{planEditFieldLabel(field, t)}: {displayPlanEditFieldValue(partialUpdate.latest!, field)}</li>
+                  ))}</ul>
+                </div>
+                {changedPlanEditFields(partialUpdate.latest, planFromDraft(partialUpdate.latest, draft)).length > 0 && <div>
+                  <p className="font-medium">{t("plans.partialSaveRemaining")}</p>
+                  <ul className="list-inside list-disc">{changedPlanEditFields(partialUpdate.latest, planFromDraft(partialUpdate.latest, draft)).map((field) => (
+                    <li key={field}>{planEditFieldLabel(field, t)} — {t("plans.partialSaveServerValue")}: {displayPlanEditFieldValue(partialUpdate.latest!, field)}; {t("plans.partialSaveDraftValue")}: {displayPlanEditFieldValue(planFromDraft(partialUpdate.latest!, draft), field)}</li>
+                  ))}</ul>
+                </div>}
+                {partialUpdate.conflicts.length > 0 && partialUpdate.latest.status !== "archived" && <>
+                  <p className="font-medium">{t("plans.partialSaveConflictReview")}</p>
+                  <ul className="list-inside list-disc">{partialUpdate.conflicts.map((field) => (
+                    <li key={field}>{planEditFieldLabel(field, t)} — {t("plans.partialSaveServerValue")}: {displayPlanEditFieldValue(partialUpdate.latest!, field)}; {t("plans.partialSaveDraftValue")}: {displayPlanEditFieldValue(planFromDraft(partialUpdate.latest!, draft), field)}</li>
+                  ))}</ul>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={useServerConflictValues}>{t("plans.partialSaveUseServer")}</Button>
+                    <Button type="button" variant="outline" onClick={keepDraftConflictValues}>{t("plans.partialSaveKeepDraft")}</Button>
+                  </div>
+                </>}
+                {partialUpdate.latest.status === "archived" && <p>{t("plans.partialSaveArchived")}</p>}
+              </> : <>
+                <p>{t("plans.partialSaveRefreshRequired")}</p>
+                {Object.keys(partialUpdate.confirmedValues).length > 0 && <div>
+                  <p className="font-medium">{t("plans.partialSaveAcknowledged")}</p>
+                  <ul className="list-inside list-disc">{Object.entries(partialUpdate.confirmedValues).map(([field, value]) => (
+                    <li key={field}>{planEditFieldLabel(field as PlanEditField, t)}: {displayPlanEditValue(value, field as PlanEditField)}</li>
+                  ))}</ul>
+                </div>}
+                {error && <p>{error}</p>}
+                <Button type="button" variant="outline" disabled={refreshing} onClick={() => void refreshAfterPartialFailure()}>
+                  {refreshing ? t("plans.partialSaveRefreshing") : t("plans.partialSaveRefresh")}
+                </Button>
+              </>}
+            </section>}
+            <fieldset
+              className="flex flex-col gap-5 border-0 p-0"
+              disabled={
+                save.isPending ||
+                refreshing ||
+                refreshBlocked ||
+                (partialUpdate?.conflicts.length ?? 0) > 0 ||
+                partialUpdate?.latest?.status === "archived"
+              }
+            >
             <section className="space-y-3">
               <h3 className="text-sm font-semibold">{t("plans.details")}</h3>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -229,7 +472,7 @@ function Plans() {
                 <div className="space-y-1.5"><Label htmlFor="plan-name">{t("plans.name")} <span className="text-danger">*</span></Label><Input id="plan-name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} aria-invalid={touched && !draft.name.trim()} />{touched && !draft.name.trim() && <p className="text-xs text-danger">{t("plans.required")}</p>}</div>
               </div>
               <div className="space-y-1.5"><Label htmlFor="plan-description">{t("common.description")}</Label><Textarea id="plan-description" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} rows={2} /></div>
-              <div className="space-y-1.5"><Label>{t("common.status")}</Label><Select value={draft.status} onValueChange={(value) => setDraft({ ...draft, status: value as PlanDraft["status"] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">{t("status.draft")}</SelectItem><SelectItem value="active">{t("status.active")}</SelectItem><SelectItem value="inactive">{t("status.inactive")}</SelectItem></SelectContent></Select></div>
+              <div className="space-y-1.5"><Label>{t("common.status")}</Label>{apiMode === "live" && editingId ? <p className="rounded-md border px-3 py-2 text-sm">{showPlanStatus(editBaseline?.status ?? draft.status)}</p> : <Select value={draft.status} onValueChange={(value) => setDraft({ ...draft, status: value as PlanDraft["status"] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">{t("status.draft")}</SelectItem><SelectItem value="active">{t("status.active")}</SelectItem>{apiMode === "mock" && <SelectItem value="inactive">{t("status.inactive")}</SelectItem>}</SelectContent></Select>}</div>
               {editingId && editingPlan?.status === "active" && editingPlan.tenants != null && editingPlan.tenants > 0 && <p className="flex items-start gap-2 rounded-md border border-info/25 bg-info-soft p-3 text-sm text-info"><Info className="mt-0.5 size-4 shrink-0" />{t("plans.activeEditNotice")}</p>}
             </section>
 
@@ -258,7 +501,8 @@ function Plans() {
               <div className="grid gap-3 sm:grid-cols-2">{FEATURES.map((feature) => <label key={feature.key} className="flex items-center gap-2 text-sm"><Checkbox checked={draft.features[feature.key]} onCheckedChange={(checked) => setDraft((current) => ({ ...current, features: { ...current.features, [feature.key]: checked === true } }))} />{t(feature.label)}</label>)}</div>
             </section>
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-            <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setOpen(false)}>{t("common.cancel")}</Button><Button type="submit" disabled={save.isPending}>{save.isPending ? t(editingId ? "common.saving" : "common.creating") : t(editingId ? "common.save" : "common.create")}</Button></div>
+            <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={save.isPending || refreshing || refreshBlocked || (!!partialUpdate && partialUpdate.latest?.status !== "archived")} onClick={() => setOpen(false)}>{t("common.cancel")}</Button><Button type="submit" disabled={save.isPending || refreshBlocked || (partialUpdate?.conflicts.length ?? 0) > 0 || partialUpdate?.latest?.status === "archived"}>{save.isPending ? t(editingId ? "common.saving" : "common.creating") : t(editingId ? "common.save" : "common.create")}</Button></div>
+            </fieldset>
           </form>
         </SheetContent>
       </Sheet>
@@ -278,14 +522,16 @@ function Plans() {
               })}</dl></section>
               <section className="space-y-2"><h3 className="text-sm font-semibold">{t("plans.limits")}</h3><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("plans.tps")}</dt><dd className="tabular-nums">{formatNumber(selected.tpsLimit, locale)}</dd></div><div><dt className="text-label">{t("plans.quotaPolicy")}</dt><dd>{t(selected.quotaPolicy === "hard_stop" ? "plans.hardStop" : "plans.softCap")}</dd></div></dl></section>
               <section className="space-y-2"><h3 className="text-sm font-semibold">{t("plans.features")}</h3>{selected.features.length ? <ul className="space-y-2">{selected.features.map((feature) => <li key={feature} className="flex items-center gap-2 text-sm"><Check className="size-4 text-success" />{t(FEATURES.find((item) => item.key === feature)!.label)}</li>)}</ul> : <p className="text-sm text-muted-foreground">{t("plans.noFeatures")}</p>}</section>
-              {can("platform.plans.manage") && selected.status !== "archived" && <div className="flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={() => openEdit(selected)}>{t("common.edit")}</Button>{selected.status === "active" ? <Button variant="outline" onClick={() => requestStatus(selected, "inactive")}>{t("plans.setInactive")}</Button> : <Button variant="outline" onClick={() => requestStatus(selected, "active")}>{t("plans.activate")}</Button>}<Button variant="destructive" onClick={() => requestStatus(selected, "archived")}>{t("plans.archive")}</Button></div>}
+              {can("platform.plans.manage") && selected.status !== "archived" && <div className="flex flex-wrap gap-2 border-t pt-4"><Button variant="outline" onClick={() => openEdit(selected)}>{t("common.edit")}</Button>{(apiMode === "live" ? PLAN_STATUS_TRANSITIONS[selected.status] : MOCK_PLAN_STATUS_ACTIONS[selected.status]).map((status) => <Button key={status} variant={status === "archived" ? "destructive" : "outline"} onClick={() => requestStatus(selected, status)}>{t(status === "archived" ? "plans.archive" : status === "active" ? "plans.activate" : "plans.setInactive")}</Button>)}</div>}
             </div>
           </>}
         </SheetContent>
       </Sheet>
 
-      <AlertDialog open={!!statusTarget} onOpenChange={(value) => !value && setStatusTarget(null)}>
-        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t(statusTarget?.status === "archived" ? "plans.archiveTitle" : "plans.statusTitle")}</AlertDialogTitle><AlertDialogDescription>{t(statusTarget?.status === "archived" ? "plans.archiveBody" : "plans.statusBody", { name: statusTarget ? displayPlanName(statusTarget.plan) : "" })}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); if (statusTarget) changeStatus.mutate(statusTarget); }} disabled={changeStatus.isPending}>{t(statusTarget?.status === "archived" ? "plans.archive" : statusTarget?.status === "active" ? "plans.activate" : "plans.setInactive")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+      <AlertDialog open={!!statusTarget} onOpenChange={(value) => {
+        if (!value && !changeStatus.isPending && !statusSaving.current) setStatusTarget(null);
+      }}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t(statusTarget?.status === "archived" ? "plans.archiveTitle" : "plans.statusTitle")}</AlertDialogTitle><AlertDialogDescription>{t(statusTarget?.status === "archived" ? "plans.archiveBody" : "plans.statusBody", { name: statusTarget ? displayPlanName(statusTarget.plan) : "" })}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={changeStatus.isPending}>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); confirmStatusChange(); }} disabled={changeStatus.isPending}>{t(statusTarget?.status === "archived" ? "plans.archive" : statusTarget?.status === "active" ? "plans.activate" : "plans.setInactive")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </>
   );

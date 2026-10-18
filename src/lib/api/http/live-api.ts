@@ -3,13 +3,27 @@ import { createHumanHttpClient } from "./client.ts";
 import { mapDashboardMessages } from "./dashboard-messages-mapper.ts";
 import { mapDashboardQuota } from "./dashboard-quota-mapper.ts";
 import { mapDashboardSummary } from "./dashboard-mapper.ts";
-import { mapPlanPage } from "./plan-mapper.ts";
+import {
+  mapPlanPage,
+  mapPlanResponse,
+  PlanCatalogError,
+  toCreatePlanRequest,
+} from "./plan-mapper.ts";
+import type { LiveCreatePlanInput } from "./plan-mapper.ts";
+import { applyPlanEditRequests, createPlanEditRequests } from "./plan-editing.ts";
 import { createUnconnectedLiveApi } from "./unconnected-api.ts";
 import { planListPath } from "../plans-catalog.ts";
-import type { PlanListQuery } from "../types.ts";
+import type { Plan, PlanListQuery } from "../types.ts";
+
+const API_PLAN_STATUSES: Record<Plan["status"], "DRAFT" | "ACTIVE" | "INACTIVE" | "ARCHIVED"> = {
+  draft: "DRAFT",
+  active: "ACTIVE",
+  inactive: "INACTIVE",
+  archived: "ARCHIVED",
+};
 
 /**
- * Live portal API. Dashboard reads and `listPlans` call the engine.
+ * Live portal API. Dashboard and plan catalog operations use the engine.
  * Every other operation still rejects with `LiveApiNotConnectedError`.
  * The request uses the shared human client, which attaches the current Bearer access token.
  */
@@ -40,6 +54,55 @@ export function createLiveApi(options: {
       }
       if (property === "listPlans") {
         return async (query?: PlanListQuery) => mapPlanPage(await http.get(planListPath(query)));
+      }
+      if (property === "getPlan") {
+        return async (id: string) =>
+          mapPlanResponse(await http.get(`/plans/${encodeURIComponent(id)}`));
+      }
+      if (property === "createPlan") {
+        return async (input: Parameters<DolfConnectApi["createPlan"]>[0]) => {
+          if (input.status !== "draft" && input.status !== "active") {
+            throw new PlanCatalogError("A new live plan must be draft or active.");
+          }
+          const liveInput: LiveCreatePlanInput = { ...input, status: input.status };
+          return mapPlanResponse(await http.post("/plans", toCreatePlanRequest(liveInput)));
+        };
+      }
+      if (property === "setPlanStatus") {
+        return async (id: string, status: Plan["status"]) => {
+          await http.post<unknown>(`/plans/${encodeURIComponent(id)}/status`, {
+            status: API_PLAN_STATUSES[status],
+          });
+        };
+      }
+      if (property === "updatePlan") {
+        return async (
+          id: string,
+          input: Parameters<DolfConnectApi["updatePlan"]>[1],
+          baseline?: Parameters<DolfConnectApi["updatePlan"]>[2],
+        ) => {
+          if (!baseline)
+            throw new PlanCatalogError("A plan baseline is required for live editing.");
+          const draft = {
+            ...baseline,
+            ...input,
+            entitlements: input.entitlements.map((item) => ({ ...item })),
+            features: [...input.features],
+          };
+          const requests = createPlanEditRequests(id, baseline, draft);
+          return applyPlanEditRequests(
+            baseline,
+            draft,
+            requests,
+            async (request) =>
+              mapPlanResponse(
+                request.method === "PATCH"
+                  ? await http.patch(request.path, request.body)
+                  : await http.put(request.path, request.body),
+              ),
+            async () => mapPlanResponse(await http.get(`/plans/${encodeURIComponent(id)}`)),
+          );
+        };
       }
       return Reflect.get(target, property, receiver);
     },

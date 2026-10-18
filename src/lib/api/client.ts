@@ -117,8 +117,9 @@ export interface DolfConnectApi {
   updateSettings(input: TenantSettings): Promise<TenantSettings>;
   getReport(actor: SenderIdentityActor, tenantId?: string): Promise<ReportSummary>;
   listPlans(query?: PlanListQuery): Promise<Paginated<Plan>>;
+  getPlan(id: string): Promise<Plan>;
   createPlan(input: Omit<Plan, "id" | "tenants">): Promise<Plan>;
-  updatePlan(id: string, input: Omit<Plan, "id" | "tenants">): Promise<Plan>;
+  updatePlan(id: string, input: Omit<Plan, "id" | "tenants">, baseline?: Plan): Promise<Plan>;
   setPlanStatus(id: string, status: Plan["status"]): Promise<void>;
   listChannels(): Promise<ChannelConfig[]>;
   setChannelEnabled(channel: ChannelConfig["channel"], enabled: boolean): Promise<void>;
@@ -144,6 +145,8 @@ export interface DolfConnectApi {
 }
 
 const portalConfig = resolvePortalConfig(readClientEnv());
+
+export const apiMode = portalConfig.mode;
 
 export const api: DolfConnectApi = selectPortalApi(portalConfig, createMockApi, () =>
   createLiveApi({

@@ -34,6 +34,56 @@ const CHANNELS = {
   WHATSAPP: "whatsapp",
 } as const satisfies Record<string, Channel>;
 
+const API_STATUSES = {
+  draft: "DRAFT",
+  active: "ACTIVE",
+} as const satisfies Record<"draft" | "active", string>;
+
+const API_POLICIES = {
+  hard_stop: "HARD_STOP",
+  soft_cap: "SOFT_CAP",
+} as const satisfies Record<QuotaPolicy, string>;
+
+const API_FEATURES = {
+  api_access: "API_ACCESS",
+  bulk_messaging: "BULK_MESSAGING",
+  webhooks: "WEBHOOKS",
+  reporting: "REPORTING",
+  audit_export: "AUDIT_EXPORT",
+  dedicated_sender_identities: "DEDICATED_SENDER_IDENTITIES",
+} as const satisfies Record<PlanFeatureKey, string>;
+
+const API_CHANNELS = {
+  sms: "SMS",
+  email: "EMAIL",
+  whatsapp: "WHATSAPP",
+} as const satisfies Record<Channel, string>;
+
+export interface CreatePlanRequest {
+  code: string;
+  name: string;
+  description: string;
+  status: (typeof API_STATUSES)[keyof typeof API_STATUSES];
+  defaultTpsLimit: number;
+  defaultQuotaPolicy: (typeof API_POLICIES)[QuotaPolicy];
+  features: (typeof API_FEATURES)[PlanFeatureKey][];
+  channels: {
+    channel: (typeof API_CHANNELS)[Channel];
+    enabled: boolean;
+    monthlyQuota: number | null;
+  }[];
+}
+
+export type PlanResponseUpdateRequest =
+  | { method: "PATCH"; path: string; body: { name?: string; description?: string }; fields: ("name" | "description")[] }
+  | { method: "PUT"; path: string; body: { defaultTpsLimit?: number; defaultQuotaPolicy?: "HARD_STOP" | "SOFT_CAP" }; fields: ("tpsLimit" | "quotaPolicy")[] }
+  | { method: "PUT"; path: string; body: { features: string[] }; fields: "features"[] }
+  | { method: "PUT"; path: string; body: { enabled: boolean; monthlyQuota: number | null }; fields: `channel:${Channel}`[] };
+
+export type LiveCreatePlanInput = Omit<Plan, "id" | "tenants" | "status"> & {
+  status: keyof typeof API_STATUSES;
+};
+
 /**
  * Maps GET /plans.
  * Status, TPS, quota policy, features, and channel quotas are copied.
@@ -48,6 +98,29 @@ export function mapPlanPage(body: unknown): Paginated<Plan> {
     pageSize: pageNumber(body["pageSize"], "pageSize"),
     total: pageNumber(body["total"], "total"),
   };
+}
+
+/** Maps the frontend plan draft to the backend CreatePlanDto shape. */
+export function toCreatePlanRequest(input: LiveCreatePlanInput): CreatePlanRequest {
+  return {
+    code: input.code,
+    name: input.name,
+    description: input.description,
+    status: API_STATUSES[input.status],
+    defaultTpsLimit: input.tpsLimit,
+    defaultQuotaPolicy: API_POLICIES[input.quotaPolicy],
+    features: input.features.map((feature) => API_FEATURES[feature]),
+    channels: input.entitlements.map((entitlement) => ({
+      channel: API_CHANNELS[entitlement.channel],
+      enabled: entitlement.enabled,
+      monthlyQuota: entitlement.enabled ? entitlement.monthly : null,
+    })),
+  };
+}
+
+/** Maps the PlanResponseDto returned by POST /plans. */
+export function mapPlanResponse(body: unknown): Plan {
+  return readPlan(body, 0);
 }
 
 function readPlan(value: unknown, index: number): Plan {

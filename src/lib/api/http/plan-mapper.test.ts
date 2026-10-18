@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { mapPlanPage, PlanCatalogError } from "./plan-mapper.ts";
+import { mapPlanPage, mapPlanResponse, PlanCatalogError, toCreatePlanRequest, type LiveCreatePlanInput } from "./plan-mapper.ts";
+import type { Plan } from "../types.ts";
+import type { DolfConnectApi } from "../client.ts";
 
 const plan = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -73,6 +75,77 @@ describe("plan catalog mapper", () => {
     const page = mapPlanPage({ items: [], page: 1, pageSize: 20, total: 0 });
     assert.deepEqual(page.items, []);
     assert.equal(page.total, 0);
+  });
+
+  it("converts the frontend plan draft to the create DTO without tenant data", () => {
+    const input: LiveCreatePlanInput = {
+      code: "GROWTH",
+      name: "Growth",
+      description: "A growth plan",
+      status: "draft",
+      tpsLimit: 25,
+      quotaPolicy: "soft_cap",
+      features: ["api_access", "webhooks"],
+      entitlements: [
+        { channel: "sms", enabled: true, monthly: 1000 },
+        { channel: "whatsapp", enabled: false, monthly: 0 },
+      ],
+    };
+    const request = toCreatePlanRequest(input);
+    assert.deepEqual(request, {
+      code: "GROWTH",
+      name: "Growth",
+      description: "A growth plan",
+      status: "DRAFT",
+      defaultTpsLimit: 25,
+      defaultQuotaPolicy: "SOFT_CAP",
+      features: ["API_ACCESS", "WEBHOOKS"],
+      channels: [
+        { channel: "SMS", enabled: true, monthlyQuota: 1000 },
+        { channel: "WHATSAPP", enabled: false, monthlyQuota: null },
+      ],
+    });
+    assert.equal("tenantId" in request, false);
+    assert.equal("tenants" in request, false);
+  });
+
+  it("maps both backend-supported create statuses", () => {
+    const input: LiveCreatePlanInput = {
+      code: "GROWTH",
+      name: "Growth",
+      description: "",
+      status: "draft",
+      tpsLimit: 25,
+      quotaPolicy: "soft_cap",
+      features: [],
+      entitlements: [],
+    };
+    assert.equal(toCreatePlanRequest(input).status, "DRAFT");
+    assert.equal(toCreatePlanRequest({ ...input, status: "active" }).status, "ACTIVE");
+  });
+
+  it("keeps inactive status valid in the shared mock API input model", () => {
+    const mockInput = {
+      code: "MOCK-INACTIVE",
+      name: "Mock inactive plan",
+      description: "",
+      status: "inactive",
+      tpsLimit: 1,
+      quotaPolicy: "hard_stop",
+      features: [],
+      entitlements: [
+        { channel: "sms", enabled: false, monthly: 0 },
+        { channel: "whatsapp", enabled: false, monthly: 0 },
+        { channel: "email", enabled: false, monthly: 0 },
+      ],
+    } satisfies Parameters<DolfConnectApi["createPlan"]>[0];
+    assert.equal(mockInput.status, "inactive");
+  });
+
+  it("maps a created plan response without inventing a tenant count", () => {
+    const created = mapPlanResponse({ ...plan, tenants: 9 });
+    assert.equal(created.id, plan.id);
+    assert.equal(created.tenants, null);
   });
 
   it("rejects an empty or incomplete payload", () => {

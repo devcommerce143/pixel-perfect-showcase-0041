@@ -5,7 +5,12 @@ import { ApiError } from "../api/http/errors.ts";
 import { loadAuthoritativeProfile, mapBackendProfile } from "./profile.ts";
 
 function client(result: () => Promise<unknown>): HumanHttpClient {
-  return { get: <T>() => result() as Promise<T> };
+  return {
+    get: <T>() => result() as Promise<T>,
+    post: async <T>() => undefined as T,
+    patch: async <T>() => undefined as T,
+    put: async <T>() => undefined as T,
+  };
 }
 
 const viewer = { userId: "user-1", role: "VIEWER", tenantId: "TEN-1", status: "active" };
