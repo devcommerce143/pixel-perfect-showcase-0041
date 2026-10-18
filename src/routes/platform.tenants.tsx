@@ -97,8 +97,9 @@ function Tenants() {
 
   const listQuery = { page, pageSize, search, filters: { status }, sortBy, sortDirection };
   const q = useQuery(queries.tenants(listQuery));
-  const plans = useQuery(queries.plans());
-  const selectedPlan = plans.data?.find((plan) => plan.id === form.planId);
+  const plans = useQuery(queries.plans({ page: 1, pageSize: 100 }));
+  const planCatalog = plans.data?.items;
+  const selectedPlan = planCatalog?.find((plan) => plan.id === form.planId);
 
   const initializeOverrides = (plan: Plan | undefined, overrides: TenantEntitlementOverrides | null = null) => {
     const defaults = Object.fromEntries(CHANNELS.map((channel) => [channel, String(plan?.entitlements.find((entry) => entry.channel === channel)?.monthly ?? 0)])) as Record<Channel, string>;
@@ -118,7 +119,7 @@ function Tenants() {
 
   const applyPlan = (planId: string) => {
     setForm((current) => ({ ...current, planId }));
-    initializeOverrides(plans.data?.find((plan) => plan.id === planId));
+    initializeOverrides(planCatalog?.find((plan) => plan.id === planId));
     setPendingPlanId(null);
   };
 
@@ -180,7 +181,7 @@ function Tenants() {
   const valid = form.name.trim().length > 0 && validCode && form.dataRegion.trim().length > 0 && form.timezone.trim().length > 0 && planEligible && form.firstName.trim().length > 0 && form.lastName.trim().length > 0 && validEmail && validOverrideLimits;
 
   const openOnboarding = () => {
-    const plan = plans.data?.find((item) => item.status === "active");
+    const plan = planCatalog?.find((item) => item.status === "active");
     setSelected(null);
     setEditingId(null);
     setEditingPlanId(null);
@@ -205,7 +206,7 @@ function Tenants() {
       mobileNumber: profile?.mobileNumber ?? "", jobTitle: profile?.jobTitle ?? "", department: profile?.department ?? "",
       preferredLanguage: profile?.preferredLanguage ?? tenant.defaultLanguage,
     });
-    initializeOverrides(plans.data?.find((plan) => plan.id === tenant.subscription.planId), tenant.subscription.overrides);
+    initializeOverrides(planCatalog?.find((plan) => plan.id === tenant.subscription.planId), tenant.subscription.overrides);
     setTouched(false);
     setError("");
     setOpen(true);
@@ -251,8 +252,8 @@ function Tenants() {
     { id: "region", header: t("ten.region"), cell: (tenant) => <span className="text-muted-foreground">{tenant.dataRegion}</span>, className: "hidden lg:table-cell" },
   ];
 
-  const eligiblePlans = (plans.data ?? []).filter((plan) => plan.status === "active" || plan.id === editingPlanId);
-  const requestedPlan = plans.data?.find((plan) => plan.id === pendingPlanId);
+  const eligiblePlans = (planCatalog ?? []).filter((plan) => plan.status === "active" || plan.id === editingPlanId);
+  const requestedPlan = planCatalog?.find((plan) => plan.id === pendingPlanId);
 
   return (
     <>

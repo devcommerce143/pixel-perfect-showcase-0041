@@ -1,4 +1,4 @@
-import { AlertTriangle, Ban, CheckCheck, CheckCircle2, Clock, Loader2, type LucideIcon, MinusCircle, Send, XCircle } from "lucide-react";
+import { AlertTriangle, Ban, CheckCheck, CheckCircle2, Clock, HelpCircle, Loader2, type LucideIcon, MinusCircle, Send, XCircle } from "lucide-react";
 
 export type Tone = "success" | "info" | "warning" | "danger" | "neutral";
 
@@ -19,6 +19,8 @@ export const STATUS_DEFS: Record<string, { tone: Tone; icon: LucideIcon }> = {
   pending_approval: { tone: "warning", icon: Clock },
   pending_verification: { tone: "warning", icon: Clock },
   submitted: { tone: "info", icon: Send },
+  dispatching: { tone: "info", icon: Loader2 },
+  unknown: { tone: "neutral", icon: HelpCircle },
   queued: { tone: "neutral", icon: Clock },
   degraded: { tone: "warning", icon: AlertTriangle },
   timeout: { tone: "warning", icon: AlertTriangle },

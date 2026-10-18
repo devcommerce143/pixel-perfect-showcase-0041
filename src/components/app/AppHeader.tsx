@@ -50,7 +50,7 @@ function Breadcrumbs() {
 
 export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { collapsed: boolean; onToggleCollapse: () => void; onOpenMobile: () => void }) {
   const { t, locale, setLocale } = useI18n();
-  const { user, isPlatform, can, signOut } = useSession();
+  const { user, isPlatform, can, signOut, mode } = useSession();
   const { tenantId, setTenantId } = useGlobalTenantContext();
   const router = useRouter();
   const [tenantSelectorOpen, setTenantSelectorOpen] = useState(false);
@@ -68,8 +68,12 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
   const organizationName = user.tenantName ?? t("header.dolftech");
   const accountTarget = can("settings.view") ? "/settings" : can("platform.config") ? "/platform/config" : null;
   const handleSignOut = async () => {
-    await signOut();
-    await router.navigate({ to: "/login" as never, replace: true });
+    try {
+      await signOut();
+      if (mode !== "live") await router.navigate({ to: "/login" as never, replace: true });
+    } catch {
+      await router.navigate({ to: "/login" as never, replace: true });
+    }
   };
 
   return (
@@ -175,7 +179,7 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
           <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="font-normal">
               <div className="text-sm font-medium">{user.name}</div>
-              <div className="text-caption">{user.email}</div>
+              <div className="text-caption">{user.email || user.id}</div>
             </DropdownMenuLabel>
             <DropdownMenuLabel className="font-normal text-caption">{organizationName}</DropdownMenuLabel>
             {accountTarget && <DropdownMenuItem asChild><Link to={accountTarget as never}>{t("header.accountSettings")}</Link></DropdownMenuItem>}

@@ -7,12 +7,14 @@ import { cn } from "@/lib/utils";
 export function KpiStrip({ kpis }: { kpis: DashboardSummary["kpis"] }) {
   const { t, locale } = useI18n();
   const items: { key: MessageKey; value: string; accent: string; sub?: string }[] = [
-    { key: "dash.kpi.total", value: formatNumber(kpis.total, locale), accent: "bg-primary", sub: `+${formatPercent(kpis.totalDeltaPct, locale)}` },
+    { key: "dash.kpi.total", value: formatNumber(kpis.total, locale), accent: "bg-primary", ...(kpis.totalDeltaPct == null ? {} : { sub: `+${formatPercent(kpis.totalDeltaPct, locale)}` }) },
     { key: "dash.kpi.delivered", value: formatNumber(kpis.delivered, locale), accent: "bg-success" },
     { key: "dash.kpi.pending", value: formatNumber(kpis.pending, locale), accent: "bg-warning" },
     { key: "dash.kpi.failed", value: formatNumber(kpis.failed, locale), accent: "bg-danger" },
-    { key: "dash.kpi.rate", value: formatPercent(kpis.deliveryRate, locale), accent: "bg-info" },
+    { key: "dash.kpi.rate", value: kpis.deliveryRate == null ? "—" : formatPercent(kpis.deliveryRate, locale), accent: "bg-info" },
   ];
+  const submitted = kpis.submitted ?? 0;
+  const unknown = kpis.unknown ?? 0;
   return (
     <div className="panel grid grid-cols-2 divide-y sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-5 lg:divide-x rtl:lg:divide-x-reverse">
       {items.map((it) => (
@@ -32,6 +34,11 @@ export function KpiStrip({ kpis }: { kpis: DashboardSummary["kpis"] }) {
           )}
         </div>
       ))}
+      {submitted + unknown > 0 ? (
+        <p className="col-span-full border-t px-4 py-2 text-caption">
+          {t("dash.unclassified", { submitted: formatNumber(submitted, locale), unknown: formatNumber(unknown, locale) })}
+        </p>
+      ) : null}
     </div>
   );
 }

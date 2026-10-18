@@ -6,6 +6,7 @@ import type {
   ConfigParam,
   CreateBulkJobInput,
   Plan,
+  PlanListQuery,
   PlatformApiClient,
   PlatformApiClientListQuery,
   PortalUser,
@@ -19,6 +20,8 @@ import type {
   Application,
   ApplicationListQuery,
   AuditEvent,
+  DashboardQuotaWarning,
+  DashboardRecentMessages,
   DashboardSummary,
   ListParams,
   SenderIdentityListQuery,
@@ -44,6 +47,10 @@ import type {
   TenantUsageTableQuery,
   UsageSummary,
 } from "./types";
+import { getCachedAccessToken } from "../auth/oidc";
+import { readClientEnv } from "../config/read-env";
+import { resolvePortalConfig, selectPortalApi } from "../config/runtime";
+import { createLiveApi } from "./http/live-api";
 import { createMockApi } from "./mock/mock-api";
 
 /**
@@ -54,6 +61,10 @@ import { createMockApi } from "./mock/mock-api";
  */
 export interface DolfConnectApi {
   getDashboard(): Promise<DashboardSummary>;
+  /** Live mode reads `GET /api/v1/dashboard/messages`. Mock screens keep using `listMessages`. */
+  getDashboardMessages(): Promise<DashboardRecentMessages>;
+  /** Live mode reads `GET /api/v1/dashboard/quota`. Mock screens keep using `getUsage`. */
+  getDashboardQuota(): Promise<DashboardQuotaWarning>;
   listMessages(params: ListParams, actor: SenderIdentityActor): Promise<Paginated<Message>>;
   getMessage(id: string, actor: SenderIdentityActor, tenantId?: string): Promise<Message | null>;
   /** The actor is mock-only; an HTTP implementation must derive tenant/role claims from the authenticated token. */
@@ -105,7 +116,7 @@ export interface DolfConnectApi {
   getSettings(): Promise<TenantSettings>;
   updateSettings(input: TenantSettings): Promise<TenantSettings>;
   getReport(actor: SenderIdentityActor, tenantId?: string): Promise<ReportSummary>;
-  listPlans(): Promise<Plan[]>;
+  listPlans(query?: PlanListQuery): Promise<Paginated<Plan>>;
   createPlan(input: Omit<Plan, "id" | "tenants">): Promise<Plan>;
   updatePlan(id: string, input: Omit<Plan, "id" | "tenants">): Promise<Plan>;
   setPlanStatus(id: string, status: Plan["status"]): Promise<void>;
@@ -132,4 +143,11 @@ export interface DolfConnectApi {
   updateConfig(key: string, value: string): Promise<ConfigParam>;
 }
 
-export const api: DolfConnectApi = createMockApi();
+const portalConfig = resolvePortalConfig(readClientEnv());
+
+export const api: DolfConnectApi = selectPortalApi(portalConfig, createMockApi, () =>
+  createLiveApi({
+    apiBaseUrl: portalConfig.ok && portalConfig.mode === "live" ? portalConfig.apiBaseUrl : null,
+    getAccessToken: getCachedAccessToken,
+  }),
+);

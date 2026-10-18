@@ -10,7 +10,7 @@ export function ChannelDistribution({ channels }: { channels: DashboardSummary["
     <div className="flex flex-col gap-4 p-4">
       <div className="flex h-2.5 overflow-hidden rounded-full bg-muted" role="img" aria-label="Channel distribution">
         {channels.map((c) => (
-          <div key={c.channel} style={{ width: `${(c.count / total) * 100}%`, background: CHANNEL_META[c.channel].fill }} />
+          <div key={c.channel} style={{ width: `${total > 0 ? (c.count / total) * 100 : 0}%`, background: CHANNEL_META[c.channel].fill }} />
         ))}
       </div>
       <ul className="flex flex-col divide-y">
@@ -19,7 +19,7 @@ export function ChannelDistribution({ channels }: { channels: DashboardSummary["
             <ChannelLabel channel={c.channel} />
             <span className="flex items-baseline gap-3 tabular-nums">
               <span className="font-medium">{formatNumber(c.count, locale)}</span>
-              <span className="w-12 text-end text-caption">{formatPercent((c.count / total) * 100, locale)}</span>
+              <span className="w-12 text-end text-caption">{total > 0 ? formatPercent((c.count / total) * 100, locale) : "—"}</span>
             </span>
           </li>
         ))}

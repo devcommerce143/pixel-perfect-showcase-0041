@@ -37,7 +37,7 @@ function safeDestination(value: string | undefined) {
 
 function LoginPage() {
   const { t, locale, setLocale } = useI18n();
-  const { signIn, status } = useSession();
+  const { signIn, status, mode, beginOrganizationSignIn, configurationIssues, correlationId } = useSession();
   const search = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate();
@@ -213,6 +213,36 @@ function LoginPage() {
                 <p className="mt-2 text-sm leading-5 text-muted-foreground">{t("auth.signInDescription")}</p>
               </div>
 
+              <p role="status" className="mb-4 rounded-md border bg-surface-subtle px-3 py-2 text-xs text-muted-foreground">{t(mode === "mock" ? "mode.mockBanner" : "mode.liveBanner")}</p>
+              {status === "configuration" ? (
+                <div role="alert" className="space-y-2 rounded-md border border-danger/30 bg-danger-soft px-3 py-3 text-sm text-danger">
+                  <p className="font-medium">{t("auth.configurationTitle")}</p>
+                  <p>{t("auth.configurationBody")}</p>
+                  <ul className="list-disc space-y-1 ps-5">
+                    {configurationIssues.map((issue) => <li key={issue}>{issue}</li>)}
+                  </ul>
+                </div>
+              ) : mode === "live" ? (
+                <div className="space-y-4">
+                  <p className="text-sm leading-5 text-muted-foreground">{t("auth.organizationSignInDescription")}</p>
+                  {correlationId && <p className="text-caption text-muted-foreground">{t("auth.correlation", { id: correlationId })}</p>}
+                  <Button type="button" className="h-11 w-full shadow-panel" disabled={status === "loading" || busy} onClick={() => {
+                    setBusy(true);
+                    setError("");
+                    const requested = search.returnTo;
+                    const returnTo = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+                    void beginOrganizationSignIn(returnTo).catch(() => {
+                      setBusy(false);
+                      setError("auth.unavailable");
+                    });
+                  }}>
+                    {(busy || status === "loading") && <LoaderCircle className="size-4 animate-spin" />}
+                    {busy ? t("auth.signingIn") : t("auth.organizationSignIn")}
+                    {!busy && status !== "loading" && <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />}
+                  </Button>
+                  {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{t(error)}</p>}
+                </div>
+              ) : (
               <form className="space-y-4" onSubmit={submit} noValidate>
                 <div className="space-y-1.5">
                   <Label htmlFor="login-email">{t("auth.email")}</Label>
@@ -253,6 +283,7 @@ function LoginPage() {
                   {!disabled && <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />}
                 </Button>
               </form>
+              )}
 
             </div>
           </section>

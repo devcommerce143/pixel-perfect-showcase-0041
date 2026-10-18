@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { useSession } from "@/lib/auth/session";
 import { useI18n } from "@/lib/i18n/i18n";
 import { cn } from "@/lib/utils";
 import { AppHeader } from "./AppHeader";
@@ -9,6 +10,7 @@ const KEY = "dc.sidebarCollapsed";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { dir, t } = useI18n();
+  const { mode } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -31,6 +33,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader collapsed={collapsed} onToggleCollapse={toggle} onOpenMobile={() => setMobileOpen(true)} />
+        <div role="status" className="border-b bg-surface-subtle px-4 py-2 text-xs text-muted-foreground">
+          {t(mode === "mock" ? "mode.mockBanner" : "mode.liveBanner")}
+        </div>
         <main className="flex-1">{children}</main>
       </div>
     </div>

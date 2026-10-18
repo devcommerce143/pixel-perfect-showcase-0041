@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "test": "node --experimental-strip-types --test src/lib/config/runtime.test.ts src/lib/api/http/client.test.ts src/lib/api/http/dashboard-mapper.test.ts src/lib/api/http/dashboard-messages-mapper.test.ts src/lib/api/http/dashboard-quota-mapper.test.ts src/lib/api/http/live-api.test.ts src/lib/api/dashboard-quota.test.ts src/lib/api/dashboard-recent.test.ts src/lib/api/dashboard-availability.test.ts src/lib/api/http/plan-mapper.test.ts src/lib/api/plans-catalog.test.ts src/lib/auth/profile.test.ts",
     "format": "prettier --write ."
   },
   "overrides": {
@@ -54,6 +55,7 @@
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.575.0",
+    "oidc-client-ts": "^3.5.0",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",

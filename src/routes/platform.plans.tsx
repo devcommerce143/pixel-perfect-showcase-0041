@@ -4,9 +4,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, Info, Plus } from "lucide-react";
 import { ChannelLabel } from "@/components/app/ChannelLabel";
+import { ListPagination } from "@/components/app/DataTable";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
-import { TableSkeleton } from "@/components/app/States";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/app/States";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -66,9 +67,10 @@ function planDraft(plan: Plan): PlanDraft {
   const draft = emptyPlanDraft();
   for (const channel of CHANNELS) {
     const entitlement = plan.entitlements.find((item) => item.channel === channel);
+    const monthly = entitlement?.monthly;
     draft.channels[channel] = {
       enabled: entitlement?.enabled ?? false,
-      monthly: String(Number.isSafeInteger(entitlement?.monthly) && (entitlement?.monthly ?? -1) >= 0 ? entitlement!.monthly : 0),
+      monthly: monthly == null ? "" : String(Number.isSafeInteger(monthly) && monthly >= 0 ? monthly : 0),
     };
   }
   for (const feature of plan.features) draft.features[feature] = true;
@@ -92,7 +94,9 @@ function Plans() {
   const { t, locale, dir } = useI18n();
   const { can } = useSession();
   const queryClient = useQueryClient();
-  const q = useQuery(queries.plans());
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<10 | 20 | 50>(20);
+  const q = useQuery(queries.plans({ page, pageSize }));
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Plan | null>(null);
@@ -131,7 +135,8 @@ function Plans() {
     return /^\d+$/.test(entitlement.monthly) && Number.isSafeInteger(quota) && quota >= 0;
   });
   const valid = validCode && !!draft.name.trim() && validTps && validQuotas;
-  const editingPlan = q.data?.find((plan) => plan.id === editingId);
+  const editingPlan = q.data?.items.find((plan) => plan.id === editingId);
+  const tenantCount = (count: number | null) => count == null ? t("plans.tenantsUnavailable") : t("plans.tenants", { count });
   const displayPlanName = (plan: Plan) => plan.code === "STANDARD" ? t("plans.standard") : plan.name;
   const setChannel = (channel: Channel, value: Partial<PlanDraft["channels"][Channel]>) => {
     setDraft((current) => ({ ...current, channels: { ...current.channels, [channel]: { ...current.channels[channel], ...value } } }));
@@ -177,10 +182,11 @@ function Plans() {
     <>
       <PageHeader title={t("plans.title")} description={t("plans.subtitle")} actions={can("platform.plans.manage") && <Button size="sm" onClick={openCreate}><Plus className="size-4" />{t("plans.new")}</Button>} />
       <PageBody>
-        {q.isError ? <Section><p role="alert" className="p-4 text-sm text-danger">{t("plans.loadError")}</p></Section> : !q.data ? <TableSkeleton /> : (
+        {q.isError ? <Section><ErrorState onRetry={() => void q.refetch()} /></Section> : q.isPending || !q.data ? <TableSkeleton /> : q.data.total === 0 ? <Section><EmptyState title={t("plans.emptyTitle")} body={t("plans.emptyBody")} /></Section> : (
+          <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {q.data.map((plan) => (
-              <Section key={plan.id} title={displayPlanName(plan)} description={t("plans.tenants", { count: plan.tenants })} actions={<div className="flex items-center gap-2"><StatusBadge status={plan.status} /><Button variant="ghost" size="sm" onClick={() => setSelected(plan)}>{t("common.view")}</Button></div>}>
+            {q.data.items.map((plan) => (
+              <Section key={plan.id} title={displayPlanName(plan)} description={tenantCount(plan.tenants)} actions={<div className="flex items-center gap-2"><StatusBadge status={plan.status} /><Button variant="ghost" size="sm" onClick={() => setSelected(plan)}>{t("common.view")}</Button></div>}>
                 <div className="space-y-3 p-4">
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
                   <p className="font-mono text-xs text-muted-foreground">{plan.code}</p>
@@ -193,7 +199,8 @@ function Plans() {
                     <ul className="mt-2 space-y-1.5">{CHANNELS.map((channel) => {
                       const entitlement = plan.entitlements.find((item) => item.channel === channel);
                       const enabled = entitlement?.enabled === true;
-                      return <li key={channel} className="flex items-center justify-between gap-2 text-sm"><ChannelLabel channel={channel} /><span className={enabled ? "font-medium tabular-nums" : "text-muted-foreground"}>{enabled ? `${formatNumber(entitlement?.monthly ?? 0, locale)} / ${t("plans.monthlyQuota")}` : t("plans.notEnabled")}</span></li>;
+                      const quota = entitlement?.monthly;
+                      return <li key={channel} className="flex items-center justify-between gap-2 text-sm"><ChannelLabel channel={channel} /><span className={enabled && quota != null ? "font-medium tabular-nums" : "text-muted-foreground"}>{enabled && quota != null ? `${formatNumber(quota, locale)} / ${t("plans.monthlyQuota")}` : enabled ? "—" : t("plans.notEnabled")}</span></li>;
                     })}</ul>
                   </div>
                   <ul className="space-y-1 border-t pt-3">{plan.features.length ? plan.features.map((feature) => <li key={feature} className="flex items-center gap-2 text-[0.8125rem] text-muted-foreground"><Check className="size-3.5 text-success" />{t(FEATURES.find((item) => item.key === feature)!.label)}</li>) : <li className="text-caption">{t("plans.noFeatures")}</li>}</ul>
@@ -201,6 +208,8 @@ function Plans() {
               </Section>
             ))}
           </div>
+          {q.data.total > q.data.pageSize && <div className="panel"><ListPagination page={page} pageSize={pageSize} total={q.data.total} onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} /></div>}
+          </>
         )}
       </PageBody>
 
@@ -221,7 +230,7 @@ function Plans() {
               </div>
               <div className="space-y-1.5"><Label htmlFor="plan-description">{t("common.description")}</Label><Textarea id="plan-description" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} rows={2} /></div>
               <div className="space-y-1.5"><Label>{t("common.status")}</Label><Select value={draft.status} onValueChange={(value) => setDraft({ ...draft, status: value as PlanDraft["status"] })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">{t("status.draft")}</SelectItem><SelectItem value="active">{t("status.active")}</SelectItem><SelectItem value="inactive">{t("status.inactive")}</SelectItem></SelectContent></Select></div>
-              {editingId && editingPlan?.status === "active" && editingPlan.tenants > 0 && <p className="flex items-start gap-2 rounded-md border border-info/25 bg-info-soft p-3 text-sm text-info"><Info className="mt-0.5 size-4 shrink-0" />{t("plans.activeEditNotice")}</p>}
+              {editingId && editingPlan?.status === "active" && editingPlan.tenants != null && editingPlan.tenants > 0 && <p className="flex items-start gap-2 rounded-md border border-info/25 bg-info-soft p-3 text-sm text-info"><Info className="mt-0.5 size-4 shrink-0" />{t("plans.activeEditNotice")}</p>}
             </section>
 
             <section className="space-y-3">
@@ -259,12 +268,13 @@ function Plans() {
           {selected && <>
             <SheetHeader><SheetTitle>{displayPlanName(selected)}</SheetTitle><SheetDescription>{selected.code}</SheetDescription></SheetHeader>
             <div className="space-y-5 px-4 pb-6">
-              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={selected.status} /><span className="text-sm">{t("plans.tenants", { count: selected.tenants })}</span></div>
+              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={selected.status} /><span className="text-sm">{tenantCount(selected.tenants)}</span></div>
               <p className="text-sm text-muted-foreground">{selected.description || t("common.notFound")}</p>
               <section className="space-y-2"><h3 className="text-sm font-semibold">{t("plans.entitlements")}</h3><dl className="divide-y">{CHANNELS.map((channel) => {
                 const entitlement = selected.entitlements.find((item) => item.channel === channel);
                 const enabled = entitlement?.enabled === true;
-                return <div key={channel} className="flex items-center justify-between gap-3 py-2 text-sm"><dt><ChannelLabel channel={channel} /></dt><dd className={enabled ? "text-end" : "text-end text-muted-foreground"}>{enabled ? `${t("plans.enabled")} · ${formatNumber(entitlement?.monthly ?? 0, locale)} / ${t("plans.monthlyQuota")}` : t("plans.notEnabled")}</dd></div>;
+                const quota = entitlement?.monthly;
+                return <div key={channel} className="flex items-center justify-between gap-3 py-2 text-sm"><dt><ChannelLabel channel={channel} /></dt><dd className={enabled && quota != null ? "text-end" : "text-end text-muted-foreground"}>{enabled && quota != null ? `${t("plans.enabled")} · ${formatNumber(quota, locale)} / ${t("plans.monthlyQuota")}` : enabled ? "—" : t("plans.notEnabled")}</dd></div>;
               })}</dl></section>
               <section className="space-y-2"><h3 className="text-sm font-semibold">{t("plans.limits")}</h3><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("plans.tps")}</dt><dd className="tabular-nums">{formatNumber(selected.tpsLimit, locale)}</dd></div><div><dt className="text-label">{t("plans.quotaPolicy")}</dt><dd>{t(selected.quotaPolicy === "hard_stop" ? "plans.hardStop" : "plans.softCap")}</dd></div></dl></section>
               <section className="space-y-2"><h3 className="text-sm font-semibold">{t("plans.features")}</h3>{selected.features.length ? <ul className="space-y-2">{selected.features.map((feature) => <li key={feature} className="flex items-center gap-2 text-sm"><Check className="size-4 text-success" />{t(FEATURES.find((item) => item.key === feature)!.label)}</li>)}</ul> : <p className="text-sm text-muted-foreground">{t("plans.noFeatures")}</p>}</section>

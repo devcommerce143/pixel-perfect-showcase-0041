@@ -1,5 +1,6 @@
 import type { DolfConnectApi } from "../client";
-import type { ApiCredential, Application, ApplicationListQuery, ApiCredentialListQuery, AuditEvent, BulkJob, BulkSuppressionCandidate, Channel, ListParams, Message, MessageStatus, Paginated, Plan, PlanFeatureKey, PortalUser, Provider, ProviderAdapterConfigInput, ProviderUsageBilling, QuotaPolicy, RoutingRule, SenderIdentity, SenderIdentityActor, SenderIdentityInput, SenderIdentityListQuery, SenderIdentityOperationalStatus, SenderIdentityVerificationStatus, Template, Tenant, TenantDirectoryItem, TenantEffectiveEntitlements, TenantEntitlementOverrides, TenantStatus, TenantUpsertInput, TenantUsageTableQuery, UsageSummary, Webhook, WebhookDelivery } from "../types";
+import type { ApiCredential, Application, ApplicationListQuery, ApiCredentialListQuery, AuditEvent, BulkJob, BulkSuppressionCandidate, Channel, DashboardQuotaWarning, DashboardRecentMessage, DashboardRecentMessages, ListParams, Message, MessageStatus, Paginated, Plan, PlanFeatureKey, PlanListQuery, PortalUser, Provider, ProviderAdapterConfigInput, ProviderUsageBilling, QuotaPolicy, RoutingRule, SenderIdentity, SenderIdentityActor, SenderIdentityInput, SenderIdentityListQuery, SenderIdentityOperationalStatus, SenderIdentityVerificationStatus, Template, Tenant, TenantDirectoryItem, TenantEffectiveEntitlements, TenantEntitlementOverrides, TenantStatus, TenantUpsertInput, TenantUsageTableQuery, UsageSummary, Webhook, WebhookDelivery } from "../types";
+import { slicePlanPage } from "../plans-catalog";
 import { adapterHasConfiguredSecret, adapterHasRequiredValues, createPublicAdapterConfig, mergeAdapterSecrets } from "../provider-catalog";
 import { BULK_JOBS, CHANNELS, CONFIG, PLANS, PLATFORM_CLIENTS, PROVIDER_USAGE_BILLING, ROUTING, SENDER_IDENTITIES, SETTINGS, USERS, WEBHOOKS } from "./mock-data-ext";
 import { APPLICATIONS, AUDIT, BASE_TIME, CREDENTIALS, MESSAGES, PROVIDERS, TEMPLATES, TENANTS, TREND } from "./mock-data";
@@ -61,7 +62,7 @@ function validatePlanInput(input: Omit<Plan, "id" | "tenants">) {
   if (input.entitlements.length !== PLAN_CHANNELS.length || PLAN_CHANNELS.some((channel) => !input.entitlements.some((item) => item.channel === channel))) {
     throw new Error("Exactly one entitlement is required for each channel");
   }
-  if (input.entitlements.some((item) => typeof item.enabled !== "boolean" || !Number.isSafeInteger(item.monthly) || item.monthly < 0)) {
+  if (input.entitlements.some((item) => typeof item.enabled !== "boolean" || item.monthly == null || !Number.isSafeInteger(item.monthly) || item.monthly < 0)) {
     throw new Error("Channel quotas must be non-negative integers with explicit availability");
   }
   if (input.features.some((feature) => !PLAN_FEATURES.includes(feature)) || new Set(input.features).size !== input.features.length) {
@@ -205,6 +206,27 @@ export function createMockApi(): DolfConnectApi {
         ],
         quota: { used: 410_120, limit: 500_000 },
       };
+    },
+    async getDashboardMessages(): Promise<DashboardRecentMessages> {
+      await delay();
+      const items: DashboardRecentMessage[] = [...messages]
+        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+        .slice(0, 8)
+        .map((message) => ({
+          id: message.id,
+          channel: message.channel,
+          status: message.status as DashboardRecentMessage["status"],
+          acceptedAt: message.createdAt,
+          applicationName: message.applicationName,
+          templateKey: message.templateName,
+          tenantId: message.tenantId,
+          tenantName: message.tenantName,
+          recipient: message.recipient,
+        }));
+      return { scope: "platform", tenantId: null, items };
+    },
+    async getDashboardQuota(): Promise<DashboardQuotaWarning> {
+      throw new Error("Mock mode keeps dashboard quota warnings on the local usage summary.");
     },
     async listMessages(p, actor) {
       await delay();
@@ -991,9 +1013,10 @@ export function createMockApi(): DolfConnectApi {
         }) : TREND,
       };
     },
-    async listPlans() {
+    async listPlans(query?: PlanListQuery) {
       await delay();
-      return plans.map((plan) => ({ ...plan, tenants: tenants.filter((tenant) => tenant.subscription.planId === plan.id).length, entitlements: plan.entitlements.map((e) => ({ ...e })), features: [...plan.features] }));
+      const rows = plans.map((plan) => ({ ...plan, tenants: tenants.filter((tenant) => tenant.subscription.planId === plan.id).length, entitlements: plan.entitlements.map((e) => ({ ...e })), features: [...plan.features] }));
+      return slicePlanPage(rows, query);
     },
     async createPlan(input) {
       await delay(500);

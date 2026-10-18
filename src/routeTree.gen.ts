@@ -22,6 +22,7 @@ import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as UsageRouteImport } from './routes/usage'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as WebhooksRouteImport } from './routes/webhooks'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as MessagesIndexRouteImport } from './routes/messages.index'
 import { Route as MessagesMessageIdRouteImport } from './routes/messages.$messageId'
 import { Route as MessagesBulkRouteImport } from './routes/messages.bulk'
@@ -100,6 +101,11 @@ const WebhooksRoute = WebhooksRouteImport.update({
   path: '/webhooks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MessagesIndexRoute = MessagesIndexRouteImport.update({
   id: '/messages/',
   path: '/messages/',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/usage': typeof UsageRoute
   '/users': typeof UsersRoute
   '/webhooks': typeof WebhooksRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/messages/$messageId': typeof MessagesMessageIdRoute
   '/messages/bulk': typeof MessagesBulkRoute
   '/messages/send': typeof MessagesSendRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/usage': typeof UsageRoute
   '/users': typeof UsersRoute
   '/webhooks': typeof WebhooksRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/messages/$messageId': typeof MessagesMessageIdRoute
   '/messages/bulk': typeof MessagesBulkRoute
   '/messages/send': typeof MessagesSendRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/usage': typeof UsageRoute
   '/users': typeof UsersRoute
   '/webhooks': typeof WebhooksRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/messages/$messageId': typeof MessagesMessageIdRoute
   '/messages/bulk': typeof MessagesBulkRoute
   '/messages/send': typeof MessagesSendRoute
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/usage'
     | '/users'
     | '/webhooks'
+    | '/auth/callback'
     | '/messages/$messageId'
     | '/messages/bulk'
     | '/messages/send'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/usage'
     | '/users'
     | '/webhooks'
+    | '/auth/callback'
     | '/messages/$messageId'
     | '/messages/bulk'
     | '/messages/send'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/usage'
     | '/users'
     | '/webhooks'
+    | '/auth/callback'
     | '/messages/$messageId'
     | '/messages/bulk'
     | '/messages/send'
@@ -341,6 +353,7 @@ export interface RootRouteChildren {
   UsageRoute: typeof UsageRoute
   UsersRoute: typeof UsersRoute
   WebhooksRoute: typeof WebhooksRoute
+  AuthCallbackRoute: typeof AuthCallbackRoute
   MessagesMessageIdRoute: typeof MessagesMessageIdRoute
   MessagesBulkRoute: typeof MessagesBulkRoute
   MessagesSendRoute: typeof MessagesSendRoute
@@ -448,6 +461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WebhooksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/messages/': {
       id: '/messages/'
       path: '/messages'
@@ -549,6 +569,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsageRoute: UsageRoute,
   UsersRoute: UsersRoute,
   WebhooksRoute: WebhooksRoute,
+  AuthCallbackRoute: AuthCallbackRoute,
   MessagesMessageIdRoute: MessagesMessageIdRoute,
   MessagesBulkRoute: MessagesBulkRoute,
   MessagesSendRoute: MessagesSendRoute,

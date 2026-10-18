@@ -1,10 +1,12 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { api } from "./client";
-import type { ApiCredentialListQuery, ApplicationListQuery, BulkJobListQuery, BulkSuppressionCandidate, Channel, CreateBulkJobInput, ListParams, PlatformApiClientListQuery, SenderIdentityActor, SenderIdentityListQuery, TenantListQuery, TemplateListQuery, TenantUsageTableQuery, UserListQuery } from "./types";
+import type { ApiCredentialListQuery, ApplicationListQuery, BulkJobListQuery, BulkSuppressionCandidate, Channel, CreateBulkJobInput, ListParams, PlanListQuery, PlatformApiClientListQuery, SenderIdentityActor, SenderIdentityListQuery, TenantListQuery, TemplateListQuery, TenantUsageTableQuery, UserListQuery } from "./types";
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
   dashboard: () => queryOptions({ queryKey: ["dashboard"], queryFn: () => api.getDashboard() }),
+  dashboardMessages: () => queryOptions({ queryKey: ["dashboard", "messages"], queryFn: () => api.getDashboardMessages() }),
+  dashboardQuota: () => queryOptions({ queryKey: ["dashboard", "quota"], queryFn: () => api.getDashboardQuota() }),
   messages: (p: ListParams, actor: SenderIdentityActor) =>
     queryOptions({
       queryKey: ["messages", actor.role, actor.tenantId, p],
@@ -52,7 +54,7 @@ export const queries = {
   users: (actor: SenderIdentityActor, query: UserListQuery) => queryOptions({ queryKey: ["users", actor.role, actor.tenantId, query], queryFn: () => api.listUsers(actor, query), placeholderData: keepPreviousData }),
   settings: () => queryOptions({ queryKey: ["settings"], queryFn: () => api.getSettings() }),
   report: (actor: SenderIdentityActor, tenantId?: string) => queryOptions({ queryKey: ["report", actor.role, actor.tenantId, tenantId], queryFn: () => api.getReport(actor, tenantId) }),
-  plans: () => queryOptions({ queryKey: ["plans"], queryFn: () => api.listPlans() }),
+  plans: (query: PlanListQuery = {}) => queryOptions({ queryKey: ["plans", query], queryFn: () => api.listPlans(query), placeholderData: keepPreviousData }),
   channels: () => queryOptions({ queryKey: ["channels"], queryFn: () => api.listChannels() }),
   routing: () => queryOptions({ queryKey: ["routing"], queryFn: () => api.listRoutingRules() }),
   platformClients: (p: PlatformApiClientListQuery, actor: SenderIdentityActor) =>

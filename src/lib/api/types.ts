@@ -481,18 +481,103 @@ export interface TrendPoint {
 }
 
 export interface DashboardSummary {
+  /** Present for a live engine summary. Mock summaries omit it. */
+  scope?: "platform" | "tenant";
   kpis: {
     total: number;
     delivered: number;
     pending: number;
     failed: number;
-    deliveryRate: number;
-    totalDeltaPct: number;
+    /**
+     * Delivered ÷ total × 100. Null when total is 0.
+     * Live totals include submitted and unknown, so this rate does not treat them as delivered.
+     */
+    deliveryRate: number | null;
+    /** Null when the source has no previous-window comparison. */
+    totalDeltaPct: number | null;
+    /** SUBMITTED messages. Counted in total and omitted from delivered, pending, and failed. */
+    submitted?: number;
+    /** UNKNOWN messages. Counted in total and omitted from pending and failed. */
+    unknown?: number;
   };
   trend: TrendPoint[];
   channels: { channel: Channel; count: number }[];
-  quota: { used: number; limit: number };
+  /** Null when this scope has no single positive monthly limit. */
+  quota: { used: number; limit: number } | null;
 }
+
+/** Stored engine statuses. They are not collapsed into delivered, pending, or failed. */
+export type DashboardRecentMessageStatus =
+  | "accepted"
+  | "queued"
+  | "dispatching"
+  | "submitted"
+  | "failed"
+  | "unknown"
+  | "delivered"
+  | "read";
+
+export interface DashboardRecentMessage {
+  id: string;
+  channel: Channel;
+  status: DashboardRecentMessageStatus;
+  acceptedAt: string;
+  applicationName: string;
+  templateKey: string | null;
+  tenantId: string;
+  tenantName: string;
+  /** Present for tenant scope only. Omitted for platform scope. */
+  recipient?: string;
+}
+
+export interface DashboardRecentMessages {
+  scope: "platform" | "tenant";
+  tenantId: string | null;
+  items: DashboardRecentMessage[];
+}
+
+/** Backend warning band. The portal does not derive this from a percentage. */
+export type QuotaWarningBand = "none" | "80" | "90" | "100";
+
+export interface QuotaUsageReading {
+  committed: number;
+  reserved: number;
+  /** Committed plus reserved on this counter. Not the sum of channel counters. */
+  used: number;
+  ceiling: number | null;
+  band: QuotaWarningBand;
+  overage: number | null;
+}
+
+export interface DashboardQuotaChannel extends QuotaUsageReading {
+  channel: Channel;
+  enabled: boolean;
+}
+
+export interface TenantDashboardQuota {
+  scope: "tenant";
+  tenantId: string;
+  periodStart: string;
+  configured: boolean;
+  policy: QuotaPolicy | null;
+  policySource: "plan" | "subscription" | null;
+  aggregate: QuotaUsageReading;
+  channels: DashboardQuotaChannel[];
+}
+
+export interface PlatformDashboardQuota {
+  scope: "platform";
+  tenantId: null;
+  periodStart: string;
+  counts: {
+    atOrAbove80: number;
+    atOrAbove90: number;
+    atOrAbove100: number;
+    unconfigured: number;
+  };
+}
+
+export type DashboardQuotaWarning = TenantDashboardQuota | PlatformDashboardQuota;
 
 export type QuotaPolicy = "hard_stop" | "soft_cap";
 export type UsageQuotaStatus = "normal" | "approaching" | "warning" | "at_limit";
@@ -742,6 +827,11 @@ export interface ReportSummary {
 
 export type PlanFeatureKey = "api_access" | "bulk_messaging" | "webhooks" | "reporting" | "audit_export" | "dedicated_sender_identities";
 
+export interface PlanListQuery {
+  page?: number;
+  pageSize?: number;
+}
+
 export interface Plan {
   id: string;
   code: string;
@@ -749,8 +839,9 @@ export interface Plan {
   description: string;
   status: "active" | "draft" | "inactive" | "archived";
   tpsLimit: number;
-  tenants: number;
-  entitlements: { channel: Channel; enabled: boolean; monthly: number }[];
+  /** Present for the mock catalog. The live plan list does not include a subscriber count. */
+  tenants: number | null;
+  entitlements: { channel: Channel; enabled: boolean; monthly: number | null }[];
   quotaPolicy: QuotaPolicy;
   features: PlanFeatureKey[];
 }
