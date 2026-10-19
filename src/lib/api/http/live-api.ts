@@ -21,7 +21,18 @@ import {
   tenantSubscriptionPath,
   toTenantPlanAssignmentRequest,
 } from "./tenant-subscription-mapper.ts";
-import type { Plan, PlanListQuery, TenantListQuery, TenantPlanAssignmentInput, TenantProfileUpdateInput, TenantStatus } from "../types.ts";
+import {
+  mapUserPage,
+  mapUserResponse,
+  toCreateUserRequest,
+  toUpdateUserProfileRequest,
+  toUserRoleRequest,
+  toUserStatusRequest,
+  userCreatePath,
+  userItemPath,
+  userListPath,
+} from "./user-mapper.ts";
+import type { CreatePortalUserInput, Plan, PlanListQuery, TenantListQuery, TenantPlanAssignmentInput, TenantProfileUpdateInput, TenantStatus, TenantUserRole, UpdatePortalUserProfileInput, UserListQuery, UserStatus } from "../types.ts";
 
 const API_PLAN_STATUSES: Record<Plan["status"], "DRAFT" | "ACTIVE" | "INACTIVE" | "ARCHIVED"> = {
   draft: "DRAFT",
@@ -113,6 +124,58 @@ export function createLiveApi(options: {
             tenantId,
             input,
           );
+      }
+      if (property === "listUsers") {
+        return async (
+          actor: Parameters<DolfConnectApi["listUsers"]>[0],
+          query: UserListQuery,
+          targetTenantId?: string,
+        ) => mapUserPage(await http.get(
+          userListPath(actor.role, query, targetTenantId),
+        ));
+      }
+      if (property === "inviteUser") {
+        return async (
+          actor: Parameters<DolfConnectApi["inviteUser"]>[0],
+          input: CreatePortalUserInput,
+          targetTenantId?: string,
+        ) => mapUserResponse(await http.post(
+          userCreatePath(actor.role, targetTenantId),
+          toCreateUserRequest(input),
+        ));
+      }
+      if (property === "updateUser") {
+        return async (
+          actor: Parameters<DolfConnectApi["updateUser"]>[0],
+          id: string,
+          input: UpdatePortalUserProfileInput,
+          targetTenantId?: string,
+        ) => mapUserResponse(await http.patch(
+          userItemPath(actor.role, id, targetTenantId),
+          toUpdateUserProfileRequest(input),
+        ));
+      }
+      if (property === "setUserRole") {
+        return async (
+          actor: Parameters<DolfConnectApi["setUserRole"]>[0],
+          id: string,
+          role: TenantUserRole,
+          targetTenantId?: string,
+        ) => mapUserResponse(await http.post(
+          `${userItemPath(actor.role, id, targetTenantId)}/role`,
+          toUserRoleRequest(role),
+        ));
+      }
+      if (property === "setUserStatus") {
+        return async (
+          actor: Parameters<DolfConnectApi["setUserStatus"]>[0],
+          id: string,
+          status: UserStatus,
+          targetTenantId?: string,
+        ) => mapUserResponse(await http.post(
+          `${userItemPath(actor.role, id, targetTenantId)}/status`,
+          toUserStatusRequest(status),
+        ));
       }
       if (property === "getPlan") {
         return async (id: string) =>

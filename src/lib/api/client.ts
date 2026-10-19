@@ -37,6 +37,10 @@ import type {
   TenantUpsertInput,
   TemplateListQuery,
   UserListQuery,
+  CreatePortalUserInput,
+  UpdatePortalUserProfileInput,
+  TenantUserRole,
+  UserStatus,
   Message,
   Paginated,
   Provider,
@@ -119,11 +123,11 @@ export interface DolfConnectApi {
   setWebhookStatus(id: string, status: Webhook["status"]): Promise<void>;
   deleteWebhook(id: string): Promise<void>;
   testWebhook(id: string): Promise<WebhookDelivery>;
-  listUsers(actor: SenderIdentityActor, query: UserListQuery): Promise<Paginated<PortalUser>>;
-  inviteUser(actor: SenderIdentityActor, input: Pick<PortalUser, "name" | "firstName" | "lastName" | "firstNameArabic" | "lastNameArabic" | "email" | "mobileNumber" | "jobTitle" | "department" | "preferredLanguage" | "role"> & { tenantId?: string }): Promise<PortalUser>;
-  updateUser(actor: SenderIdentityActor, id: string, input: Pick<PortalUser, "name" | "firstName" | "lastName" | "firstNameArabic" | "lastNameArabic" | "email" | "mobileNumber" | "jobTitle" | "department" | "preferredLanguage" | "role">): Promise<PortalUser>;
-  setUserStatus(actor: SenderIdentityActor, id: string, status: "active" | "disabled"): Promise<void>;
-  resendInvitation(actor: SenderIdentityActor, id: string): Promise<void>;
+  listUsers(actor: SenderIdentityActor, query: UserListQuery, targetTenantId?: string): Promise<Paginated<PortalUser>>;
+  inviteUser(actor: SenderIdentityActor, input: CreatePortalUserInput, targetTenantId?: string): Promise<PortalUser>;
+  updateUser(actor: SenderIdentityActor, id: string, input: UpdatePortalUserProfileInput, targetTenantId?: string): Promise<PortalUser>;
+  setUserRole(actor: SenderIdentityActor, id: string, role: TenantUserRole, targetTenantId?: string): Promise<PortalUser>;
+  setUserStatus(actor: SenderIdentityActor, id: string, status: UserStatus, targetTenantId?: string): Promise<PortalUser>;
   getSettings(): Promise<TenantSettings>;
   updateSettings(input: TenantSettings): Promise<TenantSettings>;
   getReport(actor: SenderIdentityActor, tenantId?: string): Promise<ReportSummary>;

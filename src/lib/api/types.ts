@@ -818,7 +818,7 @@ export type TemplateListQuery = ListQuery<{
 export type PlatformApiClientSortField = "clientId" | "tenantName" | "status" | "lastUsedAt";
 export type PlatformApiClientListQuery = ListQuery<{ status?: PlatformApiClient["status"] | "all"; tenantId?: string }, PlatformApiClientSortField>;
 
-export type UserSortField = "name" | "tenantName" | "role" | "status" | "lastLoginAt";
+export type UserSortField = "name" | "email" | "tenantName" | "status" | "createdAt";
 export type UserListQuery = ListQuery<{ status?: PortalUser["status"] | "all"; tenantId?: string }, UserSortField>;
 
 export type ApplicationSortField = "name" | "status" | "createdAt" | "updatedAt" | "lastActivityAt";
@@ -937,8 +937,8 @@ export interface WebhookDelivery {
 
 export interface PortalUser {
   id: string;
-  tenantId?: string;
-  tenantName?: string;
+  tenantId: string | null;
+  tenantName?: string | null;
   name: string;
   firstName?: string;
   lastName?: string;
@@ -949,11 +949,41 @@ export interface PortalUser {
   jobTitle?: string | null;
   department?: string | null;
   preferredLanguage?: "en" | "ar";
-  role: "client_admin" | "operator" | "viewer";
-  status: "active" | "invited" | "pending_activation" | "disabled";
-  mfa: boolean;
-  lastLoginAt: string | null;
+  role: "super_admin" | "client_admin" | "operator" | "viewer";
+  status: "active" | "invited" | "suspended" | "disabled" | "pending_activation";
+  mfa?: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+export type TenantUserRole = Exclude<PortalUser["role"], "super_admin">;
+
+export interface CreatePortalUserInput {
+  email: string;
+  firstName: string;
+  lastName: string;
+  firstNameArabic?: string | null;
+  lastNameArabic?: string | null;
+  mobileNumber?: string | null;
+  jobTitle?: string | null;
+  department?: string | null;
+  preferredLanguage: "en" | "ar";
+  role: TenantUserRole;
+}
+
+export interface UpdatePortalUserProfileInput {
+  firstName: string;
+  lastName: string;
+  firstNameArabic: string | null;
+  lastNameArabic: string | null;
+  mobileNumber: string | null;
+  jobTitle: string | null;
+  department: string | null;
+  preferredLanguage: "en" | "ar";
+}
+
+export type UserStatus = "active" | "invited" | "suspended" | "disabled";
 
 export interface TenantSettings {
   organizationName: string;

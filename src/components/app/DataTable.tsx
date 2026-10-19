@@ -54,14 +54,14 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, loading, dense
   );
 }
 
-export function TableToolbar({ search, onSearch, placeholder, children }: {
-  search: string; onSearch: (v: string) => void; placeholder: string; children?: ReactNode;
+export function TableToolbar({ search, onSearch, placeholder, children, maxLength }: {
+  search: string; onSearch: (v: string) => void; placeholder: string; children?: ReactNode; maxLength?: number;
 }) {
   return (
     <div className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center">
       <div className="relative sm:w-80">
         <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-        <Input value={search} onChange={(e) => onSearch(e.target.value)} placeholder={placeholder} aria-label={placeholder} className="h-8 ps-8" />
+        <Input value={search} onChange={(e) => onSearch(e.target.value)} placeholder={placeholder} aria-label={placeholder} maxLength={maxLength} className="h-8 ps-8" />
       </div>
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>

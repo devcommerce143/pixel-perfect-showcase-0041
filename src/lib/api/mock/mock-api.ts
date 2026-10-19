@@ -1,5 +1,5 @@
 import type { DolfConnectApi } from "../client";
-import type { ApiCredential, Application, ApplicationListQuery, ApiCredentialListQuery, AuditEvent, BulkJob, BulkSuppressionCandidate, Channel, DashboardQuotaWarning, DashboardRecentMessage, DashboardRecentMessages, EntitlementBlocker, EntitlementValueSource, ListParams, Message, MessageStatus, Paginated, Plan, PlanFeatureKey, PlanListQuery, PortalUser, Provider, ProviderAdapterConfigInput, ProviderUsageBilling, QuotaPolicy, ResolvedTenantChannel, RoutingRule, SenderIdentity, SenderIdentityActor, SenderIdentityInput, SenderIdentityListQuery, SenderIdentityOperationalStatus, SenderIdentityVerificationStatus, SubscriptionRecordStatus, Template, Tenant, TenantDetail, TenantDirectoryItem, TenantEffectiveEntitlements, TenantEntitlementOverrides, TenantProfileUpdateInput, TenantStatus, TenantSubscriptionView, TenantUpsertInput, TenantUsageTableQuery, UsageSummary, Webhook, WebhookDelivery } from "../types";
+import type { ApiCredential, Application, ApplicationListQuery, ApiCredentialListQuery, AuditEvent, BulkJob, BulkSuppressionCandidate, Channel, DashboardQuotaWarning, DashboardRecentMessage, DashboardRecentMessages, EntitlementBlocker, EntitlementValueSource, ListParams, Message, MessageStatus, Paginated, Plan, PlanFeatureKey, PlanListQuery, PortalUser, Provider, ProviderAdapterConfigInput, ProviderUsageBilling, QuotaPolicy, ResolvedTenantChannel, RoutingRule, SenderIdentity, SenderIdentityActor, SenderIdentityInput, SenderIdentityListQuery, SenderIdentityOperationalStatus, SenderIdentityVerificationStatus, SubscriptionRecordStatus, Template, Tenant, TenantDetail, TenantDirectoryItem, TenantEffectiveEntitlements, TenantEntitlementOverrides, TenantProfileUpdateInput, TenantStatus, TenantSubscriptionView, TenantUpsertInput, TenantUsageTableQuery, UsageSummary, UserSortField, Webhook, WebhookDelivery } from "../types";
 import { slicePlanPage } from "../plans-catalog";
 import { adapterHasConfiguredSecret, adapterHasRequiredValues, createPublicAdapterConfig, mergeAdapterSecrets } from "../provider-catalog";
 import { BULK_JOBS, CHANNELS, CONFIG, PLANS, PLATFORM_CLIENTS, PROVIDER_USAGE_BILLING, ROUTING, SENDER_IDENTITIES, SETTINGS, USERS, WEBHOOKS } from "./mock-data-ext";
@@ -14,6 +14,12 @@ function paginate<T>(rows: T[], p: ListParams): Paginated<T> {
 }
 const has = (q: string | undefined, ...fields: (string | null)[]) =>
   !q || fields.some((f) => f?.toLowerCase().includes(q.toLowerCase()));
+const hasAllTerms = (q: string | undefined, ...fields: (string | null)[]) => {
+  const terms = q?.toLowerCase().trim().split(/\s+/).filter(Boolean) ?? [];
+  return terms.every((term) =>
+    fields.some((field) => field?.toLowerCase().includes(term)),
+  );
+};
 
 function assertCanManageUser(actor: SenderIdentityActor, user: PortalUser) {
   const allowed = actor.role === "super_admin"
@@ -24,6 +30,61 @@ function assertCanManageUser(actor: SenderIdentityActor, user: PortalUser) {
 
 function cloneSenderIdentity(identity: SenderIdentity): SenderIdentity {
   return { ...identity, history: identity.history.map((entry) => ({ ...entry })) };
+}
+
+// Mirrors the Prisma UserStatus enum order; the mock-only status follows stored statuses.
+const USER_STATUS_ORDER: readonly PortalUser["status"][] = [
+  "invited",
+  "active",
+  "suspended",
+  "disabled",
+  "pending_activation",
+];
+
+export function sortMockUsers(
+  rows: (PortalUser & { tenantName?: string | null })[],
+  sortBy: UserSortField | undefined,
+  sortDirection: "asc" | "desc" | undefined,
+): (PortalUser & { tenantName?: string | null })[] {
+  const direction = sortDirection === "desc" ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const field = sortBy ?? "name";
+    let comparison = 0;
+
+    if (field === "status") {
+      comparison = USER_STATUS_ORDER.indexOf(a.status) - USER_STATUS_ORDER.indexOf(b.status);
+    } else if (field === "createdAt" || field === "tenantName") {
+      const aValue = field === "createdAt" ? a.createdAt ?? null : a.tenantName ?? null;
+      const bValue = field === "createdAt" ? b.createdAt ?? null : b.tenantName ?? null;
+      if (aValue === null || bValue === null) {
+        comparison = aValue === bValue ? 0 : aValue === null ? 1 : -1;
+      } else if (field === "createdAt") {
+        comparison = Date.parse(aValue) - Date.parse(bValue);
+      } else {
+        comparison = aValue.localeCompare(bValue, undefined, { numeric: true });
+      }
+    } else if (field === "name") {
+      comparison =
+        (a.firstName ?? a.name).toLowerCase().localeCompare(
+          (b.firstName ?? b.name).toLowerCase(),
+          undefined,
+          { numeric: true },
+        ) ||
+        (a.lastName ?? "").toLowerCase().localeCompare(
+          (b.lastName ?? "").toLowerCase(),
+          undefined,
+          { numeric: true },
+        );
+    } else {
+      comparison = a.email.toLowerCase().localeCompare(
+        b.email.toLowerCase(),
+        undefined,
+        { numeric: true },
+      );
+    }
+
+    return comparison * direction || a.id.localeCompare(b.id);
+  });
 }
 
 const PLAN_CHANNELS: Channel[] = ["sms", "whatsapp", "email"];
@@ -91,7 +152,7 @@ export function createMockApi(): DolfConnectApi {
       const index = Number(tenant.id.slice(-5));
       const firstName = "Tenant";
       const lastName = `Administrator ${index}`;
-      users.push({ id: tenant.primaryAdministratorId, tenantId: tenant.id, name: `${firstName} ${lastName}`, firstName, lastName, email: `admin.${tenant.code.toLowerCase()}@example.test`, role: "client_admin", status: "active", mfa: false, lastLoginAt: null });
+      users.push({ id: tenant.primaryAdministratorId, tenantId: tenant.id, name: `${firstName} ${lastName}`, firstName, lastName, email: `admin.${tenant.code.toLowerCase()}@example.test`, role: "client_admin", status: "active", mfa: false, lastLoginAt: null, createdAt: tenant.createdAt });
     }
   }
   const applications = APPLICATIONS.map((application) => ({ ...application, channels: [...application.channels], scopes: [...application.scopes] }));
@@ -779,6 +840,7 @@ export function createMockApi(): DolfConnectApi {
         status: "pending_activation",
         mfa: false,
         lastLoginAt: null,
+        createdAt: now,
       });
       recordTenantAudit(tenant, "tenant.created");
       recordTenantAudit(tenant, "subscription.assigned");
@@ -1050,44 +1112,46 @@ export function createMockApi(): DolfConnectApi {
         })
         .map((user) => ({
           ...user,
-          tenantName: tenants.find((tenant) => tenant.id === user.tenantId)?.name ?? user.tenantId ?? "",
+          tenantName: tenants.find((tenant) => tenant.id === user.tenantId)?.name ?? null,
         }));
 
       const filtered = rows.filter((user) => {
         const statusMatches = !query.filters?.status || query.filters.status === "all" || user.status === query.filters.status;
         const tenantMatches = !query.filters?.tenantId || user.tenantId === query.filters.tenantId;
-        const searchMatches = has(query.search, user.name, user.email, user.tenantName ?? "");
+        const searchMatches = hasAllTerms(
+          query.search?.trim(),
+          user.name,
+          user.firstName ?? "",
+          user.lastName ?? "",
+          user.firstNameArabic ?? "",
+          user.lastNameArabic ?? "",
+          user.email,
+          actor.role === "super_admin" && !tenantScopedId ? user.tenantName ?? "" : "",
+        );
         return statusMatches && tenantMatches && searchMatches;
       });
 
-      const dir = query.sortDirection === "desc" ? -1 : 1;
-      const sorted = [...filtered].sort((a, b) => {
-        const field = query.sortBy ?? "name";
-        const valueFor = (user: PortalUser & { tenantName?: string }) => field === "tenantName" ? user.tenantName ?? "" : field === "lastLoginAt" ? user.lastLoginAt ?? "" : field === "name" ? user.name : field === "role" ? user.role : user.status;
-        const aStr = valueFor(a).toLowerCase();
-        const bStr = valueFor(b).toLowerCase();
-        return aStr.localeCompare(bStr, undefined, { numeric: true }) * dir;
-      });
+      const sorted = sortMockUsers(filtered, query.sortBy, query.sortDirection);
 
       return paginate(sorted, query);
     },
-    async inviteUser(actor, input) {
+    async inviteUser(actor, input, targetTenantId) {
       await delay(500);
       if (actor.role !== "super_admin" && actor.role !== "client_admin") throw new Error("User invitation is not permitted");
-      const tenantId = input.tenantId ?? actor.tenantId;
+      const tenantId = targetTenantId ?? actor.tenantId;
       if (!tenantId) throw new Error("Tenant context is required to invite users");
       if (actor.role === "client_admin" && !actor.tenantId) throw new Error("Tenant context is required to invite users");
       if (actor.role === "super_admin" && !tenants.some((tenant) => tenant.id === tenantId && (tenant.status === "active" || tenant.status === "trial"))) throw new Error("Tenant is not available for invitations");
-      const normalizedName = [input.firstName ?? input.name?.split(" ")[0] ?? "", input.lastName ?? input.name?.split(" ").slice(1).join(" ") ?? ""].filter(Boolean).join(" ") || input.name || "New user";
       const u = {
         ...input,
         id: `usr-0${170 + users.length}`,
-        name: normalizedName,
-        firstName: input.firstName ?? normalizedName.split(" ")[0] ?? "",
-        lastName: input.lastName ?? normalizedName.split(" ").slice(1).join(" ") ?? "",
+        name: `${input.firstName} ${input.lastName}`.trim(),
+        firstNameArabic: input.firstNameArabic ?? null,
+        lastNameArabic: input.lastNameArabic ?? null,
         status: "pending_activation" as const,
         mfa: false,
         lastLoginAt: null,
+        createdAt: new Date().toISOString(),
         tenantId,
       };
       users.push(u);
@@ -1098,33 +1162,30 @@ export function createMockApi(): DolfConnectApi {
       const user = users.find((item) => item.id === id);
       if (!user) throw new Error("User was not found");
       assertCanManageUser(actor, user);
-      const normalizedName = [input.firstName ?? user.firstName ?? "", input.lastName ?? user.lastName ?? ""].filter(Boolean).join(" ") || input.name || user.name;
-      Object.assign(user, input, {
-        name: normalizedName,
-        firstName: input.firstName ?? user.firstName ?? "",
-        lastName: input.lastName ?? user.lastName ?? "",
-        firstNameArabic: input.firstNameArabic ?? user.firstNameArabic ?? null,
-        lastNameArabic: input.lastNameArabic ?? user.lastNameArabic ?? null,
-        mobileNumber: input.mobileNumber ?? user.mobileNumber ?? null,
-        jobTitle: input.jobTitle ?? user.jobTitle ?? null,
-        department: input.department ?? user.department ?? null,
-        preferredLanguage: input.preferredLanguage ?? user.preferredLanguage ?? "en",
+      Object.assign(user, {
+        ...input,
+        name: `${input.firstName} ${input.lastName}`.trim(),
+        firstNameArabic: input.firstNameArabic,
+        lastNameArabic: input.lastNameArabic,
+        mobileNumber: input.mobileNumber,
       });
+      return { ...user };
+    },
+    async setUserRole(actor, id, role) {
+      await delay(350);
+      const user = users.find((item) => item.id === id);
+      if (!user) throw new Error("User was not found");
+      assertCanManageUser(actor, user);
+      user.role = role;
       return { ...user };
     },
     async setUserStatus(actor, id, status) {
       await delay(350);
       const user = users.find((item) => item.id === id);
-      if (user) {
-        assertCanManageUser(actor, user);
-        user.status = status;
-      }
-    },
-    async resendInvitation(actor, id) {
-      await delay(350);
-      const user = users.find((item) => item.id === id);
-      if (!user || user.status !== "invited") throw new Error("Invitation is no longer available");
+      if (!user) throw new Error("User was not found");
       assertCanManageUser(actor, user);
+      user.status = status;
+      return { ...user };
     },
     async getSettings() {
       await delay();

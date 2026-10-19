@@ -74,7 +74,7 @@ export const queries = {
   bulkJob: (actor: SenderIdentityActor, id: string, tenantId?: string) => queryOptions({ queryKey: ["bulkJob", actor.role, actor.tenantId, tenantId, id], enabled: !!id, queryFn: () => api.getBulkJob(actor, id, tenantId) }),
   bulkTemplates: (actor: SenderIdentityActor, applicationId: string, channel: Channel) => queryOptions({ queryKey: ["bulkTemplates", actor.role, actor.tenantId, applicationId, channel], enabled: !!applicationId, queryFn: () => api.listBulkTemplates(actor, applicationId, channel) }),
   webhooks: () => queryOptions({ queryKey: ["webhooks"], queryFn: () => api.listWebhooks() }),
-  users: (actor: SenderIdentityActor, query: UserListQuery) => queryOptions({ queryKey: ["users", actor.role, actor.tenantId, query], queryFn: () => api.listUsers(actor, query), placeholderData: keepPreviousData }),
+  users: (actor: SenderIdentityActor, query: UserListQuery, targetTenantId?: string) => queryOptions({ queryKey: ["users", actor.role, actor.tenantId, targetTenantId, query], queryFn: () => api.listUsers(actor, query, targetTenantId), placeholderData: keepPreviousData }),
   settings: () => queryOptions({ queryKey: ["settings"], queryFn: () => api.getSettings() }),
   report: (actor: SenderIdentityActor, tenantId?: string) => queryOptions({ queryKey: ["report", actor.role, actor.tenantId, tenantId], queryFn: () => api.getReport(actor, tenantId) }),
   plans: (query: PlanListQuery = {}) => queryOptions({ queryKey: ["plans", query], queryFn: () => api.listPlans(query), placeholderData: keepPreviousData }),
