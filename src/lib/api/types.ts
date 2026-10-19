@@ -320,6 +320,62 @@ export interface TenantUpsertInput {
   primaryAdministrator: TenantAdministratorProfile;
 }
 
+export interface TenantProfileUpdateInput {
+  name?: string;
+  notes?: string | null;
+  defaultLanguage?: "en" | "ar";
+  timezone?: string;
+}
+
+export interface TenantProfileUpdateRequest {
+  name?: string;
+  notes?: string | null;
+  defaultLanguage?: "EN" | "AR";
+  timezone?: string;
+}
+
+export interface TenantCreateRequest {
+  code: string;
+  name: string;
+  dataRegion: string;
+  status?: "TRIAL" | "ACTIVE" | "SUSPENDED" | "INACTIVE";
+  defaultLanguage?: "EN" | "AR";
+  timezone?: string;
+  notes?: string | null;
+  primaryAdmin?: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    firstNameAr?: string | null;
+    lastNameAr?: string | null;
+    mobile?: string | null;
+    preferredLanguage?: "EN" | "AR";
+  };
+}
+
+export interface TenantCreatedPrimaryAdmin {
+  id: string;
+  tenantId: string | null;
+  email: string;
+  firstName: string;
+  lastName: string;
+  firstNameAr: string | null;
+  lastNameAr: string | null;
+  mobile: string | null;
+  jobTitle: string | null;
+  department: string | null;
+  preferredLanguage: "en" | "ar";
+  role: "platform_super_admin" | "client_admin" | "operator" | "viewer";
+  status: "invited" | "active" | "suspended" | "disabled";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TenantCreateResponse {
+  tenant: TenantDetail;
+  primaryAdmin: TenantCreatedPrimaryAdmin | null;
+}
+
 export interface Tenant {
   id: string;
   code: string;
@@ -347,6 +403,98 @@ export interface TenantDirectoryItem extends Tenant {
   planDefaults: TenantEffectiveEntitlements;
   effectiveEntitlements: TenantEffectiveEntitlements;
   primaryAdministrator: PortalUser | null;
+}
+
+/** Fields returned by the platform tenant-list endpoint before enrichment APIs are joined. */
+export interface TenantCatalogItem {
+  id: string;
+  code: string;
+  name: string;
+  status: TenantStatus;
+  dataRegion: string;
+  defaultLanguage: "en" | "ar";
+  timezone: string;
+  notes: string | null;
+  primaryAdminUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TenantDetail = Omit<TenantCatalogItem, "primaryAdminUserId"> & {
+  primaryAdminUserId: string | null;
+};
+
+export type SubscriptionRecordStatus = "trial" | "active" | "pending" | "cancelled";
+export type EntitlementValueSource = "plan" | "subscription" | "channel" | "unavailable";
+export type EntitlementBlocker =
+  | "TENANT_SUSPENDED"
+  | "TENANT_INACTIVE"
+  | "SUBSCRIPTION_MISSING"
+  | "SUBSCRIPTION_PENDING"
+  | "SUBSCRIPTION_CANCELLED"
+  | "SUBSCRIPTION_NOT_STARTED"
+  | "SUBSCRIPTION_ENDED";
+
+export interface TenantSubscriptionRecord {
+  id: string;
+  tenantId: string;
+  planId: string;
+  status: SubscriptionRecordStatus;
+  startsAt: string;
+  endsAt: string | null;
+  tpsLimitOverride: number | null;
+  quotaPolicyOverride: QuotaPolicy | null;
+  channelOverrides: {
+    channel: Channel;
+    enabledOverride: boolean | null;
+    monthlyQuotaOverride: number | null;
+    tpsOverride: number | null;
+  }[];
+  plan: Plan;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ResolvedTenantChannel {
+  channel: Channel;
+  enabled: boolean;
+  monthlyQuota: number | null;
+  tpsLimit: number | null;
+  quotaSource: EntitlementValueSource;
+  tpsSource: EntitlementValueSource;
+  ignoredOverride: boolean;
+}
+
+export interface ResolvedTenantEntitlements {
+  tenantId: string;
+  tenantStatus: TenantStatus;
+  subscriptionId: string | null;
+  planId: string | null;
+  configured: boolean;
+  operational: boolean;
+  blockers: EntitlementBlocker[];
+  quotaPolicy: QuotaPolicy | null;
+  quotaPolicySource: "plan" | "subscription" | null;
+  tpsLimit: number | null;
+  tpsSource: "plan" | "subscription" | null;
+  features: PlanFeatureKey[];
+  channels: ResolvedTenantChannel[];
+}
+
+export interface TenantSubscriptionView {
+  subscription: TenantSubscriptionRecord | null;
+  effective: ResolvedTenantEntitlements;
+}
+
+export type TenantPlanAssignmentResult = Omit<TenantSubscriptionView, "subscription"> & {
+  subscription: TenantSubscriptionRecord;
+};
+
+export type TenantPlanAssignmentStatus = "trial" | "active";
+
+export interface TenantPlanAssignmentInput {
+  planId: string;
+  status: TenantPlanAssignmentStatus;
 }
 
 export type ProviderEnvironment = "production" | "sandbox";

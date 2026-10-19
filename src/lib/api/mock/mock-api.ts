@@ -1,5 +1,5 @@
 import type { DolfConnectApi } from "../client";
-import type { ApiCredential, Application, ApplicationListQuery, ApiCredentialListQuery, AuditEvent, BulkJob, BulkSuppressionCandidate, Channel, DashboardQuotaWarning, DashboardRecentMessage, DashboardRecentMessages, ListParams, Message, MessageStatus, Paginated, Plan, PlanFeatureKey, PlanListQuery, PortalUser, Provider, ProviderAdapterConfigInput, ProviderUsageBilling, QuotaPolicy, RoutingRule, SenderIdentity, SenderIdentityActor, SenderIdentityInput, SenderIdentityListQuery, SenderIdentityOperationalStatus, SenderIdentityVerificationStatus, Template, Tenant, TenantDirectoryItem, TenantEffectiveEntitlements, TenantEntitlementOverrides, TenantStatus, TenantUpsertInput, TenantUsageTableQuery, UsageSummary, Webhook, WebhookDelivery } from "../types";
+import type { ApiCredential, Application, ApplicationListQuery, ApiCredentialListQuery, AuditEvent, BulkJob, BulkSuppressionCandidate, Channel, DashboardQuotaWarning, DashboardRecentMessage, DashboardRecentMessages, EntitlementBlocker, EntitlementValueSource, ListParams, Message, MessageStatus, Paginated, Plan, PlanFeatureKey, PlanListQuery, PortalUser, Provider, ProviderAdapterConfigInput, ProviderUsageBilling, QuotaPolicy, ResolvedTenantChannel, RoutingRule, SenderIdentity, SenderIdentityActor, SenderIdentityInput, SenderIdentityListQuery, SenderIdentityOperationalStatus, SenderIdentityVerificationStatus, SubscriptionRecordStatus, Template, Tenant, TenantDetail, TenantDirectoryItem, TenantEffectiveEntitlements, TenantEntitlementOverrides, TenantProfileUpdateInput, TenantStatus, TenantSubscriptionView, TenantUpsertInput, TenantUsageTableQuery, UsageSummary, Webhook, WebhookDelivery } from "../types";
 import { slicePlanPage } from "../plans-catalog";
 import { adapterHasConfiguredSecret, adapterHasRequiredValues, createPublicAdapterConfig, mergeAdapterSecrets } from "../provider-catalog";
 import { BULK_JOBS, CHANNELS, CONFIG, PLANS, PLATFORM_CLIENTS, PROVIDER_USAGE_BILLING, ROUTING, SENDER_IDENTITIES, SETTINGS, USERS, WEBHOOKS } from "./mock-data-ext";
@@ -586,6 +586,153 @@ export function createMockApi(): DolfConnectApi {
         return (typeof aValue === "number" ? aValue - Number(bValue) : String(aValue).localeCompare(String(bValue), undefined, { numeric: true })) * direction;
       });
       return paginate(rows.map(directoryItem), p);
+    },
+    async getTenant(id): Promise<TenantDetail> {
+      await delay();
+      const tenant = tenants.find((item) => item.id === id);
+      if (!tenant) throw new Error("Tenant was not found");
+      return {
+        ...directoryItem(tenant),
+        primaryAdminUserId: tenant.primaryAdministratorId,
+      };
+    },
+    async updateTenantProfile(id, input: TenantProfileUpdateInput): Promise<TenantDetail> {
+      await delay(500);
+      const tenant = tenants.find((item) => item.id === id);
+      if (!tenant) throw new Error("Tenant was not found");
+      if (
+        input.name === undefined &&
+        input.notes === undefined &&
+        input.defaultLanguage === undefined &&
+        input.timezone === undefined
+      ) {
+        throw new Error("At least one tenant profile field is required");
+      }
+      if (input.name !== undefined) {
+        if (!input.name.trim() || input.name.trim().length > 200) throw new Error("Tenant name is invalid");
+        tenant.name = input.name.trim();
+      }
+      if (input.notes !== undefined) tenant.notes = input.notes?.trim() ?? "";
+      if (input.defaultLanguage !== undefined) tenant.defaultLanguage = input.defaultLanguage;
+      if (input.timezone !== undefined) {
+        if (!input.timezone.trim() || input.timezone.length > 64) throw new Error("Tenant time zone is invalid");
+        tenant.timezone = input.timezone.trim();
+      }
+      tenant.updatedAt = new Date().toISOString();
+      recordTenantAudit(tenant, "tenant.profile.updated");
+      return {
+        ...directoryItem(tenant),
+        notes: tenant.notes || null,
+        primaryAdminUserId: tenant.primaryAdministratorId,
+      };
+    },
+    async getTenantSubscription(id): Promise<TenantSubscriptionView> {
+      await delay();
+      const tenant = tenants.find((item) => item.id === id);
+      if (!tenant) throw new Error("Tenant was not found");
+      const blockers: EntitlementBlocker[] = [];
+      if (tenant.status === "suspended") blockers.push("TENANT_SUSPENDED");
+      if (tenant.status === "inactive") blockers.push("TENANT_INACTIVE");
+      if (tenant.subscription.status === "cancelled") {
+        blockers.push("SUBSCRIPTION_MISSING");
+        return {
+          subscription: null,
+          effective: {
+            tenantId: tenant.id,
+            tenantStatus: tenant.status,
+            subscriptionId: null,
+            planId: null,
+            configured: false,
+            operational: false,
+            blockers,
+            quotaPolicy: null,
+            quotaPolicySource: null,
+            tpsLimit: null,
+            tpsSource: null,
+            features: [],
+            channels: PLAN_CHANNELS.map((channel) => ({
+              channel,
+              enabled: false,
+              monthlyQuota: null,
+              tpsLimit: null,
+              quotaSource: "unavailable",
+              tpsSource: "unavailable",
+              ignoredOverride: false,
+            })),
+          },
+        };
+      }
+      const plan = planForTenant(tenant);
+      const effectiveEntitlements = resolveEntitlements(tenant, plan);
+      const overrides = tenant.subscription.overrides;
+      const status: SubscriptionRecordStatus = tenant.subscription.status;
+      if (status === "pending") blockers.push("SUBSCRIPTION_PENDING");
+      const channels: ResolvedTenantChannel[] = PLAN_CHANNELS.map((channel) => {
+        const effective = effectiveEntitlements.channels[channel];
+        const channelOverride = overrides?.channels?.[channel];
+        const quotaSource: EntitlementValueSource = !effective.enabled
+          ? "unavailable"
+          : channelOverride?.monthly !== undefined ? "channel" : "plan";
+        const tpsSource: EntitlementValueSource = !effective.enabled
+          ? "unavailable"
+          : overrides?.tpsLimit !== undefined ? "subscription" : "plan";
+        return {
+          channel,
+          enabled: effective.enabled,
+          monthlyQuota: effective.enabled ? effective.monthly : null,
+          tpsLimit: effective.enabled ? effectiveEntitlements.tpsLimit : null,
+          quotaSource,
+          tpsSource,
+          ignoredOverride: false,
+        };
+      });
+      const configured = status === "trial" || status === "active" || status === "pending";
+      const operational = (tenant.status === "trial" || tenant.status === "active") &&
+        (status === "trial" || status === "active");
+      const channelOverrides = PLAN_CHANNELS.flatMap((channel) => {
+        const override = overrides?.channels?.[channel];
+        if (!override) return [];
+        return [{
+          channel,
+          enabledOverride: override.enabled ?? null,
+          monthlyQuotaOverride: override.monthly ?? null,
+          tpsOverride: null,
+        }];
+      });
+      return {
+        subscription: {
+          id: tenant.subscription.id,
+          tenantId: tenant.id,
+          planId: plan.id,
+          status,
+          startsAt: tenant.subscription.createdAt,
+          endsAt: null,
+          tpsLimitOverride: overrides?.tpsLimit ?? null,
+          quotaPolicyOverride: overrides?.quotaPolicy ?? null,
+          channelOverrides,
+          plan,
+          createdAt: tenant.subscription.createdAt,
+          updatedAt: tenant.subscription.updatedAt,
+        },
+        effective: {
+          tenantId: tenant.id,
+          tenantStatus: tenant.status,
+          subscriptionId: tenant.subscription.id,
+          planId: plan.id,
+          configured,
+          operational,
+          blockers,
+          quotaPolicy: overrides?.quotaPolicy ?? plan.quotaPolicy,
+          quotaPolicySource: overrides?.quotaPolicy !== undefined ? "subscription" : "plan",
+          tpsLimit: overrides?.tpsLimit ?? plan.tpsLimit,
+          tpsSource: overrides?.tpsLimit !== undefined ? "subscription" : "plan",
+          features: [...plan.features],
+          channels,
+        },
+      };
+    },
+    async assignTenantPlan(): Promise<never> {
+      throw new Error("Plan assignment is only available in live mode.");
     },
     async createTenant(input) {
       await delay(700);

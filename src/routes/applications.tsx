@@ -9,6 +9,7 @@ import { FilterSelect } from "@/components/app/FilterSelect";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { StatusBadge } from "@/components/app/StatusBadge";
+import { TenantOptionsStatus } from "@/components/app/TenantOptionsStatus";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
+import { eligibleTenantOptions, isActiveTenant } from "@/lib/api/tenant-options";
 import type { Application, ApplicationSortField, Channel, SenderIdentityActor } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
@@ -37,8 +39,9 @@ function Applications() {
   const { tenantId: selectedTenantId, scopedTenantId } = useGlobalTenantContext();
   const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
   const queryClient = useQueryClient();
-  const tenantsQuery = useQuery({ ...queries.tenants({ pageSize: 100, filters: { status: "active" } }), enabled: isPlatform });
-  const tenantNames = new Map((tenantsQuery.data?.items ?? []).map((tenant) => [tenant.id, tenant.name]));
+  const tenantsQuery = useQuery({ ...queries.tenantOptions(), enabled: isPlatform });
+  const tenants = tenantsQuery.isSuccess ? eligibleTenantOptions(tenantsQuery.data) : [];
+  const tenantNames = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Application["status"] | "all">("all");
   const [page, setPage] = useState(1);
@@ -60,6 +63,12 @@ function Applications() {
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState("");
   const [impactConfirm, setImpactConfirm] = useState(false);
+  const effectiveTenantId = selectedTenantId ?? tenantId;
+  const activeTenantSelected = isActiveTenant(
+    effectiveTenantId,
+    tenantsQuery.data,
+    tenantsQuery.isSuccess && !tenantsQuery.isFetching,
+  );
   const save = useMutation({
     mutationFn: () => editingId ? api.updateApplication(actor, editingId, { name: name.trim(), environment, channels, scopes }) : api.createApplication(actor, { tenantId: isPlatform ? selectedTenantId ?? tenantId : actor.tenantId ?? "", name: name.trim(), environment, channels, scopes }),
     onSuccess: async (application) => {
@@ -83,7 +92,9 @@ function Applications() {
     setPage(1);
   };
   useEffect(() => { setPage(1); setSelected(null); setTenantId(selectedTenantId ?? ""); }, [selectedTenantId]);
-  const valid = name.trim().length > 1 && channels.length > 0 && scopes.length > 0 && (isPlatform ? !!(selectedTenantId || tenantId) : !!actor.tenantId);
+  const valid = name.trim().length > 1 && channels.length > 0 && scopes.length > 0 && (isPlatform ? (editingId ? !!tenantId : activeTenantSelected) : !!actor.tenantId);
+  const showActiveTenantRequired = isPlatform && !editingId && !!effectiveTenantId &&
+    tenantsQuery.isSuccess && !tenantsQuery.isFetching && !activeTenantSelected;
   const channelOptions: Channel[] = ["sms", "whatsapp", "email"];
   const scopeOptions = ["messages:send", "messages:read", "templates:read", "webhooks:manage"];
   const toggle = <T extends string,>(items: T[], item: T, checked: boolean): T[] => checked ? [...items, item] : items.filter((value) => value !== item);
@@ -128,7 +139,8 @@ function Applications() {
         <SheetContent side={dir === "rtl" ? "left" : "right"} className="w-full overflow-y-auto sm:max-w-xl">
           <SheetHeader><SheetTitle>{t(editingId ? "apps.edit" : "apps.new")}</SheetTitle><SheetDescription>{t("apps.createDescription")}</SheetDescription></SheetHeader>
           <form className="space-y-5 px-4 pb-6" onSubmit={submitApplication} noValidate>
-            {isPlatform && !selectedTenantId && <div className="space-y-1.5"><Label>{t("common.tenant")} *</Label><Select value={tenantId} onValueChange={setTenantId} disabled={!!editingId}><SelectTrigger aria-invalid={touched && !tenantId}><SelectValue placeholder={t("ten.selectTenant")} /></SelectTrigger><SelectContent>{(tenantsQuery.data?.items ?? []).map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.id}</SelectItem>)}</SelectContent></Select>{editingId && <p className="text-caption">{t("apps.tenantImmutable")}</p>}</div>}
+            {isPlatform && !selectedTenantId && <div className="space-y-1.5"><Label>{t("common.tenant")} *</Label><TenantOptionsStatus query={tenantsQuery} /><Select value={tenantId} onValueChange={setTenantId} disabled={!!editingId || !tenantsQuery.isSuccess || tenantsQuery.isFetching}><SelectTrigger aria-invalid={touched && !tenantId}><SelectValue placeholder={t("ten.selectTenant")} /></SelectTrigger><SelectContent>{tenants.map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.id}</SelectItem>)}</SelectContent></Select>{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}{editingId && <p className="text-caption">{t("apps.tenantImmutable")}</p>}</div>}
+            {isPlatform && selectedTenantId && <div className="space-y-1.5"><TenantOptionsStatus query={tenantsQuery} />{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}</div>}
             <div className="space-y-1.5"><Label htmlFor="application-name">{t("common.name")} *</Label><Input id="application-name" value={name} onChange={(event) => setName(event.target.value)} aria-invalid={touched && name.trim().length <= 1} />{touched && name.trim().length <= 1 && <p className="text-xs text-danger">{t("apps.nameRequired")}</p>}</div>
             <div className="space-y-1.5"><Label>{t("common.environment")}</Label><Select value={environment} onValueChange={(value) => setEnvironment(value as Application["environment"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="production">{t("common.production")}</SelectItem><SelectItem value="sandbox">{t("common.sandbox")}</SelectItem></SelectContent></Select></div>
             <section className="space-y-2"><h3 className="text-sm font-semibold">{t("apps.channels")}</h3><div className="grid gap-3 sm:grid-cols-3">{channelOptions.map((channel) => <label key={channel} className="flex items-center gap-2 text-sm"><Checkbox checked={channels.includes(channel)} onCheckedChange={(checked) => setChannels((current) => toggle(current, channel, checked === true))} />{t(`channel.${channel}`)}</label>)}</div>{touched && !channels.length && <p className="text-xs text-danger">{t("apps.selectChannel")}</p>}</section>

@@ -9,6 +9,7 @@ import { FilterSelect } from "@/components/app/FilterSelect";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { StatusBadge } from "@/components/app/StatusBadge";
+import { TenantOptionsStatus } from "@/components/app/TenantOptionsStatus";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
+import { eligibleTenantOptions, isActiveTenant } from "@/lib/api/tenant-options";
 import type { Channel, SenderIdentity, SenderIdentityActor, SenderIdentityHistoryAction, SenderIdentityInput, SenderIdentityOperationalStatus, SenderIdentitySortField, SenderIdentityVerificationStatus } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
@@ -78,9 +80,17 @@ function SenderIdentities() {
     sortBy,
     sortDirection,
   }));
-  const tenantQuery = useQuery({ ...queries.tenants({ pageSize: 100, filters: { status: "active" } }), enabled: isPlatform });
-  const tenants = tenantQuery.data?.items ?? [];
+  const tenantQuery = useQuery({ ...queries.tenantOptions(), enabled: isPlatform });
+  const tenants = tenantQuery.isSuccess ? eligibleTenantOptions(tenantQuery.data) : [];
   const tenantNames = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));
+  const effectiveTenantId = selectedTenantId ?? tenantId;
+  const activeTenantSelected = isActiveTenant(
+    effectiveTenantId,
+    tenantQuery.data,
+    tenantQuery.isSuccess && !tenantQuery.isFetching,
+  );
+  const showActiveTenantRequired = isPlatform && !editingId && !!effectiveTenantId &&
+    tenantQuery.isSuccess && !tenantQuery.isFetching && !activeTenantSelected;
 
   const clearForm = () => {
     setChannel("sms"); setTenantId(selectedTenantId ?? user?.tenantId ?? ""); setIdentityValue(""); setDisplayName(""); setCountryMarket("");
@@ -101,7 +111,7 @@ function SenderIdentities() {
     if (channel === "whatsapp") return { ...ownership, channel, identityValue: phoneNumber, displayName: businessDisplayName.trim() || null, businessDisplayName, phoneNumber, countryCode, wabaId: wabaId.trim() || null, phoneNumberId: phoneNumberId.trim() || null, providerReference: reference };
     return { ...ownership, channel, identityValue: emailAddress.trim().toLowerCase(), displayName: displayName.trim() || null, emailAddress, domain, providerReference: reference };
   };
-  const valid = (isPlatform ? !!(selectedTenantId || tenantId) : !!user?.tenantId) && (channel === "sms"
+  const valid = (isPlatform ? (editingId ? !!tenantId : activeTenantSelected) : !!user?.tenantId) && (channel === "sms"
     ? /^[a-zA-Z0-9]{2,11}$/.test(identityValue.trim()) && !!countryMarket.trim()
     : channel === "whatsapp"
       ? /^\+[1-9]\d{7,14}$/.test(phoneNumber.replace(/\s/g, "")) && phoneNumber.replace(/\s/g, "").startsWith(countryCode.replace(/\s/g, "")) && !!businessDisplayName.trim() && !!countryCode.trim()
@@ -188,7 +198,8 @@ function SenderIdentities() {
         {activeSheet === "form" && <>
           <SheetHeader><SheetTitle>{t(editingId ? "si.edit" : "si.add")}</SheetTitle><SheetDescription>{t("si.formDescription")}</SheetDescription></SheetHeader>
           <form className="space-y-4 px-4 pb-6" onSubmit={(event) => { event.preventDefault(); setTouched(true); if (valid) save.mutate(); }} noValidate>
-            {isPlatform && !selectedTenantId && <div className="space-y-1.5"><Label>{t("si.tenant")}</Label><Select value={tenantId} onValueChange={setTenantId} disabled={!!editingId}><SelectTrigger><SelectValue placeholder={t("si.selectTenant")} /></SelectTrigger><SelectContent>{tenants.map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.id}</SelectItem>)}</SelectContent></Select></div>}
+            {isPlatform && !selectedTenantId && <div className="space-y-1.5"><Label>{t("si.tenant")}</Label><TenantOptionsStatus query={tenantQuery} /><Select value={tenantId} onValueChange={setTenantId} disabled={!!editingId || !tenantQuery.isSuccess || tenantQuery.isFetching}><SelectTrigger><SelectValue placeholder={t("si.selectTenant")} /></SelectTrigger><SelectContent>{tenants.map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.id}</SelectItem>)}</SelectContent></Select>{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}</div>}
+            {isPlatform && selectedTenantId && <div className="space-y-1.5"><TenantOptionsStatus query={tenantQuery} />{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}</div>}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5"><Label>{t("common.channel")}</Label><Select value={channel} onValueChange={(value) => { setChannel(value as Channel); setIdentityValue(""); setPhoneNumber(""); setEmailAddress(""); setDomain(""); }} disabled={!!editingId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(["sms", "whatsapp", "email"] as const).map((item) => <SelectItem key={item} value={item}>{t(`channel.${item}`)}</SelectItem>)}</SelectContent></Select></div>
               {channel !== "whatsapp" && <div className="space-y-1.5"><Label htmlFor="sender-display-name">{t("si.displayName")}</Label><Input id="sender-display-name" value={displayName} onChange={(event) => setDisplayName(event.target.value)} /></div>}

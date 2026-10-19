@@ -8,6 +8,7 @@ import { FilterSelect } from "@/components/app/FilterSelect";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { StatusBadge } from "@/components/app/StatusBadge";
+import { TenantOptionsStatus } from "@/components/app/TenantOptionsStatus";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { api } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
+import { eligibleTenantOptions, isActiveTenant } from "@/lib/api/tenant-options";
 import type { PortalUser, SenderIdentityActor, UserSortField } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
@@ -37,11 +39,8 @@ function Users() {
   const selectedTenantId = isPlatform ? requestedTenantId : user?.tenantId ?? undefined;
   const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
   const qc = useQueryClient();
-  const tenantsQuery = useQuery({
-    queryKey: ["tenants", "users"],
-    queryFn: () => api.listTenants({ page: 1, pageSize: 200, filters: { status: "active" }, sortBy: "name", sortDirection: "asc" }),
-  });
-  const tenantOptions = tenantsQuery.data?.items.filter((tenant) => tenant.status !== "suspended") ?? [];
+  const tenantsQuery = useQuery({ ...queries.tenantOptions(), enabled: isPlatform });
+  const tenantOptions = tenantsQuery.isSuccess ? eligibleTenantOptions(tenantsQuery.data) : [];
   const tenantNames = new Map(tenantOptions.map((tenant) => [tenant.id, tenant.name]));
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<PortalUser["status"] | "all">("all");
@@ -50,6 +49,11 @@ function Users() {
   const [sortBy, setSortBy] = useState<UserSortField>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [inviteTenantId, setInviteTenantId] = useState(selectedTenantId ?? "");
+  const activeTenantSelected = isActiveTenant(
+    selectedTenantId ?? inviteTenantId,
+    tenantsQuery.data,
+    tenantsQuery.isSuccess && !tenantsQuery.isFetching,
+  );
   const q = useQuery(queries.users(actor, { page, pageSize, search, filters: { status, ...(selectedTenantId ? { tenantId: selectedTenantId } : {}) }, sortBy, sortDirection }));
   const [open, setOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -85,7 +89,7 @@ function Users() {
   const cleanMobile = mobileNumber.trim();
   const valid = firstName.trim() && lastName.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && !!role && (!cleanMobile || /^\+?[0-9\s-]{7,20}$/.test(cleanMobile));
   const inviteTenantValue = selectedTenantId ?? inviteTenantId;
-  const inviteValid = valid && (!isPlatform || !!inviteTenantValue) && (!isPlatform || !selectedTenantId || inviteTenantValue === selectedTenantId);
+  const inviteValid = valid && (!isPlatform || (activeTenantSelected && (!selectedTenantId || inviteTenantValue === selectedTenantId)));
   const invite = useMutation({
     mutationFn: () => api.inviteUser(actor, {
       firstName: firstName.trim(),
@@ -183,9 +187,12 @@ function Users() {
           <div className="space-y-4">
             {isPlatform && !selectedTenantId && (
               <div className="space-y-1.5"><Label>{t("common.tenant")}</Label>
-                <Select {...(inviteTenantValue ? { value: inviteTenantValue } : {})} onValueChange={setInviteTenantId}><SelectTrigger><SelectValue placeholder={t("ten.selectTenant")} /></SelectTrigger><SelectContent>{tenantOptions.map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>)}</SelectContent></Select>
+                <TenantOptionsStatus query={tenantsQuery} />
+                <Select {...(inviteTenantValue ? { value: inviteTenantValue } : {})} onValueChange={setInviteTenantId} disabled={!tenantsQuery.isSuccess || tenantsQuery.isFetching}><SelectTrigger><SelectValue placeholder={t("ten.selectTenant")} /></SelectTrigger><SelectContent>{tenantOptions.map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>)}</SelectContent></Select>
+                {inviteTenantId && tenantsQuery.isSuccess && !tenantsQuery.isFetching && !activeTenantSelected && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}
               </div>
             )}
+            {isPlatform && selectedTenantId && <div className="space-y-1.5"><TenantOptionsStatus query={tenantsQuery} />{tenantsQuery.isSuccess && !tenantsQuery.isFetching && !activeTenantSelected && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}</div>}
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="first-name-en">{t("users.firstNameEn")}</Label><Input id="first-name-en" value={firstName} onChange={(e) => setFirstName(e.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="last-name-en">{t("users.lastNameEn")}</Label><Input id="last-name-en" value={lastName} onChange={(e) => setLastName(e.target.value)} /></div></div>
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="first-name-ar">{t("users.firstNameAr")}</Label><Input id="first-name-ar" dir="rtl" value={firstNameArabic} onChange={(e) => setFirstNameArabic(e.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="last-name-ar">{t("users.lastNameAr")}</Label><Input id="last-name-ar" dir="rtl" value={lastNameArabic} onChange={(e) => setLastNameArabic(e.target.value)} /></div></div>
             <div className="space-y-1.5"><Label htmlFor="ue">{t("common.email")}</Label><Input id="ue" dir="ltr" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>

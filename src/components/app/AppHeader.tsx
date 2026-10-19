@@ -12,6 +12,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { findNavMatch, getNavigation } from "@/config/navigation";
 import { queries } from "@/lib/api/queries";
+import { eligibleTenantOptions, shouldClearTenantSelection } from "@/lib/api/tenant-options";
+import { TenantOptionsStatus } from "@/components/app/TenantOptionsStatus";
 import { useSession } from "@/lib/auth/session";
 import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { useI18n, type Locale } from "@/lib/i18n/i18n";
@@ -54,15 +56,13 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
   const { tenantId, setTenantId } = useGlobalTenantContext();
   const router = useRouter();
   const [tenantSelectorOpen, setTenantSelectorOpen] = useState(false);
-  const tenantsQuery = useQuery({
-    ...queries.tenants({ page: 1, pageSize: 100, filters: { status: "all" }, sortBy: "name", sortDirection: "asc" }),
-    enabled: isPlatform,
-  });
-  const selectableTenants = (tenantsQuery.data?.items ?? []).filter((tenant) => tenant.status === "active" || tenant.status === "trial");
+  const tenantsQuery = useQuery({ ...queries.tenantOptions(), enabled: isPlatform });
+  const selectableTenants = tenantsQuery.isSuccess ? eligibleTenantOptions(tenantsQuery.data, true) : [];
   const selectedTenant = selectableTenants.find((tenant) => tenant.id === tenantId);
   useEffect(() => {
-    if (isPlatform && tenantId && tenantsQuery.data && !selectableTenants.some((tenant) => tenant.id === tenantId)) setTenantId(undefined);
-  }, [isPlatform, selectableTenants, setTenantId, tenantId, tenantsQuery.data]);
+    const catalogComplete = tenantsQuery.isSuccess && !tenantsQuery.isFetching;
+    if (isPlatform && shouldClearTenantSelection(tenantId, tenantsQuery.data, catalogComplete)) setTenantId(undefined);
+  }, [isPlatform, setTenantId, tenantId, tenantsQuery.data, tenantsQuery.isFetching, tenantsQuery.isSuccess]);
   if (!user) return null;
   const initials = user.name.split(" ").map((p) => p[0]).slice(0, 2).join("");
   const organizationName = user.tenantName ?? t("header.dolftech");
@@ -106,6 +106,7 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
               <Command>
                 <CommandInput placeholder={t("header.searchTenants")} aria-label={t("header.searchTenants")} />
                 <CommandList>
+                  <div className="px-2 py-1.5"><TenantOptionsStatus query={tenantsQuery} /></div>
                   <CommandEmpty>{t("common.noResults")}</CommandEmpty>
                   <CommandGroup>
                     <CommandItem value={t("header.allTenants")} onSelect={() => { setTenantId(undefined); setTenantSelectorOpen(false); }}>

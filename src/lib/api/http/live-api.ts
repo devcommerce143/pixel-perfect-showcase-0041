@@ -13,7 +13,15 @@ import type { LiveCreatePlanInput } from "./plan-mapper.ts";
 import { applyPlanEditRequests, createPlanEditRequests } from "./plan-editing.ts";
 import { createUnconnectedLiveApi } from "./unconnected-api.ts";
 import { planListPath } from "../plans-catalog.ts";
-import type { Plan, PlanListQuery } from "../types.ts";
+import { mapTenantCreateResponse, mapTenantPage, mapTenantResponse, tenantDetailPath, tenantListPath, tenantStatusPath, toTenantCreateRequest, toTenantProfileUpdateRequest, toTenantStatusRequest, TenantCatalogError } from "./tenant-mapper.ts";
+import {
+  mapTenantPlanAssignmentResponse,
+  mapTenantSubscriptionView,
+  tenantPlanAssignmentPath,
+  tenantSubscriptionPath,
+  toTenantPlanAssignmentRequest,
+} from "./tenant-subscription-mapper.ts";
+import type { Plan, PlanListQuery, TenantListQuery, TenantPlanAssignmentInput, TenantProfileUpdateInput, TenantStatus } from "../types.ts";
 
 const API_PLAN_STATUSES: Record<Plan["status"], "DRAFT" | "ACTIVE" | "INACTIVE" | "ARCHIVED"> = {
   draft: "DRAFT",
@@ -54,6 +62,57 @@ export function createLiveApi(options: {
       }
       if (property === "listPlans") {
         return async (query?: PlanListQuery) => mapPlanPage(await http.get(planListPath(query)));
+      }
+      if (property === "listTenants") {
+        return async (query: TenantListQuery) =>
+          mapTenantPage(await http.get(tenantListPath(query.page, query.pageSize)));
+      }
+      if (property === "getTenant") {
+        return async (tenantId: string) =>
+          mapTenantResponse(await http.get(tenantDetailPath(tenantId)));
+      }
+      if (property === "createTenant") {
+        return async (input: Parameters<DolfConnectApi["createTenant"]>[0]) =>
+          mapTenantCreateResponse(await http.post("/tenants", toTenantCreateRequest(input)));
+      }
+      if (property === "updateTenantProfile") {
+        return async (tenantId: string, input: TenantProfileUpdateInput) =>
+          mapTenantResponse(await http.patch(
+            tenantDetailPath(tenantId),
+            toTenantProfileUpdateRequest(input),
+          ));
+      }
+      if (property === "setTenantStatus") {
+        return async (tenantId: string, status: TenantStatus) => {
+          const updated = mapTenantResponse(await http.post(
+            tenantStatusPath(tenantId),
+            toTenantStatusRequest(status),
+          ));
+          if (updated.id !== tenantId) {
+            throw new TenantCatalogError("Tenant status response belongs to a different tenant.");
+          }
+          if (updated.status !== status) {
+            throw new TenantCatalogError("Tenant status response does not match the requested status.");
+          }
+        };
+      }
+      if (property === "getTenantSubscription") {
+        return async (tenantId: string) =>
+          mapTenantSubscriptionView(
+            await http.get(tenantSubscriptionPath(tenantId)),
+            tenantId,
+          );
+      }
+      if (property === "assignTenantPlan") {
+        return async (tenantId: string, input: TenantPlanAssignmentInput) =>
+          mapTenantPlanAssignmentResponse(
+            await http.post(
+              tenantPlanAssignmentPath(tenantId),
+              toTenantPlanAssignmentRequest(input),
+            ),
+            tenantId,
+            input,
+          );
       }
       if (property === "getPlan") {
         return async (id: string) =>

@@ -26,7 +26,14 @@ import type {
   ListParams,
   SenderIdentityListQuery,
   TenantListQuery,
+  TenantCatalogItem,
+  TenantCreateResponse,
+  TenantDetail,
   TenantDirectoryItem,
+  TenantPlanAssignmentInput,
+  TenantPlanAssignmentResult,
+  TenantSubscriptionView,
+  TenantProfileUpdateInput,
   TenantUpsertInput,
   TemplateListQuery,
   UserListQuery,
@@ -87,8 +94,12 @@ export interface DolfConnectApi {
   listAuditEvents(params: ListParams, actor: SenderIdentityActor): Promise<Paginated<AuditEvent>>;
   getUsage(actor: SenderIdentityActor, tenantId?: string, tableQuery?: TenantUsageTableQuery): Promise<UsageSummary>;
   /** Platform scope (super admin only). */
-  listTenants(params: TenantListQuery): Promise<Paginated<TenantDirectoryItem>>;
-  createTenant(input: TenantUpsertInput): Promise<TenantDirectoryItem>;
+  listTenants(params: TenantListQuery): Promise<Paginated<TenantCatalogItem>>;
+  getTenant(tenantId: string): Promise<TenantDetail>;
+  getTenantSubscription(tenantId: string): Promise<TenantSubscriptionView>;
+  assignTenantPlan(tenantId: string, input: TenantPlanAssignmentInput): Promise<TenantPlanAssignmentResult>;
+  createTenant(input: TenantUpsertInput): Promise<TenantDirectoryItem | TenantCreateResponse>;
+  updateTenantProfile(id: string, input: TenantProfileUpdateInput): Promise<TenantDetail>;
   updateTenant(id: string, input: TenantUpsertInput): Promise<TenantDirectoryItem>;
   setTenantStatus(id: string, status: Tenant["status"]): Promise<void>;
   listProviders(): Promise<Provider[]>;

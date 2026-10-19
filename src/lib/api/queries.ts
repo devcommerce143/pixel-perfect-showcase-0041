@@ -1,6 +1,10 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { api } from "./client";
 import type { ApiCredentialListQuery, ApplicationListQuery, BulkJobListQuery, BulkSuppressionCandidate, Channel, CreateBulkJobInput, ListParams, PlanListQuery, PlatformApiClientListQuery, SenderIdentityActor, SenderIdentityListQuery, TenantListQuery, TemplateListQuery, TenantUsageTableQuery, UserListQuery } from "./types";
+import { tenantOptionsQueryOptions } from "./tenant-options";
+import { fetchCompleteTenantAssignmentPlans } from "./tenant-assignment-plans";
+import { isTenantUuid } from "./http/tenant-mapper";
+import { tenantSubscriptionQueryKey } from "./http/tenant-subscription-mapper";
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
@@ -36,6 +40,25 @@ export const queries = {
       queryKey: ["tenants", p],
       queryFn: () => api.listTenants(p),
       placeholderData: keepPreviousData,
+    }),
+  tenant: (tenantId: string) =>
+    queryOptions({
+      queryKey: ["tenants", "detail", tenantId],
+      queryFn: () => api.getTenant(tenantId),
+      enabled: isTenantUuid(tenantId),
+    }),
+  tenantSubscription: (tenantId: string, enabled = true) =>
+    queryOptions({
+      queryKey: tenantSubscriptionQueryKey(tenantId),
+      queryFn: () => api.getTenantSubscription(tenantId),
+      enabled: isTenantUuid(tenantId) && enabled,
+    }),
+  tenantOptions: () => tenantOptionsQueryOptions((query) => api.listTenants(query)),
+  tenantAssignmentPlans: (enabled = true) =>
+    queryOptions({
+      queryKey: ["plans", "tenant-assignment-options"],
+      queryFn: () => fetchCompleteTenantAssignmentPlans((query) => api.listPlans(query)),
+      enabled,
     }),
   providers: () => queryOptions({ queryKey: ["providers"], queryFn: () => api.listProviders() }),
   providerUsageBilling: (actor: SenderIdentityActor, providerId?: string) => queryOptions({

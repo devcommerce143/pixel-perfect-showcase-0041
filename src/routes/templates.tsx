@@ -9,6 +9,7 @@ import { FilterSelect } from "@/components/app/FilterSelect";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { StatusBadge } from "@/components/app/StatusBadge";
+import { TenantOptionsStatus } from "@/components/app/TenantOptionsStatus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,8 +52,11 @@ function Templates() {
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState({ name: "", channel: "sms" as Channel, category: "Transactional" as Template["category"], language: "en" as Template["language"], subject: "", body: "" });
-  const tenants = useQuery({ ...queries.tenants({ pageSize: 100, filters: { status: "active" } }), enabled: isPlatform });
-  const tenantNames = new Map((tenants.data?.items ?? []).map((tenant) => [tenant.id, tenant.name]));
+  const tenants = useQuery({ ...queries.tenantOptions(), enabled: isPlatform });
+  const tenantOptions = tenants.isSuccess
+    ? tenants.data.slice().sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }))
+    : [];
+  const tenantNames = new Map(tenantOptions.map((tenant) => [tenant.id, tenant.name]));
   const listQuery = { page, pageSize, search, filters: { channel: channel as Channel | "all", status, ...(scopedTenantId ? { tenantId: scopedTenantId } : {}) }, sortBy, sortDirection };
   const q = useQuery(queries.templates(listQuery, actor));
   useEffect(() => { setPage(1); setSelected(null); }, [selectedTenantId]);
@@ -120,6 +124,7 @@ function Templates() {
     <>
       <PageHeader title={t("tpl.title")} description={t("tpl.subtitle")}
         actions={canManageTemplates && <Button size="sm" onClick={openCreate}><Plus className="size-4" />{t("tpl.new")}</Button>} />
+      {isPlatform && <div className="px-4"><TenantOptionsStatus query={tenants} /></div>}
       <PageBody>
         <Section>
           <TableToolbar search={search} onSearch={(value) => { setSearch(value); setPage(1); }} placeholder={t("tpl.search")}>
