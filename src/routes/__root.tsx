@@ -68,7 +68,10 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  validateSearch: (search: Record<string, unknown>) => typeof search["tenantId"] === "string" ? { tenantId: search["tenantId"] } : {},
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...(typeof search["tenantId"] === "string" ? { tenantId: search["tenantId"] } : {}),
+    ...(typeof search["historyTenantId"] === "string" ? { historyTenantId: search["historyTenantId"] } : {}),
+  }),
   search: { middlewares: [retainSearchParams(["tenantId"])] },
   head: () => ({
     meta: [

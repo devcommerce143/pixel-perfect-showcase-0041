@@ -8,6 +8,7 @@ import { DataTable, ListPagination, SortableHeader, TableToolbar, type Column } 
 import { FilterSelect } from "@/components/app/FilterSelect";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
+import { EmptyState, ErrorState } from "@/components/app/States";
 import { StatusBadge } from "@/components/app/StatusBadge";
 import { TenantOptionsStatus } from "@/components/app/TenantOptionsStatus";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { api } from "@/lib/api/client";
+import { api, apiMode } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
+import {
+  applicationDetailTenantId,
+  applicationMutationControlsEnabled,
+  applicationScopeKey,
+  applicationSelectionMatchesScope,
+} from "@/lib/api/application-ui-policy";
 import { eligibleTenantOptions, isActiveTenant } from "@/lib/api/tenant-options";
 import type { Application, ApplicationSortField, Channel, SenderIdentityActor } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
@@ -37,21 +44,38 @@ function Applications() {
   const { t, locale, dir } = useI18n();
   const { can, user, isPlatform } = useSession();
   const { tenantId: selectedTenantId, scopedTenantId } = useGlobalTenantContext();
+  const isLive = apiMode === "live";
+  const canManageApplications = applicationMutationControlsEnabled(apiMode) && can("apps.manage");
+  const platformAllTenants = isPlatform && !selectedTenantId;
   const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
   const queryClient = useQueryClient();
   const tenantsQuery = useQuery({ ...queries.tenantOptions(), enabled: isPlatform });
   const tenants = tenantsQuery.isSuccess ? eligibleTenantOptions(tenantsQuery.data) : [];
   const tenantNames = new Map(tenants.map((tenant) => [tenant.id, tenant.name]));
+  const currentApplicationScopeKey = applicationScopeKey(actor, selectedTenantId);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Application["status"] | "all">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<10 | 20 | 50>(10);
   const [sortBy, setSortBy] = useState<ApplicationSortField>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const applicationsQuery = useQuery(queries.applicationsPage(actor, { page, pageSize, search, filters: { status, ...(scopedTenantId ? { tenantId: scopedTenantId } : {}) }, sortBy, sortDirection }));
-  const data = applicationsQuery.data?.items ?? [];
+  const applicationsQuery = useQuery(queries.applicationsPage(
+    actor,
+    isLive
+      ? { page, pageSize }
+      : { page, pageSize, search, filters: { status, ...(scopedTenantId ? { tenantId: scopedTenantId } : {}) }, sortBy, sortDirection },
+    selectedTenantId ?? undefined,
+    !isLive || !platformAllTenants,
+    isLive,
+  ));
+  const allTenantApplicationsQuery = useQuery(queries.allTenantApplicationsPage(
+    actor,
+    { page, pageSize },
+    isLive && platformAllTenants,
+  ));
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Application | null>(null);
+  const [selectedScopeKey, setSelectedScopeKey] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingOriginal, setEditingOriginal] = useState<Application | null>(null);
   const [statusTarget, setStatusTarget] = useState<Application | null>(null);
@@ -63,6 +87,31 @@ function Applications() {
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState("");
   const [impactConfirm, setImpactConfirm] = useState(false);
+  const selectedMatchesTenant = !!selected && applicationSelectionMatchesScope(
+    selected.tenantId,
+    selectedScopeKey,
+    currentApplicationScopeKey,
+    isPlatform,
+  );
+  const detailTenantId = applicationDetailTenantId(
+    isPlatform,
+    selectedTenantId,
+    selected?.tenantId,
+  );
+  const applicationDetailQuery = useQuery(queries.application(
+    actor,
+    selectedMatchesTenant ? selected.id : "",
+    detailTenantId,
+    isLive && selectedMatchesTenant,
+  ));
+  const displayedApplication = isLive
+    ? applicationDetailQuery.data && selected
+      ? { ...applicationDetailQuery.data, tenantName: selected.tenantName }
+      : applicationDetailQuery.data
+    : selected;
+  const activeApplicationsQuery = isLive && platformAllTenants
+    ? allTenantApplicationsQuery
+    : applicationsQuery;
   const effectiveTenantId = selectedTenantId ?? tenantId;
   const activeTenantSelected = isActiveTenant(
     effectiveTenantId,
@@ -79,19 +128,25 @@ function Applications() {
       setError("");
       setEditingOriginal(null);
       setSelected(application);
+      setSelectedScopeKey(currentApplicationScopeKey);
     },
     onError: () => setError(t("apps.nameExists")),
   });
   const changeStatus = useMutation({
     mutationFn: (application: Application) => api.setApplicationStatus(actor, application.id, application.status === "active" ? "disabled" : "active"),
-    onSuccess: async (_, application) => { const status = application.status === "active" ? "disabled" : "active"; toast.success(t(status === "disabled" ? "apps.deactivated" : "apps.activated")); await Promise.all([queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["applicationsPage"] })]); setSelected({ ...application, status }); setStatusTarget(null); },
+    onSuccess: async (_, application) => { const status = application.status === "active" ? "disabled" : "active"; toast.success(t(status === "disabled" ? "apps.deactivated" : "apps.activated")); await Promise.all([queryClient.invalidateQueries({ queryKey: ["applications"] }), queryClient.invalidateQueries({ queryKey: ["applicationsPage"] })]); setSelected({ ...application, status }); setSelectedScopeKey(currentApplicationScopeKey); setStatusTarget(null); },
   });
   const toggleSort = (field: ApplicationSortField) => {
     setSortDirection(sortBy === field ? (sortDirection === "asc" ? "desc" : "asc") : field === "lastActivityAt" || field === "updatedAt" ? "desc" : "asc");
     setSortBy(field);
     setPage(1);
   };
-  useEffect(() => { setPage(1); setSelected(null); setTenantId(selectedTenantId ?? ""); }, [selectedTenantId]);
+  useEffect(() => {
+    setPage(1);
+    setSelected(null);
+    setSelectedScopeKey(null);
+    setTenantId(selectedTenantId ?? "");
+  }, [currentApplicationScopeKey, selectedTenantId]);
   const valid = name.trim().length > 1 && channels.length > 0 && scopes.length > 0 && (isPlatform ? (editingId ? !!tenantId : activeTenantSelected) : !!actor.tenantId);
   const showActiveTenantRequired = isPlatform && !editingId && !!effectiveTenantId &&
     tenantsQuery.isSuccess && !tenantsQuery.isFetching && !activeTenantSelected;
@@ -113,29 +168,41 @@ function Applications() {
     save.mutate();
   };
   const columns: Column<Application>[] = [
-    { id: "name", header: <SortableHeader label={t("common.name")} field="name" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("name")} />, cell: (a) => (<div><div className="font-medium">{a.name}</div><div className="font-mono text-xs text-muted-foreground">{a.id}</div></div>) },
-    ...(isPlatform && !selectedTenantId ? [{ id: "tenant", header: t("common.tenant"), cell: (a: Application) => tenantNames.get(a.tenantId) ?? a.tenantId, className: "hidden lg:table-cell" }] : []),
+    { id: "name", header: isLive ? t("common.name") : <SortableHeader label={t("common.name")} field="name" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("name")} />, cell: (a) => (<div><div className="font-medium">{a.name}</div><div className="font-mono text-xs text-muted-foreground">{a.id}</div></div>) },
+    ...(isPlatform && platformAllTenants ? [{ id: "tenant", header: t("common.tenant"), cell: (a: Application) => <div><div>{a.tenantName ?? tenantNames.get(a.tenantId) ?? a.tenantId}</div><div className="font-mono text-xs text-muted-foreground">{a.tenantId}</div></div>, className: "hidden lg:table-cell" }] : []),
     { id: "env", header: t("common.environment"), cell: (a) => (
       <span className={cn("rounded-sm border px-1.5 py-0.5 text-xs font-medium", a.environment === "production" ? "border-primary/30 text-primary" : "text-muted-foreground")}>
         {t(a.environment === "production" ? "common.production" : "common.sandbox")}
       </span>) },
     { id: "channels", header: t("apps.channels"), cell: (a) => <div className="flex flex-wrap gap-3">{a.channels.map((c) => <ChannelLabel key={c} channel={c} />)}</div>, className: "hidden lg:table-cell" },
-    { id: "creds", header: t("apps.apiCredentials"), cell: (a) => <span className="tabular-nums">{a.credentialCount}</span> },
-    { id: "status", header: <SortableHeader label={t("common.status")} field="status" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("status")} />, cell: (a) => <StatusBadge status={a.status} /> },
-    { id: "last", header: <SortableHeader label={t("apps.lastActivity")} field="lastActivityAt" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("lastActivityAt")} />, cell: (a) => <span className="text-muted-foreground tabular-nums">{formatDateTime(a.lastActivityAt, locale)}</span> },
+    { id: "creds", header: t("apps.apiCredentials"), cell: (a) => <span className="tabular-nums">{typeof a.credentialCount === "number" ? a.credentialCount : t("apps.notAvailable")}</span> },
+    { id: "status", header: isLive ? t("common.status") : <SortableHeader label={t("common.status")} field="status" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("status")} />, cell: (a) => <StatusBadge status={a.status} /> },
+    { id: "last", header: isLive ? t("apps.lastActivity") : <SortableHeader label={t("apps.lastActivity")} field="lastActivityAt" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("lastActivityAt")} />, cell: (a) => <span className="text-muted-foreground tabular-nums">{a.lastActivityAt ? formatDateTime(a.lastActivityAt, locale) : t("apps.notAvailable")}</span> },
   ];
   return (
     <>
       <PageHeader title={t("apps.title")} description={t("apps.subtitle")}
-        actions={can("apps.manage") && <Button size="sm" onClick={openCreate}><Plus className="size-4" />{t("apps.new")}</Button>} />
+        actions={canManageApplications && <Button size="sm" onClick={openCreate}><Plus className="size-4" />{t("apps.new")}</Button>} />
       <PageBody><Section>
-        <TableToolbar search={search} onSearch={(value) => { setSearch(value); setPage(1); }} placeholder={t("common.search")}>
-          <FilterSelect label={t("common.status")} value={status} onChange={(value) => { setStatus(value as Application["status"] | "all"); setPage(1); }} options={[{ value: "all", label: t("common.allStatuses") }, ...(["active", "disabled"] as const).map((item) => ({ value: item, label: t(`status.${item}`) }))]} />
-        </TableToolbar>
-        <DataTable columns={columns} rows={applicationsQuery.data?.items} loading={applicationsQuery.isFetching} rowKey={(a) => a.id} onRowClick={setSelected} />
-        {applicationsQuery.data && <ListPagination page={applicationsQuery.data.page} pageSize={applicationsQuery.data.pageSize} total={applicationsQuery.data.total} onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+        {isLive && <div role="status" className="border-b px-4 py-3 text-caption">{t("apps.liveReadOnly")}</div>}
+        {isLive && platformAllTenants && <div role="status" className="border-b px-4 py-3 text-caption">{t("apps.allTenantApplicationsNote")}</div>}
+        {platformAllTenants && !isLive ? (
+          <EmptyState title={t("ten.selectTenant")} body={t("apps.selectTenantForApplications")} />
+        ) : (
+          <>
+            {isLive
+              ? <div role="status" className="border-b px-4 py-3 text-caption">{t("apps.liveListLimit")}</div>
+              : <TableToolbar search={search} onSearch={(value) => { setSearch(value); setPage(1); }} placeholder={t("common.search")}>
+                  <FilterSelect label={t("common.status")} value={status} onChange={(value) => { setStatus(value as Application["status"] | "all"); setPage(1); }} options={[{ value: "all", label: t("common.allStatuses") }, ...(["active", "disabled"] as const).map((item) => ({ value: item, label: t(`status.${item}`) }))]} />
+                </TableToolbar>}
+            {activeApplicationsQuery.isError
+              ? <ErrorState onRetry={() => void activeApplicationsQuery.refetch()} />
+              : <DataTable columns={columns} rows={activeApplicationsQuery.data?.items} loading={activeApplicationsQuery.isFetching} rowKey={(a) => a.id} onRowClick={(application) => { setSelected(application); setSelectedScopeKey(currentApplicationScopeKey); }} />}
+            {activeApplicationsQuery.data && !activeApplicationsQuery.isError && <ListPagination page={activeApplicationsQuery.data.page} pageSize={activeApplicationsQuery.data.pageSize} total={activeApplicationsQuery.data.total} onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
+          </>
+        )}
       </Section></PageBody>
-        <Sheet open={open} onOpenChange={(value) => !save.isPending && setOpen(value)}>
+        {!isLive && <Sheet open={open} onOpenChange={(value) => !save.isPending && setOpen(value)}>
         <SheetContent side={dir === "rtl" ? "left" : "right"} className="w-full overflow-y-auto sm:max-w-xl">
           <SheetHeader><SheetTitle>{t(editingId ? "apps.edit" : "apps.new")}</SheetTitle><SheetDescription>{t("apps.createDescription")}</SheetDescription></SheetHeader>
           <form className="space-y-5 px-4 pb-6" onSubmit={submitApplication} noValidate>
@@ -149,14 +216,25 @@ function Applications() {
             <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setOpen(false)}>{t("common.cancel")}</Button><Button type="submit" disabled={save.isPending}>{save.isPending ? t(editingId ? "common.saving" : "common.creating") : t(editingId ? "common.save" : "common.create")}</Button></div>
           </form>
         </SheetContent>
-      </Sheet>
-      <Sheet open={!!selected} onOpenChange={(value) => !value && setSelected(null)}>
+      </Sheet>}
+      <Sheet open={selectedMatchesTenant} onOpenChange={(value) => {
+        if (!value) {
+          setSelected(null);
+          setSelectedScopeKey(null);
+        }
+      }}>
         <SheetContent side={dir === "rtl" ? "left" : "right"} className="w-full sm:max-w-md">
-          {selected && <><SheetHeader><SheetTitle>{selected.name}</SheetTitle><SheetDescription>{selected.id} · {t(selected.environment === "production" ? "common.production" : "common.sandbox")}</SheetDescription></SheetHeader><div className="space-y-4 px-4"><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("common.tenant")}</dt><dd>{tenantNames.get(selected.tenantId) ?? user?.tenantName ?? selected.tenantId}</dd></div><div><dt className="text-label">{t("common.applicationId")}</dt><dd className="font-mono text-xs">{selected.id}</dd></div><div><dt className="text-label">{t("common.environment")}</dt><dd>{t(selected.environment === "production" ? "common.production" : "common.sandbox")}</dd></div><div><dt className="text-label">{t("common.status")}</dt><dd><StatusBadge status={selected.status} /></dd></div><div><dt className="text-label">{t("apps.apiCredentials")}</dt><dd><Link className="text-primary hover:underline" to={`/credentials?applicationId=${selected.id}` as never}>{selected.credentialCount}</Link></dd></div><div><dt className="text-label">{t("apps.createdAt")}</dt><dd>{formatDateTime(selected.createdAt, locale)}</dd></div>{selected.createdBy && <div><dt className="text-label">{t("apps.createdBy")}</dt><dd>{selected.createdBy}</dd></div>}{selected.updatedAt && <div><dt className="text-label">{t("common.updatedAt")}</dt><dd>{formatDateTime(selected.updatedAt, locale)}</dd></div>}<div><dt className="text-label">{t("apps.lastActivity")}</dt><dd>{formatDateTime(selected.lastActivityAt, locale)}</dd></div></dl><div><h3 className="mb-2 text-sm font-semibold">{t("apps.channels")}</h3><div className="flex flex-wrap gap-3">{selected.channels.map((channel) => <ChannelLabel key={channel} channel={channel} />)}</div></div><div><h3 className="mb-2 text-sm font-semibold">{t("common.scopes")}</h3><div className="flex flex-wrap gap-1">{selected.scopes.map((scope) => <span key={scope} className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs">{scope}</span>)}</div></div>{can("apps.manage") && <div className="flex gap-2 border-t pt-4"><Button variant="outline" onClick={() => openEdit(selected)}>{t("common.edit")}</Button><Button variant={selected.status === "active" ? "destructive" : "outline"} onClick={() => setStatusTarget(selected)}>{t(selected.status === "active" ? "apps.deactivate" : "apps.activate")}</Button></div>}</div></>}
+          {isLive && applicationDetailQuery.isError
+            ? <ErrorState onRetry={() => void applicationDetailQuery.refetch()} />
+            : isLive && applicationDetailQuery.isLoading
+              ? <p role="status" className="p-4 text-caption">{t("apps.detailLoading")}</p>
+              : isLive && applicationDetailQuery.data === null
+                ? <EmptyState title={t("apps.notFound")} />
+                : displayedApplication && <><SheetHeader><SheetTitle>{displayedApplication.name}</SheetTitle><SheetDescription>{displayedApplication.id} · {t(displayedApplication.environment === "production" ? "common.production" : "common.sandbox")}</SheetDescription></SheetHeader><div className="space-y-4 px-4"><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("common.tenant")}</dt><dd>{displayedApplication.tenantName ?? tenantNames.get(displayedApplication.tenantId) ?? user?.tenantName ?? displayedApplication.tenantId}</dd><dd className="font-mono text-xs text-muted-foreground">{displayedApplication.tenantId}</dd></div><div><dt className="text-label">{t("common.applicationId")}</dt><dd className="font-mono text-xs">{displayedApplication.id}</dd></div><div><dt className="text-label">{t("common.environment")}</dt><dd>{t(displayedApplication.environment === "production" ? "common.production" : "common.sandbox")}</dd></div><div><dt className="text-label">{t("common.status")}</dt><dd><StatusBadge status={displayedApplication.status} /></dd></div><div><dt className="text-label">{t("apps.apiCredentials")}</dt><dd>{typeof displayedApplication.credentialCount === "number" ? <Link className="text-primary hover:underline" to={`/credentials?applicationId=${displayedApplication.id}` as never}>{displayedApplication.credentialCount}</Link> : t("apps.notAvailable")}</dd></div><div><dt className="text-label">{t("apps.createdAt")}</dt><dd>{formatDateTime(displayedApplication.createdAt, locale)}</dd></div>{displayedApplication.createdBy && <div><dt className="text-label">{t("apps.createdBy")}</dt><dd>{displayedApplication.createdBy}</dd></div>}{displayedApplication.updatedAt && <div><dt className="text-label">{t("common.updatedAt")}</dt><dd>{formatDateTime(displayedApplication.updatedAt, locale)}</dd></div>}<div><dt className="text-label">{t("apps.lastActivity")}</dt><dd>{displayedApplication.lastActivityAt ? formatDateTime(displayedApplication.lastActivityAt, locale) : t("apps.notAvailable")}</dd></div>{displayedApplication.senderAccess && <div><dt className="text-label">{t("apps.senderAccess")}</dt><dd>{t(displayedApplication.senderAccess === "all_eligible" ? "apps.allEligibleSenders" : "apps.allowListedSenders")}</dd></div>}</dl><div><h3 className="mb-2 text-sm font-semibold">{t("apps.channels")}</h3><div className="flex flex-wrap gap-3">{displayedApplication.channels.map((channel) => <ChannelLabel key={channel} channel={channel} />)}</div></div><div><h3 className="mb-2 text-sm font-semibold">{t("common.scopes")}</h3><div className="flex flex-wrap gap-1">{displayedApplication.scopes.map((scope) => <span key={scope} className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs">{scope}</span>)}</div></div>{displayedApplication.channelAvailability && <div><h3 className="mb-2 text-sm font-semibold">{t("apps.channelAvailability")}</h3><dl className="space-y-2 text-sm">{displayedApplication.channelAvailability.map((availability) => <div key={availability.channel} className="flex flex-wrap justify-between gap-2"><dt><ChannelLabel channel={availability.channel} /></dt><dd>{t(availability.granted ? "apps.channelGranted" : "apps.channelNotGranted")} · {t(availability.available ? "apps.channelAvailable" : "apps.channelUnavailable")}</dd></div>)}</dl></div>}{canManageApplications && <div className="flex gap-2 border-t pt-4"><Button variant="outline" onClick={() => openEdit(displayedApplication)}>{t("common.edit")}</Button><Button variant={displayedApplication.status === "active" ? "destructive" : "outline"} onClick={() => setStatusTarget(displayedApplication)}>{t(displayedApplication.status === "active" ? "apps.deactivate" : "apps.activate")}</Button></div>}</div></>}
         </SheetContent>
       </Sheet>
-      <AlertDialog open={impactConfirm} onOpenChange={setImpactConfirm}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t("apps.accessChangeTitle")}</AlertDialogTitle><AlertDialogDescription>{t("apps.accessChangeBody", { name: selected?.name ?? "" })}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction disabled={save.isPending} onClick={(event) => { event.preventDefault(); setImpactConfirm(false); save.mutate(); }}>{t("common.confirm")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <AlertDialog open={!!statusTarget} onOpenChange={(value) => !value && setStatusTarget(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t(statusTarget?.status === "active" ? "apps.deactivateTitle" : "apps.activateTitle")}</AlertDialogTitle><AlertDialogDescription>{t(statusTarget?.status === "active" ? "apps.deactivateBody" : "apps.activateBody", { name: statusTarget?.name ?? "" })}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); if (statusTarget) changeStatus.mutate(statusTarget); }} disabled={changeStatus.isPending}>{t(statusTarget?.status === "active" ? "apps.deactivate" : "apps.activate")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      {!isLive && <AlertDialog open={impactConfirm} onOpenChange={setImpactConfirm}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t("apps.accessChangeTitle")}</AlertDialogTitle><AlertDialogDescription>{t("apps.accessChangeBody", { name: selected?.name ?? "" })}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction disabled={save.isPending} onClick={(event) => { event.preventDefault(); setImpactConfirm(false); save.mutate(); }}>{t("common.confirm")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
+      {!isLive && <AlertDialog open={!!statusTarget} onOpenChange={(value) => !value && setStatusTarget(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t(statusTarget?.status === "active" ? "apps.deactivateTitle" : "apps.activateTitle")}</AlertDialogTitle><AlertDialogDescription>{t(statusTarget?.status === "active" ? "apps.deactivateBody" : "apps.activateBody", { name: statusTarget?.name ?? "" })}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); if (statusTarget) changeStatus.mutate(statusTarget); }} disabled={changeStatus.isPending}>{t(statusTarget?.status === "active" ? "apps.deactivate" : "apps.activate")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
     </>
   );
 }

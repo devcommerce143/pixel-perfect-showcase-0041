@@ -92,6 +92,61 @@ export interface Message {
   events: MessageEvent[];
 }
 
+export type MessageHistoryStatus =
+  | "accepted"
+  | "queued"
+  | "dispatching"
+  | "submitted"
+  | "failed"
+  | "unknown"
+  | "delivered"
+  | "read";
+
+export interface MessageHistoryItem {
+  id: string;
+  applicationId: string;
+  channel: Channel;
+  status: MessageHistoryStatus;
+  acceptedAt: string;
+  queuedAt: string | null;
+}
+
+export interface PlatformMessageHistoryItem extends MessageHistoryItem {
+  tenantId: string;
+  tenantName: string;
+}
+
+export interface MessageHistoryAttempt {
+  attemptNumber: number;
+  state: "submitting" | "accepted" | "rejected" | "unknown";
+  errorCategory: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+export interface MessageHistoryDetail extends MessageHistoryItem {
+  senderIdentityId: string;
+  templateId: string | null;
+  correlationId: string | null;
+  contentPurgedAt: string | null;
+  recipientNormalized: string;
+  attempts: MessageHistoryAttempt[];
+}
+
+export interface MessageHistoryQuery {
+  acceptedFrom: string;
+  acceptedTo: string;
+  page: number;
+  pageSize: number;
+  channel?: Channel;
+  status?: MessageHistoryStatus;
+}
+
+export interface MessageHistoryDateRange {
+  from: string;
+  through: string;
+}
+
 export type TemplateStatus = "active" | "inactive" | "draft" | "pending_approval" | "approved" | "rejected";
 export interface TemplateApproval {
   provider: string;
@@ -220,12 +275,25 @@ export interface Application {
   status: "active" | "disabled";
   channels: Channel[];
   scopes: string[];
-  credentialCount: number;
+  senderAccess?: "all_eligible" | "allow_list";
+  allowListSenderIds?: string[];
+  channelAvailability?: ApplicationChannelAvailability[];
+  credentialCount?: number;
   createdAt: string;
-  lastActivityAt: string;
+  lastActivityAt?: string | null;
   createdBy?: string;
   updatedAt?: string;
   senderIdentityIds?: string[];
+}
+
+export interface PlatformApplication extends Application {
+  tenantName: string;
+}
+
+export interface ApplicationChannelAvailability {
+  channel: Channel;
+  granted: boolean;
+  available: boolean;
 }
 
 export interface ApiCredential {

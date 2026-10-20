@@ -377,6 +377,15 @@ export function createMockApi(): DolfConnectApi {
       );
       return paginate(rows, p);
     },
+    async listMessageHistory() {
+      throw new Error("The message history HTTP contract is available in live mode only.");
+    },
+    async listAllTenantMessageHistory() {
+      throw new Error("The platform-wide message history HTTP contract is available in live mode only.");
+    },
+    async getMessageHistory() {
+      throw new Error("The message history HTTP contract is available in live mode only.");
+    },
     async getMessage(id, actor, tenantId) {
       await delay(150);
       const message = messages.find((m) => m.id === id);
@@ -513,6 +522,24 @@ export function createMockApi(): DolfConnectApi {
         return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction;
       });
       return paginate(rows.map((application) => ({ ...application, channels: [...application.channels], scopes: [...application.scopes] })), query);
+    },
+    async listAllTenantApplications(actor, query) {
+      if (actor.role !== "super_admin") {
+        throw new Error("Platform applications require a platform administrator");
+      }
+      const page = await this.listApplicationsPage(actor, query);
+      return {
+        ...page,
+        items: page.items.map((application) => ({
+          ...application,
+          tenantName: application.tenantName ?? application.tenantId,
+        })),
+      };
+    },
+    async getApplication(actor, id, tenantId) {
+      const rows = await this.listApplications(actor, tenantId);
+      const application = rows.find((item) => item.id === id);
+      return application ?? null;
     },
     async createApplication(actor, input) {
       await delay(500);

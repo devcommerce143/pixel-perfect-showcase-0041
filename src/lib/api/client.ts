@@ -47,6 +47,11 @@ import type {
   TenantUserRole,
   UserStatus,
   Message,
+  MessageHistoryDetail,
+  MessageHistoryItem,
+  MessageHistoryQuery,
+  PlatformMessageHistoryItem,
+  PlatformApplication,
   Paginated,
   Provider,
   ProviderConfigInput,
@@ -71,7 +76,9 @@ import { createMockApi } from "./mock/mock-api";
 
 /**
  * Contract for the Dolf Connect API as consumed by the web portal.
- * Tenant scope is derived by the backend from the caller's token, never sent by the UI.
+ * Tenant callers are scoped by the backend from their token. Platform callers
+ * use named-tenant routes or dedicated platform-wide list routes, with
+ * authorization still enforced by the backend.
  * Replace the mock implementation with an HTTP implementation (via the API gateway)
  * without changing any screen.
  */
@@ -83,6 +90,9 @@ export interface DolfConnectApi {
   getDashboardQuota(): Promise<DashboardQuotaWarning>;
   listMessages(params: ListParams, actor: SenderIdentityActor): Promise<Paginated<Message>>;
   getMessage(id: string, actor: SenderIdentityActor, tenantId?: string): Promise<Message | null>;
+  listMessageHistory(params: MessageHistoryQuery, actor: SenderIdentityActor, tenantId?: string): Promise<Paginated<MessageHistoryItem>>;
+  listAllTenantMessageHistory(params: MessageHistoryQuery, actor: SenderIdentityActor): Promise<Paginated<PlatformMessageHistoryItem>>;
+  getMessageHistory(id: string, actor: SenderIdentityActor, tenantId?: string): Promise<MessageHistoryDetail | null>;
   /** The actor is mock-only; an HTTP implementation must derive tenant/role claims from the authenticated token. */
   sendMessage(input: SendMessageInput, actor: SenderIdentityActor): Promise<{ id: string; status: "accepted" }>;
   listTemplates(params: TemplateListQuery, actor: SenderIdentityActor): Promise<Paginated<Template>>;
@@ -92,7 +102,9 @@ export interface DolfConnectApi {
   activateTemplate(actor: SenderIdentityActor, id: string): Promise<Template>;
   deactivateTemplate(actor: SenderIdentityActor, id: string): Promise<Template>;
   listApplications(actor: SenderIdentityActor, tenantId?: string): Promise<Application[]>;
-  listApplicationsPage(actor: SenderIdentityActor, query: ApplicationListQuery): Promise<Paginated<Application>>;
+  listApplicationsPage(actor: SenderIdentityActor, query: ApplicationListQuery, tenantId?: string): Promise<Paginated<Application>>;
+  listAllTenantApplications(actor: SenderIdentityActor, query: ApplicationListQuery): Promise<Paginated<PlatformApplication>>;
+  getApplication(actor: SenderIdentityActor, id: string, tenantId?: string): Promise<Application | null>;
   createApplication(actor: SenderIdentityActor, input: Pick<Application, "tenantId" | "name" | "environment" | "channels" | "scopes">): Promise<Application>;
   updateApplication(actor: SenderIdentityActor, id: string, input: Pick<Application, "name" | "environment" | "channels" | "scopes">): Promise<Application>;
   setApplicationStatus(actor: SenderIdentityActor, id: string, status: Application["status"]): Promise<void>;

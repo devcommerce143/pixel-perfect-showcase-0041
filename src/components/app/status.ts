@@ -11,6 +11,7 @@ export const STATUS_DEFS: Record<string, { tone: Tone; icon: LucideIcon }> = {
   verified: { tone: "success", icon: CheckCircle2 },
   success: { tone: "success", icon: CheckCircle2 },
   accepted: { tone: "info", icon: CheckCircle2 },
+  submitting: { tone: "info", icon: Loader2 },
   sent: { tone: "info", icon: Send },
   processing: { tone: "info", icon: Loader2 },
   in_progress: { tone: "info", icon: Loader2 },

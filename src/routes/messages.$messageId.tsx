@@ -7,9 +7,10 @@ import { ChannelLabel } from "@/components/app/ChannelLabel";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { StatusBadge } from "@/components/app/StatusBadge";
-import { EmptyState, TableSkeleton } from "@/components/app/States";
+import { EmptyState, ErrorState, TableSkeleton } from "@/components/app/States";
 import { STATUS_DEFS, TONE_CLASSES } from "@/components/app/status";
 import { Button } from "@/components/ui/button";
+import { MessageHistoryDetailLive } from "@/features/messages/MessageHistoryDetailLive";
 import { queries } from "@/lib/api/queries";
 import type { SenderIdentityActor } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
@@ -20,7 +21,10 @@ import { pageHead } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/messages/$messageId")({
-  head: ({ params }) => pageHead(params.messageId, `Delivery timeline and metadata for message ${params.messageId}.`),
+  validateSearch: (search: Record<string, unknown>) => ({
+    historyTenantId: typeof search["historyTenantId"] === "string" ? search["historyTenantId"] : undefined,
+  }),
+  head: ({ params }) => pageHead(params.messageId, `Message history and metadata for message ${params.messageId}.`),
   component: () => <RequirePermission permission="messages.view"><MessageDetail /></RequirePermission>,
 });
 
@@ -35,15 +39,37 @@ function Field({ label, children, mono }: { label: string; children: ReactNode; 
 
 function MessageDetail() {
   const { messageId } = Route.useParams();
+  const { historyTenantId } = Route.useSearch();
   const { t, locale } = useI18n();
-  const { user, isPlatform } = useSession();
+  const { user, isPlatform, mode } = useSession();
   const { tenantId: selectedTenantId, scopedTenantId } = useGlobalTenantContext();
   const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
-  const { data: message, isLoading } = useQuery(queries.message(messageId, actor, scopedTenantId));
+  const detailTenantId = historyTenantId ?? selectedTenantId;
+  const validDetailIds = isValidUuid(messageId) && (!isPlatform || (typeof detailTenantId === "string" && isValidUuid(detailTenantId)));
+  const mockQuery = useQuery({ ...queries.message(messageId, actor, scopedTenantId), enabled: mode === "mock" });
+  const liveQuery = useQuery(queries.messageHistoryDetail(
+    messageId,
+    actor,
+    isPlatform ? detailTenantId : undefined,
+    mode === "live" && validDetailIds,
+  ));
   const copy = (value: string) => { void navigator.clipboard?.writeText(value); toast.success(t("common.copied")); };
   const back = <Button asChild variant="outline" size="sm"><Link to="/messages"><ArrowLeft className="size-4 rtl:rotate-180" />{t("nav.history")}</Link></Button>;
 
-  if (isLoading) return <PageBody><div className="panel"><TableSkeleton rows={6} /></div></PageBody>;
+  if (mode === "live" && isPlatform && detailTenantId === undefined) {
+    return <PageBody><div className="panel"><EmptyState icon={FileSearch} title={t("msg.selectTenantTitle")} body={t("msg.selectTenantBody")} action={back} /></div></PageBody>;
+  }
+  if (mode === "live" && !validDetailIds) {
+    return <PageBody><div className="panel"><EmptyState icon={FileSearch} title={t("common.notFound")} body={t("msg.notFound")} action={back} /></div></PageBody>;
+  }
+  if (mode === "live" && liveQuery.isLoading) return <PageBody><div className="panel"><TableSkeleton rows={6} /></div></PageBody>;
+  if (mode === "live" && liveQuery.isError) return <PageBody><div className="panel"><ErrorState onRetry={() => void liveQuery.refetch()} /></div></PageBody>;
+  if (mode === "live" && liveQuery.data) return <MessageHistoryDetailLive message={liveQuery.data} />;
+  if (mode === "live" && !liveQuery.data) return <PageBody><div className="panel"><EmptyState icon={FileSearch} title={t("common.notFound")} body={t("msg.notFound")} action={back} /></div></PageBody>;
+
+  const message = mockQuery.data;
+  if (mockQuery.isLoading) return <PageBody><div className="panel"><TableSkeleton rows={6} /></div></PageBody>;
+  if (mockQuery.isError) return <PageBody><div className="panel"><ErrorState onRetry={() => void mockQuery.refetch()} /></div></PageBody>;
   if (!message) return <PageBody><div className="panel"><EmptyState icon={FileSearch} title={t("common.notFound")} body={t("msg.notFound")} action={back} /></div></PageBody>;
 
   const timeline = message.statusHistory ?? message.events;
@@ -141,4 +167,8 @@ function MessageDetail() {
       </PageBody>
     </>
   );
+}
+
+function isValidUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }

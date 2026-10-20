@@ -1,5 +1,15 @@
 import type { DolfConnectApi } from "../client.ts";
 import { createHumanHttpClient } from "./client.ts";
+import { ApiError } from "./errors.ts";
+import {
+  applicationDetailPath,
+  applicationListPath,
+  mapApplication,
+  mapApplicationPage,
+  mapPlatformApplicationPage,
+  platformApplicationListPath,
+} from "./application-mapper.ts";
+import { mapMessageHistoryDetail, mapMessageHistoryPage, mapPlatformMessageHistoryPage, messageHistoryDetailPath, messageHistoryListPath, platformMessageHistoryListPath } from "./message-history-mapper.ts";
 import { mapDashboardMessages } from "./dashboard-messages-mapper.ts";
 import { mapDashboardQuota } from "./dashboard-quota-mapper.ts";
 import { mapDashboardSummary } from "./dashboard-mapper.ts";
@@ -42,6 +52,7 @@ import {
 import type {
   Channel,
   CreatePortalUserInput,
+  MessageHistoryQuery,
   Plan,
   PlanListQuery,
   TenantListQuery,
@@ -93,6 +104,103 @@ export function createLiveApi(options: {
       }
       if (property === "getDashboardQuota") {
         return async () => mapDashboardQuota(await http.get("/dashboard/quota"));
+      }
+      if (property === "listApplicationsPage") {
+        return async (
+          actor: Parameters<DolfConnectApi["listApplicationsPage"]>[0],
+          query: Parameters<DolfConnectApi["listApplicationsPage"]>[1],
+          tenantId?: string,
+        ) =>
+          mapApplicationPage(
+            await http.get(
+              applicationListPath(
+                actor.role,
+                query.page ?? 1,
+                query.pageSize ?? 20,
+                actor.role === "super_admin" ? tenantId : undefined,
+              ),
+            ),
+          );
+      }
+      if (property === "listAllTenantApplications") {
+        return async (
+          actor: Parameters<DolfConnectApi["listAllTenantApplications"]>[0],
+          query: Parameters<DolfConnectApi["listAllTenantApplications"]>[1],
+        ) => {
+          if (actor.role !== "super_admin") {
+            throw new Error(
+              "Platform applications require a platform administrator.",
+            );
+          }
+          return mapPlatformApplicationPage(
+            await http.get(
+              platformApplicationListPath(
+                query.page ?? 1,
+                query.pageSize ?? 20,
+              ),
+            ),
+          );
+        };
+      }
+      if (property === "getApplication") {
+        return async (
+          actor: Parameters<DolfConnectApi["getApplication"]>[0],
+          id: string,
+          tenantId?: string,
+        ) => {
+          try {
+            return mapApplication(
+              await http.get(
+                applicationDetailPath(
+                  actor.role,
+                  id,
+                  actor.role === "super_admin" ? tenantId : undefined,
+                ),
+              ),
+            );
+          } catch (error) {
+            if (error instanceof ApiError && error.statusCode === 404) return null;
+            throw error;
+          }
+        };
+      }
+      if (property === "listMessageHistory") {
+        return async (
+          query: MessageHistoryQuery,
+          actor: Parameters<DolfConnectApi["listMessageHistory"]>[1],
+          targetTenantId?: string,
+        ) => {
+          const tenantId = actor.role === "super_admin" ? requirePlatformHistoryTenant(targetTenantId) : undefined;
+          return mapMessageHistoryPage(await http.get(messageHistoryListPath(query, tenantId)));
+        };
+      }
+      if (property === "listAllTenantMessageHistory") {
+        return async (
+          query: MessageHistoryQuery,
+          actor: Parameters<DolfConnectApi["listAllTenantMessageHistory"]>[1],
+        ) => {
+          if (actor.role !== "super_admin") {
+            throw new Error("Platform message history requires a platform administrator.");
+          }
+          return mapPlatformMessageHistoryPage(
+            await http.get(platformMessageHistoryListPath(query)),
+          );
+        };
+      }
+      if (property === "getMessageHistory") {
+        return async (
+          id: string,
+          actor: Parameters<DolfConnectApi["getMessageHistory"]>[1],
+          targetTenantId?: string,
+        ) => {
+          const tenantId = actor.role === "super_admin" ? requirePlatformHistoryTenant(targetTenantId) : undefined;
+          try {
+            return mapMessageHistoryDetail(await http.get(messageHistoryDetailPath(id, tenantId)));
+          } catch (error) {
+            if (error instanceof ApiError && error.statusCode === 404) return null;
+            throw error;
+          }
+        };
       }
       if (property === "listPlans") {
         return async (query?: PlanListQuery) => mapPlanPage(await http.get(planListPath(query)));
@@ -297,4 +405,9 @@ export function createLiveApi(options: {
       return Reflect.get(target, property, receiver);
     },
   });
+}
+
+function requirePlatformHistoryTenant(tenantId: string | undefined): string {
+  if (!tenantId) throw new Error("Select a tenant before loading platform message history.");
+  return tenantId;
 }

@@ -8,6 +8,7 @@ import type {
   Channel,
   CreateBulkJobInput,
   ListParams,
+  MessageHistoryQuery,
   PlanListQuery,
   PlatformApiClientListQuery,
   SenderIdentityActor,
@@ -25,6 +26,16 @@ import {
   tenantSubscriptionHistoryQueryKey,
   tenantSubscriptionQueryKey,
 } from "./http/tenant-subscription-mapper";
+import {
+  allTenantMessageHistoryQueryKey,
+  tenantMessageHistoryQueryKey,
+} from "./message-history-query-keys";
+import {
+  allTenantApplicationPageQueryKey,
+  applicationReadQueryOptions,
+  applicationDetailQueryKey,
+  applicationPageQueryKey,
+} from "./application-query-keys";
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
@@ -37,6 +48,30 @@ export const queries = {
       queryFn: () => api.listMessages(p, actor),
       placeholderData: keepPreviousData,
     }),
+  messageHistory: (query: MessageHistoryQuery | null, actor: SenderIdentityActor, tenantId?: string, enabled = true) =>
+    queryOptions({
+      queryKey: tenantMessageHistoryQueryKey(query, actor, tenantId),
+      queryFn: () => {
+        if (!query) throw new Error("A valid message history date range is required.");
+        return api.listMessageHistory(query, actor, tenantId);
+      },
+      enabled: enabled && query !== null,
+    }),
+  allTenantMessageHistory: (query: MessageHistoryQuery | null, actor: SenderIdentityActor, enabled = true) =>
+    queryOptions({
+      queryKey: allTenantMessageHistoryQueryKey(query, actor),
+      queryFn: () => {
+        if (!query) throw new Error("A valid message history date range is required.");
+        return api.listAllTenantMessageHistory(query, actor);
+      },
+      enabled: enabled && actor.role === "super_admin" && query !== null,
+    }),
+  messageHistoryDetail: (id: string, actor: SenderIdentityActor, tenantId?: string, enabled = true) =>
+    queryOptions({
+      queryKey: ["messageHistoryDetail", actor.role, actor.tenantId, tenantId, id],
+      queryFn: () => api.getMessageHistory(id, actor, tenantId),
+      enabled: enabled && !!id,
+    }),
   message: (id: string, actor: SenderIdentityActor, tenantId?: string) => queryOptions({ queryKey: ["message", actor.role, actor.tenantId, tenantId, id], queryFn: () => api.getMessage(id, actor, tenantId) }),
   templates: (p: TemplateListQuery, actor: SenderIdentityActor) =>
     queryOptions({
@@ -45,7 +80,39 @@ export const queries = {
       placeholderData: keepPreviousData,
     }),
   applications: (actor: SenderIdentityActor, tenantId?: string) => queryOptions({ queryKey: ["applications", actor.role, actor.tenantId, tenantId], queryFn: () => api.listApplications(actor, tenantId) }),
-  applicationsPage: (actor: SenderIdentityActor, query: ApplicationListQuery) => queryOptions({ queryKey: ["applicationsPage", actor.role, actor.tenantId, query], queryFn: () => api.listApplicationsPage(actor, query), placeholderData: keepPreviousData }),
+  applicationsPage: (
+    actor: SenderIdentityActor,
+    query: ApplicationListQuery,
+    tenantId?: string,
+    enabled = true,
+    isLive = false,
+  ) =>
+    queryOptions(applicationReadQueryOptions(
+      applicationPageQueryKey(actor, query, tenantId),
+      () => api.listApplicationsPage(actor, query, actor.role === "super_admin" ? tenantId : undefined),
+      enabled && (!isLive || actor.role !== "super_admin" || !!tenantId),
+    )),
+  allTenantApplicationsPage: (
+    actor: SenderIdentityActor,
+    query: ApplicationListQuery,
+    enabled = true,
+  ) =>
+    queryOptions(applicationReadQueryOptions(
+      allTenantApplicationPageQueryKey(actor, query),
+      () => {
+        if (actor.role !== "super_admin") {
+          throw new Error("Platform applications require a platform administrator.");
+        }
+        return api.listAllTenantApplications(actor, query);
+      },
+      enabled && actor.role === "super_admin",
+    )),
+  application: (actor: SenderIdentityActor, id: string, tenantId?: string, enabled = true) =>
+    queryOptions(applicationReadQueryOptions(
+      applicationDetailQueryKey(actor, id, tenantId),
+      () => api.getApplication(actor, id, actor.role === "super_admin" ? tenantId : undefined),
+      enabled && !!id && (actor.role !== "super_admin" || !!tenantId),
+    )),
   credentials: (actor: SenderIdentityActor, query: ApiCredentialListQuery) => queryOptions({ queryKey: ["credentials", actor.role, actor.tenantId, query], queryFn: () => api.listCredentials(actor, query), placeholderData: keepPreviousData }),
   audit: (p: ListParams, actor: SenderIdentityActor) =>
     queryOptions({
