@@ -1,10 +1,86 @@
-import type { DolfConnectApi } from "../client";
-import type { ApiCredential, Application, ApplicationListQuery, ApiCredentialListQuery, AuditEvent, BulkJob, BulkSuppressionCandidate, Channel, DashboardQuotaWarning, DashboardRecentMessage, DashboardRecentMessages, EntitlementBlocker, EntitlementValueSource, ListParams, Message, MessageStatus, Paginated, Plan, PlanFeatureKey, PlanListQuery, PortalUser, Provider, ProviderAdapterConfigInput, ProviderUsageBilling, QuotaPolicy, ResolvedTenantChannel, RoutingRule, SenderIdentity, SenderIdentityActor, SenderIdentityInput, SenderIdentityListQuery, SenderIdentityOperationalStatus, SenderIdentityVerificationStatus, SubscriptionRecordStatus, Template, Tenant, TenantDetail, TenantDirectoryItem, TenantEffectiveEntitlements, TenantEntitlementOverrides, TenantProfileUpdateInput, TenantStatus, TenantSubscriptionView, TenantUpsertInput, TenantUsageTableQuery, UsageSummary, UserSortField, Webhook, WebhookDelivery } from "../types";
-import { slicePlanPage } from "../plans-catalog";
-import { adapterHasConfiguredSecret, adapterHasRequiredValues, createPublicAdapterConfig, mergeAdapterSecrets } from "../provider-catalog";
-import { BULK_JOBS, CHANNELS, CONFIG, PLANS, PLATFORM_CLIENTS, PROVIDER_USAGE_BILLING, ROUTING, SENDER_IDENTITIES, SETTINGS, USERS, WEBHOOKS } from "./mock-data-ext";
-import { APPLICATIONS, AUDIT, BASE_TIME, CREDENTIALS, MESSAGES, PROVIDERS, TEMPLATES, TENANTS, TREND } from "./mock-data";
-
+import type { DolfConnectApi } from "../client.ts";
+import type {
+  ApiCredential,
+  Application,
+  ApplicationListQuery,
+  ApiCredentialListQuery,
+  AuditEvent,
+  BulkJob,
+  BulkSuppressionCandidate,
+  Channel,
+  DashboardQuotaWarning,
+  DashboardRecentMessage,
+  DashboardRecentMessages,
+  EntitlementBlocker,
+  EntitlementValueSource,
+  ListParams,
+  Message,
+  MessageStatus,
+  Paginated,
+  Plan,
+  PlanFeatureKey,
+  PlanListQuery,
+  PortalUser,
+  Provider,
+  ProviderAdapterConfigInput,
+  ProviderUsageBilling,
+  QuotaPolicy,
+  ResolvedTenantChannel,
+  RoutingRule,
+  SenderIdentity,
+  SenderIdentityActor,
+  SenderIdentityInput,
+  SenderIdentityListQuery,
+  SenderIdentityOperationalStatus,
+  SenderIdentityVerificationStatus,
+  SubscriptionRecordStatus,
+  Template,
+  Tenant,
+  TenantDetail,
+  TenantDirectoryItem,
+  TenantEffectiveEntitlements,
+  TenantEntitlementOverrides,
+  TenantProfileUpdateInput,
+  TenantStatus,
+  TenantSubscriptionView,
+  TenantUpsertInput,
+  TenantUsageTableQuery,
+  UsageSummary,
+  UserSortField,
+  Webhook,
+  WebhookDelivery,
+} from "../types.ts";
+import { slicePlanPage } from "../plans-catalog.ts";
+import {
+  adapterHasConfiguredSecret,
+  adapterHasRequiredValues,
+  createPublicAdapterConfig,
+  mergeAdapterSecrets,
+} from "../provider-catalog.ts";
+import {
+  BULK_JOBS,
+  CHANNELS,
+  CONFIG,
+  PLANS,
+  PLATFORM_CLIENTS,
+  PROVIDER_USAGE_BILLING,
+  ROUTING,
+  SENDER_IDENTITIES,
+  SETTINGS,
+  USERS,
+  WEBHOOKS,
+} from "./mock-data-ext.ts";
+import {
+  APPLICATIONS,
+  AUDIT,
+  BASE_TIME,
+  CREDENTIALS,
+  MESSAGES,
+  PROVIDERS,
+  TEMPLATES,
+  TENANTS,
+  TREND,
+} from "./mock-data.ts";
 const delay = (ms = 220) => new Promise((r) => setTimeout(r, ms));
 
 function paginate<T>(rows: T[], p: ListParams): Paginated<T> {
@@ -794,6 +870,21 @@ export function createMockApi(): DolfConnectApi {
     },
     async assignTenantPlan(): Promise<never> {
       throw new Error("Plan assignment is only available in live mode.");
+    },
+    async getTenantSubscriptionHistory(): Promise<never> {
+      throw new Error("Subscription history is only available in live mode.");
+    },
+    async updateTenantSubscriptionOverrides(): Promise<never> {
+      throw new Error("Subscription management is only available in live mode.");
+    },
+    async setTenantSubscriptionChannelOverride(): Promise<never> {
+      throw new Error("Subscription management is only available in live mode.");
+    },
+    async clearTenantSubscriptionChannelOverride(): Promise<never> {
+      throw new Error("Subscription management is only available in live mode.");
+    },
+    async cancelTenantSubscription(): Promise<never> {
+      throw new Error("Subscription management is only available in live mode.");
     },
     async createTenant(input) {
       await delay(700);

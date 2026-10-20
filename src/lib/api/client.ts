@@ -2,6 +2,7 @@ import type {
   BulkJob,
   BulkJobListQuery,
   BulkSuppressionCandidate,
+  Channel,
   ChannelConfig,
   ConfigParam,
   CreateBulkJobInput,
@@ -26,6 +27,10 @@ import type {
   ListParams,
   SenderIdentityListQuery,
   TenantListQuery,
+  TenantSubscriptionChannelOverrideInput,
+  TenantSubscriptionHistoryPage,
+  TenantSubscriptionHistoryQuery,
+  TenantSubscriptionOverridesInput,
   TenantCatalogItem,
   TenantCreateResponse,
   TenantDetail,
@@ -101,7 +106,28 @@ export interface DolfConnectApi {
   listTenants(params: TenantListQuery): Promise<Paginated<TenantCatalogItem>>;
   getTenant(tenantId: string): Promise<TenantDetail>;
   getTenantSubscription(tenantId: string): Promise<TenantSubscriptionView>;
-  assignTenantPlan(tenantId: string, input: TenantPlanAssignmentInput): Promise<TenantPlanAssignmentResult>;
+  getTenantSubscriptionHistory(
+    tenantId: string,
+    query: TenantSubscriptionHistoryQuery,
+  ): Promise<TenantSubscriptionHistoryPage>;
+  assignTenantPlan(
+    tenantId: string,
+    input: TenantPlanAssignmentInput,
+  ): Promise<TenantPlanAssignmentResult>;
+  updateTenantSubscriptionOverrides(
+    tenantId: string,
+    input: TenantSubscriptionOverridesInput,
+  ): Promise<TenantSubscriptionView>;
+  setTenantSubscriptionChannelOverride(
+    tenantId: string,
+    channel: Channel,
+    input: TenantSubscriptionChannelOverrideInput,
+  ): Promise<TenantSubscriptionView>;
+  clearTenantSubscriptionChannelOverride(
+    tenantId: string,
+    channel: Channel,
+  ): Promise<TenantSubscriptionView>;
+  cancelTenantSubscription(tenantId: string): Promise<TenantSubscriptionView>;
   createTenant(input: TenantUpsertInput): Promise<TenantDirectoryItem | TenantCreateResponse>;
   updateTenantProfile(id: string, input: TenantProfileUpdateInput): Promise<TenantDetail>;
   updateTenant(id: string, input: TenantUpsertInput): Promise<TenantDirectoryItem>;

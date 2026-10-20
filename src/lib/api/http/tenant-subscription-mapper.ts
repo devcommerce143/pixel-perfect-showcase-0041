@@ -9,6 +9,10 @@ import type {
   SubscriptionRecordStatus,
   TenantPlanAssignmentInput,
   TenantPlanAssignmentResult,
+  TenantSubscriptionChannelOverrideInput,
+  TenantSubscriptionHistoryPage,
+  TenantSubscriptionHistoryQuery,
+  TenantSubscriptionOverridesInput,
   TenantStatus,
   TenantSubscriptionRecord,
   TenantSubscriptionView,
@@ -33,6 +37,10 @@ const SUBSCRIPTION_STATUSES = {
   TRIAL: "trial",
   ACTIVE: "active",
   PENDING: "pending",
+} as const satisfies Record<string, SubscriptionRecordStatus>;
+const HISTORY_SUBSCRIPTION_STATUSES = {
+  ...SUBSCRIPTION_STATUSES,
+  CANCELLED: "cancelled",
 } as const satisfies Record<string, SubscriptionRecordStatus>;
 
 const QUOTA_POLICIES = {
@@ -71,6 +79,38 @@ export function tenantSubscriptionPath(tenantId: string): string {
   return `/tenants/${encodeURIComponent(tenantId)}/subscription`;
 }
 
+export function tenantSubscriptionHistoryPath(
+  tenantId: string,
+  query: TenantSubscriptionHistoryQuery,
+): string {
+  requireTenantId(tenantId);
+  if (!Number.isSafeInteger(query.page) || query.page < 1) {
+    throw new TenantSubscriptionRequestError("History page must be a positive integer.");
+  }
+  if (!Number.isSafeInteger(query.pageSize) || query.pageSize < 1 || query.pageSize > 100) {
+    throw new TenantSubscriptionRequestError("History page size must be between 1 and 100.");
+  }
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  });
+  return `${tenantSubscriptionPath(tenantId)}/history?${params}`;
+}
+
+export function tenantSubscriptionOverridesPath(tenantId: string): string {
+  requireTenantId(tenantId);
+  return `${tenantSubscriptionPath(tenantId)}/overrides`;
+}
+
+export function tenantSubscriptionChannelPath(tenantId: string, channel: Channel): string {
+  requireTenantId(tenantId);
+  return `${tenantSubscriptionPath(tenantId)}/channels/${channel.toUpperCase()}`;
+}
+
+export function tenantSubscriptionCancelPath(tenantId: string): string {
+  requireTenantId(tenantId);
+  return `${tenantSubscriptionPath(tenantId)}/cancel`;
+}
 export class TenantPlanAssignmentRequestError extends Error {
   constructor(message: string) {
     super(message);
@@ -78,6 +118,18 @@ export class TenantPlanAssignmentRequestError extends Error {
   }
 }
 
+export class TenantSubscriptionRequestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TenantSubscriptionRequestError";
+  }
+}
+
+function requireTenantId(tenantId: string): void {
+  if (!isTenantUuid(tenantId)) {
+    throw new TenantSubscriptionRequestError("Tenant ID must be a UUID.");
+  }
+}
 export function tenantPlanAssignmentPath(tenantId: string): string {
   if (!isTenantUuid(tenantId)) {
     throw new TenantPlanAssignmentRequestError("Tenant ID must be a UUID.");
@@ -100,10 +152,89 @@ export function toTenantPlanAssignmentRequest(
   };
 }
 
+export function toTenantSubscriptionOverridesRequest(input: TenantSubscriptionOverridesInput): {
+  tpsLimitOverride?: number | null;
+  quotaPolicyOverride?: "HARD_STOP" | "SOFT_CAP" | null;
+} {
+  if (input.tpsLimitOverride === undefined && input.quotaPolicyOverride === undefined) {
+    throw new TenantSubscriptionRequestError("At least one subscription override is required.");
+  }
+  if (
+    input.tpsLimitOverride !== undefined &&
+    input.tpsLimitOverride !== null &&
+    (!Number.isSafeInteger(input.tpsLimitOverride) || input.tpsLimitOverride < 1)
+  ) {
+    throw new TenantSubscriptionRequestError("TPS override must be a positive integer or null.");
+  }
+  if (
+    input.quotaPolicyOverride !== undefined &&
+    input.quotaPolicyOverride !== null &&
+    input.quotaPolicyOverride !== "hard_stop" &&
+    input.quotaPolicyOverride !== "soft_cap"
+  ) {
+    throw new TenantSubscriptionRequestError("Quota policy override is unsupported.");
+  }
+  return {
+    ...(input.tpsLimitOverride !== undefined ? { tpsLimitOverride: input.tpsLimitOverride } : {}),
+    ...(input.quotaPolicyOverride !== undefined
+      ? {
+          quotaPolicyOverride:
+            input.quotaPolicyOverride === null
+              ? null
+              : (input.quotaPolicyOverride.toUpperCase() as "HARD_STOP" | "SOFT_CAP"),
+        }
+      : {}),
+  };
+}
+
+export function toTenantSubscriptionChannelOverrideRequest(
+  input: TenantSubscriptionChannelOverrideInput,
+): TenantSubscriptionChannelOverrideInput {
+  if (
+    input.enabledOverride === undefined &&
+    input.monthlyQuotaOverride === undefined &&
+    input.tpsOverride === undefined
+  ) {
+    throw new TenantSubscriptionRequestError("At least one channel override is required.");
+  }
+  if (
+    input.monthlyQuotaOverride !== undefined &&
+    input.monthlyQuotaOverride !== null &&
+    (!Number.isSafeInteger(input.monthlyQuotaOverride) || input.monthlyQuotaOverride < 0)
+  ) {
+    throw new TenantSubscriptionRequestError(
+      "Monthly quota override must be a non-negative integer or null.",
+    );
+  }
+  if (
+    input.tpsOverride !== undefined &&
+    input.tpsOverride !== null &&
+    (!Number.isSafeInteger(input.tpsOverride) || input.tpsOverride < 1)
+  ) {
+    throw new TenantSubscriptionRequestError(
+      "Channel TPS override must be a positive integer or null.",
+    );
+  }
+  if (
+    input.enabledOverride !== undefined &&
+    input.enabledOverride !== null &&
+    typeof input.enabledOverride !== "boolean"
+  ) {
+    throw new TenantSubscriptionRequestError("Channel enabled override must be boolean or null.");
+  }
+  return { ...input };
+}
+
 export function tenantSubscriptionQueryKey(tenantId: string) {
   return ["tenants", "subscription", tenantId] as const;
 }
 
+export function tenantSubscriptionHistoryQueryKey(
+  tenantId: string,
+  query: TenantSubscriptionHistoryQuery,
+) {
+  return ["tenants", "subscription-history", tenantId, query.page, query.pageSize] as const;
+}
 export function mapTenantPlanAssignmentResponse(
   body: unknown,
   tenantId: string,
@@ -145,6 +276,38 @@ export function mapTenantSubscriptionView(body: unknown, expectedTenantId?: stri
   return { subscription, effective };
 }
 
+export function mapTenantSubscriptionHistoryPage(
+  body: unknown,
+  expectedTenantId: string,
+): TenantSubscriptionHistoryPage {
+  if (!isRecord(body))
+    throw new TenantSubscriptionResponseError("Subscription history response must be an object.");
+  const page = positiveInteger(body["page"], "history.page");
+  const pageSize = positiveInteger(body["pageSize"], "history.pageSize");
+  if (pageSize > 100)
+    throw new TenantSubscriptionResponseError("history.pageSize cannot exceed 100.");
+  const total = nonNegativeInteger(body["total"], "history.total");
+  if (!Array.isArray(body["items"]))
+    throw new TenantSubscriptionResponseError("history.items must be an array.");
+  const items = body["items"].map((item, index) => readHistorySubscription(item, index));
+  if (items.some((item) => item.tenantId !== expectedTenantId)) {
+    throw new TenantSubscriptionResponseError(
+      "Subscription history contains a record for a different tenant.",
+    );
+  }
+  return { items, page, pageSize, total };
+}
+
+function readHistorySubscription(value: unknown, index: number): TenantSubscriptionRecord {
+  if (!isRecord(value))
+    throw new TenantSubscriptionResponseError(`history.items[${index}] must be an object.`);
+  const statusText = text(value["status"], `history.items[${index}].status`);
+  const status =
+    HISTORY_SUBSCRIPTION_STATUSES[statusText as keyof typeof HISTORY_SUBSCRIPTION_STATUSES];
+  if (!status)
+    throw new TenantSubscriptionResponseError(`history.items[${index}].status is unknown.`);
+  return readSubscriptionRecord(value, status);
+}
 function validateMissingSubscriptionEntitlements(effective: ResolvedTenantEntitlements): void {
   const channelsUnavailable = effective.channels.every((channel) =>
     !channel.enabled &&
@@ -170,31 +333,59 @@ function validateMissingSubscriptionEntitlements(effective: ResolvedTenantEntitl
 }
 
 function readSubscription(value: unknown): TenantSubscriptionRecord {
-  if (!isRecord(value)) throw new TenantSubscriptionResponseError("Subscription must be an object or null.");
+  if (!isRecord(value))
+    throw new TenantSubscriptionResponseError("Subscription must be an object or null.");
   const statusText = text(value["status"], "subscription.status");
   const status = SUBSCRIPTION_STATUSES[statusText as keyof typeof SUBSCRIPTION_STATUSES];
   if (!status) throw new TenantSubscriptionResponseError("Subscription has an unknown status.");
+  return readSubscriptionRecord(value, status);
+}
+
+function readSubscriptionRecord(
+  value: Record<string, unknown>,
+  status: SubscriptionRecordStatus,
+): TenantSubscriptionRecord {
   const plan = mapPlanResponse(value["plan"]);
   const id = uuid(value["id"], "subscription.id");
   const tenantId = uuid(value["tenantId"], "subscription.tenantId");
   const planId = uuid(value["planId"], "subscription.planId");
-  if (plan.id !== planId) throw new TenantSubscriptionResponseError("Subscription plan ID does not match its plan.");
+  if (plan.id !== planId)
+    throw new TenantSubscriptionResponseError("Subscription plan ID does not match its plan.");
   const rawOverrides = value["channelOverrides"];
-  if (!Array.isArray(rawOverrides)) throw new TenantSubscriptionResponseError("Subscription channel overrides must be an array.");
+  if (!Array.isArray(rawOverrides))
+    throw new TenantSubscriptionResponseError("Subscription channel overrides must be an array.");
   const seen = new Set<Channel>();
   const channelOverrides = rawOverrides.map((item, index) => {
-    if (!isRecord(item)) throw new TenantSubscriptionResponseError(`Subscription channel override ${index} must be an object.`);
+    if (!isRecord(item))
+      throw new TenantSubscriptionResponseError(
+        `Subscription channel override ${index} must be an object.`,
+      );
     const channel = readChannel(item["channel"], `subscription.channelOverrides[${index}].channel`);
-    if (seen.has(channel)) throw new TenantSubscriptionResponseError(`Subscription repeats the ${channel} override.`);
+    if (seen.has(channel))
+      throw new TenantSubscriptionResponseError(`Subscription repeats the ${channel} override.`);
     seen.add(channel);
     return {
       channel,
-      enabledOverride: nullableBoolean(item["enabledOverride"], `subscription.channelOverrides[${index}].enabledOverride`),
-      monthlyQuotaOverride: nullableInteger(item["monthlyQuotaOverride"], `subscription.channelOverrides[${index}].monthlyQuotaOverride`, 0),
-      tpsOverride: nullableInteger(item["tpsOverride"], `subscription.channelOverrides[${index}].tpsOverride`, 1),
+      enabledOverride: nullableBoolean(
+        item["enabledOverride"],
+        `subscription.channelOverrides[${index}].enabledOverride`,
+      ),
+      monthlyQuotaOverride: nullableInteger(
+        item["monthlyQuotaOverride"],
+        `subscription.channelOverrides[${index}].monthlyQuotaOverride`,
+        0,
+      ),
+      tpsOverride: nullableInteger(
+        item["tpsOverride"],
+        `subscription.channelOverrides[${index}].tpsOverride`,
+        1,
+      ),
     };
   });
-  const quotaPolicy = nullableQuotaPolicy(value["quotaPolicyOverride"], "subscription.quotaPolicyOverride");
+  const quotaPolicy = nullableQuotaPolicy(
+    value["quotaPolicyOverride"],
+    "subscription.quotaPolicyOverride",
+  );
   return {
     id,
     tenantId,
@@ -202,7 +393,11 @@ function readSubscription(value: unknown): TenantSubscriptionRecord {
     status,
     startsAt: timestamp(value["startsAt"], "subscription.startsAt"),
     endsAt: value["endsAt"] === null ? null : timestamp(value["endsAt"], "subscription.endsAt"),
-    tpsLimitOverride: nullableInteger(value["tpsLimitOverride"], "subscription.tpsLimitOverride", 1),
+    tpsLimitOverride: nullableInteger(
+      value["tpsLimitOverride"],
+      "subscription.tpsLimitOverride",
+      1,
+    ),
     quotaPolicyOverride: quotaPolicy,
     channelOverrides,
     plan,
@@ -210,7 +405,6 @@ function readSubscription(value: unknown): TenantSubscriptionRecord {
     updatedAt: timestamp(value["updatedAt"], "subscription.updatedAt"),
   };
 }
-
 function readEffective(value: unknown): ResolvedTenantEntitlements {
   if (!isRecord(value)) throw new TenantSubscriptionResponseError("Effective entitlements must be an object.");
   const features = array(value["features"], "effective.features").map((feature, index) => {
@@ -350,4 +544,18 @@ function array(value: unknown, field: string): unknown[] {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function positiveInteger(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1) {
+    throw new TenantSubscriptionResponseError(`${field} must be a positive integer.`);
+  }
+  return value;
+}
+
+function nonNegativeInteger(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw new TenantSubscriptionResponseError(`${field} must be a non-negative integer.`);
+  }
+  return value;
 }

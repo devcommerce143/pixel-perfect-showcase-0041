@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import { DataTable, ListPagination, SortableHeader, TableToolbar, type Column } from "@/components/app/DataTable";
@@ -21,19 +21,52 @@ import { api } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/http/errors";
 import { tenantCreateErrorMessage } from "@/lib/api/tenant-create-error";
 import { tenantPlanAssignmentErrorMessage } from "@/lib/api/tenant-plan-assignment-error";
+import {
+  canManageTenantSubscription,
+  canStartTenantSubscriptionMutation,
+  channelCanBeEnabled,
+  isNonNegativeIntegerInput,
+  isPositiveIntegerInput,
+  tenantSubscriptionMutationErrorMessage,
+  tenantSubscriptionRefreshQueryFilters,
+} from "@/lib/api/tenant-subscription-management";
+import type { TenantSubscriptionMutationErrorMessage } from "@/lib/api/tenant-subscription-management";
 import { tenantProfileErrorMessage } from "@/lib/api/tenant-profile-error";
 import { tenantStatusErrorMessage } from "@/lib/api/tenant-status-error";
 import { eligibleTenantAssignmentPlans } from "@/lib/api/tenant-assignment-plans";
 import { filterTenantDirectory, paginateTenantDirectory } from "@/lib/api/tenant-directory-filter";
 import { QuotaBar } from "@/features/usage/QuotaMeter";
 import { queries } from "@/lib/api/queries";
-import type { Channel, EntitlementBlocker, EntitlementValueSource, Plan, PlanFeatureKey, QuotaPolicy, Tenant, TenantCatalogItem, TenantDetail, TenantDirectoryItem, TenantEntitlementOverrides, TenantPlanAssignmentStatus, TenantProfileUpdateInput, TenantSortField, TenantStatus, TenantSubscriptionView, TenantUpsertInput } from "@/lib/api/types";
+import type {
+  Channel,
+  EntitlementBlocker,
+  EntitlementValueSource,
+  Plan,
+  PlanFeatureKey,
+  QuotaPolicy,
+  Tenant,
+  TenantCatalogItem,
+  TenantDetail,
+  TenantDirectoryItem,
+  TenantEntitlementOverrides,
+  TenantPlanAssignmentStatus,
+  TenantProfileUpdateInput,
+  TenantSortField,
+  TenantStatus,
+  TenantSubscriptionChannelOverrideInput,
+  TenantSubscriptionHistoryPage,
+  TenantSubscriptionOverridesInput,
+  TenantSubscriptionView,
+  TenantUpsertInput,
+} from "@/lib/api/types";
+
 import { useSession } from "@/lib/auth/session";
 import { formatNumber, formatPercent } from "@/lib/format";
 import { useI18n, type MessageKey } from "@/lib/i18n/i18n";
 import { pageHead } from "@/lib/seo";
 
 const CHANNELS: Channel[] = ["sms", "whatsapp", "email"];
+const SUBSCRIPTION_HISTORY_PAGE_SIZE = 20;
 const FEATURE_LABEL_KEYS = {
   api_access: "plans.apiAccess",
   bulk_messaging: "plans.bulkMessaging",
@@ -58,88 +91,700 @@ const SOURCE_LABEL_KEYS = {
   unavailable: "ten.sourceUnavailable",
 } satisfies Record<EntitlementValueSource, MessageKey>;
 
+interface TenantSubscriptionPanelProps {
+  data: TenantSubscriptionView | undefined;
+  isPending: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  canManage: boolean;
+  history: TenantSubscriptionHistoryPage | undefined;
+  historyPage: number;
+  historyPageSize: number;
+  historyIsPending: boolean;
+  historyIsFetching: boolean;
+  historyIsError: boolean;
+  onHistoryPage: (page: number) => void;
+  onRetryHistory: () => void;
+  mutationPending: boolean;
+  mutationError: string | null;
+  onUpdateOverrides: (input: TenantSubscriptionOverridesInput) => void;
+  onSetChannelOverride: (channel: Channel, input: TenantSubscriptionChannelOverrideInput) => void;
+  onClearChannelOverride: (channel: Channel) => void;
+  onCancel: () => void;
+}
+
+interface ChannelOverrideForm {
+  enabled: "inherit" | "true" | "false";
+  monthlyQuota: string;
+  tps: string;
+}
+
+function emptyChannelOverrideForm(): Record<Channel, ChannelOverrideForm> {
+  return {
+    sms: { enabled: "inherit", monthlyQuota: "", tps: "" },
+    whatsapp: { enabled: "inherit", monthlyQuota: "", tps: "" },
+    email: { enabled: "inherit", monthlyQuota: "", tps: "" },
+  };
+}
+
 function TenantSubscriptionPanel({
   data,
   isPending,
   isError,
   onRetry,
-}: {
-  data: TenantSubscriptionView | undefined;
-  isPending: boolean;
-  isError: boolean;
-  onRetry: () => void;
-}) {
+  canManage,
+  history,
+  historyPage,
+  historyPageSize,
+  historyIsPending,
+  historyIsFetching,
+  historyIsError,
+  onHistoryPage,
+  onRetryHistory,
+  mutationPending,
+  mutationError,
+  onUpdateOverrides,
+  onSetChannelOverride,
+  onClearChannelOverride,
+  onCancel,
+}: TenantSubscriptionPanelProps) {
   const { t, locale } = useI18n();
-  if (isPending) {
-    return <p role="status" className="border-t px-4 pt-4 text-sm text-muted-foreground">{t("ten.subscriptionLoading")}</p>;
-  }
-  if (isError) {
-    return <div className="border-t pt-4"><ErrorState onRetry={onRetry} /></div>;
-  }
-  if (!data) return null;
+  const [tpsValue, setTpsValue] = useState("");
+  const [quotaPolicyValue, setQuotaPolicyValue] = useState<QuotaPolicy | "inherit">("inherit");
+  const [channelForms, setChannelForms] = useState(emptyChannelOverrideForm);
+  const [overridesAttempted, setOverridesAttempted] = useState(false);
+  const [channelAttempted, setChannelAttempted] = useState<Channel[]>([]);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [removeChannel, setRemoveChannel] = useState<Channel | null>(null);
+  const subscription = data?.subscription ?? null;
+  const effective = data?.effective;
 
-  const subscription = data.subscription;
-  const effective = data.effective;
+  useEffect(() => {
+    setTpsValue(
+      subscription?.tpsLimitOverride === null || !subscription
+        ? ""
+        : String(subscription.tpsLimitOverride),
+    );
+    setQuotaPolicyValue(subscription?.quotaPolicyOverride ?? "inherit");
+    const next = emptyChannelOverrideForm();
+    for (const channel of CHANNELS) {
+      const override = subscription?.channelOverrides.find((item) => item.channel === channel);
+      next[channel] = {
+        enabled:
+          override?.enabledOverride === null || override?.enabledOverride === undefined
+            ? "inherit"
+            : (String(override.enabledOverride) as "true" | "false"),
+        monthlyQuota:
+          override?.monthlyQuotaOverride == null ? "" : String(override.monthlyQuotaOverride),
+        tps: override?.tpsOverride == null ? "" : String(override.tpsOverride),
+      };
+    }
+    setChannelForms(next);
+    setOverridesAttempted(false);
+    setChannelAttempted([]);
+    setCancelDialogOpen(false);
+    setRemoveChannel(null);
+  }, [subscription]);
+
   const displayNumber = (value: number | null) =>
     value === null ? t("ten.unavailable") : formatNumber(value, locale);
+  const explicitTps = tpsValue === "" ? null : Number(tpsValue);
+  const tpsValid = tpsValue === "" || isPositiveIntegerInput(tpsValue);
+  const overridesChanged =
+    !!subscription &&
+    ((tpsValid && explicitTps !== subscription.tpsLimitOverride) ||
+      (quotaPolicyValue === "inherit" ? null : quotaPolicyValue) !==
+        subscription.quotaPolicyOverride);
+
+  const submitSubscriptionOverrides = () => {
+    setOverridesAttempted(true);
+    if (!subscription || !canManage || mutationPending || !tpsValid) return;
+    const input: TenantSubscriptionOverridesInput = {};
+    if (explicitTps !== subscription.tpsLimitOverride) input.tpsLimitOverride = explicitTps;
+    const nextPolicy = quotaPolicyValue === "inherit" ? null : quotaPolicyValue;
+    if (nextPolicy !== subscription.quotaPolicyOverride) input.quotaPolicyOverride = nextPolicy;
+    if (Object.keys(input).length > 0) onUpdateOverrides(input);
+  };
+
+  const channelState = (channel: Channel) => {
+    const form = channelForms[channel];
+    const override = subscription?.channelOverrides.find((item) => item.channel === channel);
+    const enabledOverride = form.enabled === "inherit" ? null : form.enabled === "true";
+    const monthlyQuotaOverride = form.monthlyQuota === "" ? null : Number(form.monthlyQuota);
+    const tpsOverride = form.tps === "" ? null : Number(form.tps);
+    const planEnablesChannel =
+      subscription?.plan.entitlements.find((item) => item.channel === channel)?.enabled ?? false;
+    const valid =
+      (form.monthlyQuota === "" || isNonNegativeIntegerInput(form.monthlyQuota)) &&
+      (form.tps === "" || isPositiveIntegerInput(form.tps)) &&
+      channelCanBeEnabled(planEnablesChannel, enabledOverride);
+    const input: TenantSubscriptionChannelOverrideInput = {};
+    if (enabledOverride !== (override?.enabledOverride ?? null))
+      input.enabledOverride = enabledOverride;
+    if (monthlyQuotaOverride !== (override?.monthlyQuotaOverride ?? null))
+      input.monthlyQuotaOverride = monthlyQuotaOverride;
+    if (tpsOverride !== (override?.tpsOverride ?? null)) input.tpsOverride = tpsOverride;
+    return {
+      form,
+      override,
+      planEnablesChannel,
+      valid,
+      changed: Object.keys(input).length > 0,
+      input,
+    };
+  };
+
+  const updateChannelForm = (channel: Channel, key: keyof ChannelOverrideForm, value: string) => {
+    setChannelForms((current) => ({
+      ...current,
+      [channel]: { ...current[channel], [key]: value },
+    }));
+  };
+
+  const submitChannelOverride = (channel: Channel) => {
+    setChannelAttempted((current) => (current.includes(channel) ? current : [...current, channel]));
+    const state = channelState(channel);
+    if (!subscription || !canManage || mutationPending || !state.valid || !state.changed) return;
+    onSetChannelOverride(channel, state.input);
+  };
+
+  const historyPages = history ? Math.max(1, Math.ceil(history.total / historyPageSize)) : 1;
 
   return (
     <section className="space-y-4 border-t pt-4">
       <h3 className="text-sm font-semibold">{t("ten.subscription")}</h3>
-      {subscription ? <>
-        <dl className="grid grid-cols-2 gap-3 text-sm">
-          <div><dt className="text-label">{t("ten.plan")}</dt><dd>{subscription.plan.name} <span className="text-xs text-muted-foreground">({t(`status.${subscription.plan.status}`)})</span></dd></div>
-          <div><dt className="text-label">{t("ten.code")}</dt><dd className="font-mono text-xs">{subscription.plan.code}</dd></div>
-          <div><dt className="text-label">{t("ten.subscriptionStatus")}</dt><dd><StatusBadge status={subscription.status} /></dd></div>
-          <div><dt className="text-label">{t("ten.subscriptionStartsAt")}</dt><dd>{new Date(subscription.startsAt).toLocaleString(locale)}</dd></div>
-          {subscription.endsAt && <div><dt className="text-label">{t("ten.subscriptionEndsAt")}</dt><dd>{new Date(subscription.endsAt).toLocaleString(locale)}</dd></div>}
-        </dl>
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">{t("ten.overrides")}</h4>
-          {subscription.tpsLimitOverride !== null || subscription.quotaPolicyOverride !== null || subscription.channelOverrides.length > 0
-            ? <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                {subscription.tpsLimitOverride !== null && <div><dt className="text-label">{t("ten.tps")}</dt><dd>{formatNumber(subscription.tpsLimitOverride, locale)}</dd></div>}
-                {subscription.quotaPolicyOverride !== null && <div><dt className="text-label">{t("plans.quotaPolicy")}</dt><dd>{t(`usage.policy.${subscription.quotaPolicyOverride}`)}</dd></div>}
-                {subscription.channelOverrides.map((override) => <div key={override.channel}>
-                  <dt className="text-label">{t(`channel.${override.channel}`)}</dt>
-                  <dd>{[
-                    override.enabledOverride !== null ? `${t("ten.channelEnabled")}: ${t(override.enabledOverride ? "plans.enabled" : "plans.notEnabled")}` : null,
-                    override.monthlyQuotaOverride !== null ? `${t("ten.monthly")}: ${formatNumber(override.monthlyQuotaOverride, locale)}` : null,
-                    override.tpsOverride !== null ? `${t("ten.tps")}: ${formatNumber(override.tpsOverride, locale)}` : null,
-                  ].filter(Boolean).join(" | ")}</dd>
-                </div>)}
-              </dl>
-            : <p className="text-sm text-muted-foreground">{t("ten.noOverrides")}</p>}
+      {isPending && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {t("ten.subscriptionLoading")}
+        </p>
+      )}
+      {isError && (
+        <div className="flex items-center gap-2 text-sm text-danger">
+          <span>{t("ten.subscriptionLoadError")}</span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={mutationPending}
+            onClick={onRetry}
+          >
+            {t("common.retry")}
+          </Button>
         </div>
-      </> : <p role="status" className="text-sm text-muted-foreground">{t("ten.noCurrentSubscription")}</p>}
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium">{t("ten.effectiveEntitlements")}</h4>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <span>{t("ten.configured")}: {t(effective.configured ? "plans.enabled" : "plans.notEnabled")}</span>
-          <span>{t("ten.operational")}: {t(effective.operational ? "plans.enabled" : "plans.notEnabled")}</span>
-          {effective.quotaPolicy !== null &&           <span>{t("plans.quotaPolicy")}: {t(`usage.policy.${effective.quotaPolicy}`)} {effective.quotaPolicySource && <span className="text-muted-foreground">({t(SOURCE_LABEL_KEYS[effective.quotaPolicySource])})</span>}</span>}
-          {effective.tpsLimit !== null && <span>{t("ten.tps")}: {formatNumber(effective.tpsLimit, locale)} {effective.tpsSource && <span className="text-muted-foreground">({t(SOURCE_LABEL_KEYS[effective.tpsSource])})</span>}</span>}
+      )}
+      {!isPending &&
+        !isError &&
+        data &&
+        (subscription ? (
+          <>
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-label">{t("ten.plan")}</dt>
+                <dd>
+                  {subscription.plan.name}{" "}
+                  <span className="text-xs text-muted-foreground">
+                    ({t(`status.${subscription.plan.status}`)})
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-label">{t("ten.code")}</dt>
+                <dd className="font-mono text-xs">{subscription.plan.code}</dd>
+              </div>
+              <div>
+                <dt className="text-label">{t("ten.subscriptionStatus")}</dt>
+                <dd>
+                  <StatusBadge status={subscription.status} />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-label">{t("ten.subscriptionStartsAt")}</dt>
+                <dd>{new Date(subscription.startsAt).toLocaleString(locale)}</dd>
+              </div>
+              {subscription.endsAt && (
+                <div>
+                  <dt className="text-label">{t("ten.subscriptionEndsAt")}</dt>
+                  <dd>{new Date(subscription.endsAt).toLocaleString(locale)}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">{t("ten.overrides")}</h4>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="subscription-tps-override">{t("ten.tps")}</Label>
+                  <Input
+                    id="subscription-tps-override"
+                    type="number"
+                    min={1}
+                    step={1}
+                    dir="ltr"
+                    value={tpsValue}
+                    disabled={!canManage || mutationPending}
+                    aria-invalid={overridesAttempted && !tpsValid}
+                    aria-describedby="subscription-tps-hint"
+                    onChange={(event) => setTpsValue(event.target.value)}
+                  />
+                  <p id="subscription-tps-hint" className="text-xs text-muted-foreground">
+                    {subscription.tpsLimitOverride === null
+                      ? t("ten.inheritedFromPlan", {
+                          value: displayNumber(subscription.plan.tpsLimit),
+                        })
+                      : `${t("ten.overrideValue")}: ${formatNumber(subscription.tpsLimitOverride, locale)}`}
+                  </p>
+                  {overridesAttempted && !tpsValid && (
+                    <p role="alert" className="text-xs text-danger">
+                      {t("ten.invalidTpsOverride")}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="subscription-quota-policy">{t("plans.quotaPolicy")}</Label>
+                  <Select
+                    value={quotaPolicyValue}
+                    onValueChange={(value) => setQuotaPolicyValue(value as QuotaPolicy | "inherit")}
+                    disabled={!canManage || mutationPending}
+                  >
+                    <SelectTrigger id="subscription-quota-policy">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inherit">
+                        {t("ten.inheritedFromPlan", {
+                          value: t(`usage.policy.${subscription.plan.quotaPolicy}`),
+                        })}
+                      </SelectItem>
+                      <SelectItem value="hard_stop">{t("usage.policy.hard_stop")}</SelectItem>
+                      <SelectItem value="soft_cap">{t("usage.policy.soft_cap")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {quotaPolicyValue === "inherit"
+                      ? t("ten.inheritedFromPlan", {
+                          value: t(`usage.policy.${subscription.plan.quotaPolicy}`),
+                        })
+                      : `${t("ten.overrideValue")}: ${t(`usage.policy.${quotaPolicyValue}`)}`}
+                  </p>
+                </div>
+              </div>
+              {canManage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={mutationPending || !overridesChanged || !tpsValid}
+                  onClick={submitSubscriptionOverrides}
+                >
+                  {t(mutationPending ? "common.saving" : "ten.saveSubscriptionOverrides")}
+                </Button>
+              )}
+            </div>
+            {canManage && (
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium">{t("ten.channelAvailability")}</h4>
+                {CHANNELS.map((channel) => {
+                  const state = channelState(channel);
+                  const channelId = `subscription-${channel}`;
+                  const effectiveChannel = effective?.channels.find(
+                    (item) => item.channel === channel,
+                  );
+                  const attempted = channelAttempted.includes(channel);
+                  return (
+                    <div key={channel} className="space-y-3 rounded-md border p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h5 className="text-sm font-medium">{t(`channel.${channel}`)}</h5>
+                        {state.override && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            disabled={mutationPending}
+                            onClick={() => setRemoveChannel(channel)}
+                          >
+                            {t("ten.removeChannelOverride")}
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {state.override &&
+                        (state.override.enabledOverride !== null ||
+                          state.override.monthlyQuotaOverride !== null ||
+                          state.override.tpsOverride !== null)
+                          ? `${t("ten.overrideValue")} · `
+                          : `${t("ten.inheritPlanValue")} · `}
+                        {t("ten.inheritedFromPlan", {
+                          value: state.planEnablesChannel
+                            ? `${t("plans.enabled")} · ${formatNumber(subscription.plan.entitlements.find((item) => item.channel === channel)?.monthly ?? 0, locale)} ${t("ten.monthly")}`
+                            : t("plans.notEnabled"),
+                        })}
+                        {effectiveChannel &&
+                          ` · ${t("ten.effective")}: ${effectiveChannel.enabled ? t("plans.enabled") : t("plans.notEnabled")}`}
+                      </p>
+                      {!state.planEnablesChannel && (
+                        <p className="text-xs text-muted-foreground">
+                          {t("ten.channelOverrideRestriction")}
+                        </p>
+                      )}
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="space-y-1.5">
+                          <Label htmlFor={`${channelId}-enabled`}>{t("ten.enabledOverride")}</Label>
+                          <Select
+                            value={state.form.enabled}
+                            onValueChange={(value) => updateChannelForm(channel, "enabled", value)}
+                            disabled={mutationPending}
+                          >
+                            <SelectTrigger id={`${channelId}-enabled`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="inherit">{t("ten.inheritPlanValue")}</SelectItem>
+                              <SelectItem value="true" disabled={!state.planEnablesChannel}>
+                                {t("plans.enabled")}
+                              </SelectItem>
+                              <SelectItem value="false">{t("plans.notEnabled")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor={`${channelId}-quota`}>{t("ten.quotaLimit")}</Label>
+                          <Input
+                            id={`${channelId}-quota`}
+                            type="number"
+                            min={0}
+                            step={1}
+                            dir="ltr"
+                            value={state.form.monthlyQuota}
+                            aria-invalid={
+                              attempted &&
+                              state.form.monthlyQuota !== "" &&
+                              !isNonNegativeIntegerInput(state.form.monthlyQuota)
+                            }
+                            disabled={mutationPending}
+                            onChange={(event) =>
+                              updateChannelForm(channel, "monthlyQuota", event.target.value)
+                            }
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t("ten.inheritPlanValue")}
+                          </p>
+                          {attempted &&
+                            state.form.monthlyQuota !== "" &&
+                            !isNonNegativeIntegerInput(state.form.monthlyQuota) && (
+                              <p role="alert" className="text-xs text-danger">
+                                {t("ten.invalidMonthlyOverride")}
+                              </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor={`${channelId}-tps`}>{t("ten.tps")}</Label>
+                          <Input
+                            id={`${channelId}-tps`}
+                            type="number"
+                            min={1}
+                            step={1}
+                            dir="ltr"
+                            value={state.form.tps}
+                            aria-invalid={
+                              attempted &&
+                              state.form.tps !== "" &&
+                              !isPositiveIntegerInput(state.form.tps)
+                            }
+                            disabled={mutationPending}
+                            onChange={(event) =>
+                              updateChannelForm(channel, "tps", event.target.value)
+                            }
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t("ten.inheritPlanValue")}
+                          </p>
+                          {attempted &&
+                            state.form.tps !== "" &&
+                            !isPositiveIntegerInput(state.form.tps) && (
+                              <p role="alert" className="text-xs text-danger">
+                                {t("ten.invalidTpsOverride")}
+                              </p>
+                            )}
+                        </div>
+                      </div>
+                      {attempted &&
+                        !state.valid &&
+                        !state.planEnablesChannel &&
+                        state.form.enabled === "true" && (
+                          <p role="alert" className="text-xs text-danger">
+                            {t("ten.channelOverrideRestriction")}
+                          </p>
+                        )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={mutationPending || !state.changed || !state.valid}
+                        onClick={() => submitChannelOverride(channel)}
+                      >
+                        {t(mutationPending ? "common.saving" : "ten.saveChannelOverride")}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {canManage && (
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={mutationPending || !subscription || subscription.status === "cancelled"}
+                onClick={() => setCancelDialogOpen(true)}
+              >
+                {t("ten.immediateCancel")}
+              </Button>
+            )}
+          </>
+        ) : (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t("ten.noCurrentSubscription")}
+          </p>
+        ))}
+      {mutationError && (
+        <p role="alert" className="text-sm text-danger">
+          {mutationError}
+        </p>
+      )}
+      {effective && (
+        <div className="space-y-3 border-t pt-4">
+          <h4 className="text-sm font-medium">{t("ten.effectiveEntitlements")}</h4>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <span>
+              {t("ten.configured")}:{" "}
+              {t(effective.configured ? "plans.enabled" : "plans.notEnabled")}
+            </span>
+            <span>
+              {t("ten.operational")}:{" "}
+              {t(effective.operational ? "plans.enabled" : "plans.notEnabled")}
+            </span>
+            {effective.quotaPolicy !== null && (
+              <span>
+                {t("plans.quotaPolicy")}: {t(`usage.policy.${effective.quotaPolicy}`)}{" "}
+                {effective.quotaPolicySource && (
+                  <span className="text-muted-foreground">
+                    ({t(SOURCE_LABEL_KEYS[effective.quotaPolicySource])})
+                  </span>
+                )}
+              </span>
+            )}
+            {effective.tpsLimit !== null && (
+              <span>
+                {t("ten.tps")}: {formatNumber(effective.tpsLimit, locale)}{" "}
+                {effective.tpsSource && (
+                  <span className="text-muted-foreground">
+                    ({t(SOURCE_LABEL_KEYS[effective.tpsSource])})
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
+          {effective.blockers.length > 0 && (
+            <ul className="list-inside list-disc text-sm text-muted-foreground">
+              {effective.blockers.map((blocker) => (
+                <li key={blocker}>{t(BLOCKER_LABEL_KEYS[blocker])}</li>
+              ))}
+            </ul>
+          )}
+          {effective.features.length > 0 ? (
+            <ul className="flex flex-wrap gap-2">
+              {effective.features.map((feature) => (
+                <li key={feature} className="rounded border px-2 py-1 text-xs">
+                  {t(FEATURE_LABEL_KEYS[feature])}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("ten.noFeatures")}</p>
+          )}
+          <dl className="space-y-2">
+            {effective.channels.map((channel) => (
+              <div key={channel.channel} className="border-t pt-2 text-sm">
+                <dt className="font-medium">{t(`channel.${channel.channel}`)}</dt>
+                <dd>
+                  {t("ten.channelAvailability")}:{" "}
+                  {t(channel.enabled ? "plans.enabled" : "plans.notEnabled")}
+                </dd>
+                <dd>
+                  {t("ten.quotaLimit")}: {displayNumber(channel.monthlyQuota)} {t("ten.monthly")}{" "}
+                  <span className="text-muted-foreground">
+                    ({t(SOURCE_LABEL_KEYS[channel.quotaSource])})
+                  </span>
+                </dd>
+                <dd>
+                  {t("ten.tps")}: {displayNumber(channel.tpsLimit)}{" "}
+                  <span className="text-muted-foreground">
+                    ({t(SOURCE_LABEL_KEYS[channel.tpsSource])})
+                  </span>
+                </dd>
+                {channel.ignoredOverride && (
+                  <dd className="text-muted-foreground">{t("ten.ignoredOverride")}</dd>
+                )}
+              </div>
+            ))}
+          </dl>
         </div>
-        {effective.blockers.length > 0 && <ul className="list-inside list-disc text-sm text-muted-foreground">
-          {effective.blockers.map((blocker) => <li key={blocker}>{t(BLOCKER_LABEL_KEYS[blocker])}</li>)}
-        </ul>}
-        {effective.features.length > 0
-          ? <ul className="flex flex-wrap gap-2">{effective.features.map((feature) => <li key={feature} className="rounded border px-2 py-1 text-xs">{t(FEATURE_LABEL_KEYS[feature])}</li>)}</ul>
-          : <p className="text-xs text-muted-foreground">{t("ten.noFeatures")}</p>}
-        <dl className="space-y-2">
-          {effective.channels.map((channel) => <div key={channel.channel} className="border-t pt-2 text-sm">
-            <dt className="font-medium">{t(`channel.${channel.channel}`)}</dt>
-            <dd>{t("ten.channelAvailability")}: {t(channel.enabled ? "plans.enabled" : "plans.notEnabled")}</dd>
-            <dd>{t("ten.quotaLimit")}: {displayNumber(channel.monthlyQuota)} {t("ten.monthly")} <span className="text-muted-foreground">({t(SOURCE_LABEL_KEYS[channel.quotaSource])})</span></dd>
-            <dd>{t("ten.tps")}: {displayNumber(channel.tpsLimit)} <span className="text-muted-foreground">({t(SOURCE_LABEL_KEYS[channel.tpsSource])})</span></dd>
-            {channel.ignoredOverride && <dd className="text-muted-foreground">{t("ten.ignoredOverride")}</dd>}
-          </div>)}
-        </dl>
+      )}
+
+      <div className="space-y-3 border-t pt-4">
+        <h4 className="text-sm font-medium">{t("ten.subscriptionHistory")}</h4>
+        <p className="text-xs text-muted-foreground">{t("ten.subscriptionHistoryPlanNotice")}</p>
+        {historyIsPending && (
+          <p role="status" className="text-sm text-muted-foreground">
+            {t("ten.subscriptionHistoryLoading")}
+          </p>
+        )}
+        {historyIsError && (
+          <div className="flex items-center gap-2 text-sm text-danger">
+            <span>{t("ten.subscriptionHistoryError")}</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={historyIsFetching}
+              onClick={onRetryHistory}
+            >
+              {t("common.retry")}
+            </Button>
+          </div>
+        )}
+        {history && history.items.length === 0 && (
+          <p className="text-sm text-muted-foreground">{t("ten.subscriptionHistoryEmpty")}</p>
+        )}
+        {history && history.items.length > 0 && (
+          <>
+            <ol className="space-y-3">
+              {history.items.map((item) => (
+                <li key={item.id} className="space-y-1 rounded-md border p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium">{item.plan.name}</span>
+                    <StatusBadge status={item.status} />
+                  </div>
+                  <p className="text-muted-foreground">
+                    {t("ten.subscriptionStartsAt")}:{" "}
+                    {new Date(item.startsAt).toLocaleString(locale)}
+                  </p>
+                  {item.endsAt && (
+                    <p className="text-muted-foreground">
+                      {t("ten.subscriptionEndsAt")}: {new Date(item.endsAt).toLocaleString(locale)}
+                    </p>
+                  )}
+                  {(item.tpsLimitOverride !== null ||
+                    item.quotaPolicyOverride !== null ||
+                    item.channelOverrides.some(
+                      (override) =>
+                        override.enabledOverride !== null ||
+                        override.monthlyQuotaOverride !== null ||
+                        override.tpsOverride !== null,
+                    )) && (
+                    <p>
+                      {t("ten.overrides")}:{" "}
+                      {[
+                        item.tpsLimitOverride !== null
+                          ? `${t("ten.tps")} ${formatNumber(item.tpsLimitOverride, locale)}`
+                          : null,
+                        item.quotaPolicyOverride !== null
+                          ? t(`usage.policy.${item.quotaPolicyOverride}`)
+                          : null,
+                        ...item.channelOverrides.flatMap((override) => [
+                          override.enabledOverride !== null
+                            ? `${t(`channel.${override.channel}`)}: ${t(override.enabledOverride ? "plans.enabled" : "plans.notEnabled")}`
+                            : null,
+                          override.monthlyQuotaOverride !== null
+                            ? `${t(`channel.${override.channel}`)} ${formatNumber(override.monthlyQuotaOverride, locale)} ${t("ten.monthly")}`
+                            : null,
+                          override.tpsOverride !== null
+                            ? `${t(`channel.${override.channel}`)} TPS ${formatNumber(override.tpsOverride, locale)}`
+                            : null,
+                        ]),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ol>
+            {historyPages > 1 && (
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={historyPage <= 1 || historyIsFetching}
+                  onClick={() => onHistoryPage(historyPage - 1)}
+                >
+                  {t("common.previous")}
+                </Button>
+                <span aria-live="polite" className="text-xs text-muted-foreground">
+                  {t("ten.historyPage", { page: historyPage, pages: historyPages })}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={historyPage >= historyPages || historyIsFetching}
+                  onClick={() => onHistoryPage(historyPage + 1)}
+                >
+                  {t("common.next")}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
+
+      <AlertDialog
+        open={cancelDialogOpen && !!subscription}
+        onOpenChange={(open) => !mutationPending && setCancelDialogOpen(open)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("ten.immediateCancelTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("ten.immediateCancelBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={mutationPending}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                onCancel();
+              }}
+              disabled={mutationPending}
+            >
+              {t(mutationPending ? "common.saving" : "ten.immediateCancelConfirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={!!removeChannel}
+        onOpenChange={(open) => !mutationPending && !open && setRemoveChannel(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("ten.removeChannelOverrideTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("ten.removeChannelOverrideBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={mutationPending}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                if (removeChannel) onClearChannelOverride(removeChannel);
+              }}
+              disabled={mutationPending || !removeChannel}
+            >
+              {t(mutationPending ? "common.saving" : "ten.removeChannelOverride")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
-
 interface TenantForm {
   name: string;
   code: string;
@@ -194,11 +839,16 @@ export const Route = createFileRoute("/platform/tenants")({
 function Tenants() {
   const { t, locale, dir } = useI18n();
   const { can, mode: apiMode } = useSession();
+  const canManageSubscription = canManageTenantSubscription(
+    apiMode,
+    can("platform.tenants.manage"),
+  );
   const queryClient = useQueryClient();
   const submissionPendingRef = useRef(false);
   const profileSubmissionPendingRef = useRef(false);
   const statusSubmissionPendingRef = useRef(false);
   const planAssignmentPendingRef = useRef(false);
+  const subscriptionMutationPendingRef = useRef(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<Tenant["status"] | "all">("all");
   const [page, setPage] = useState(1);
@@ -216,6 +866,9 @@ function Tenants() {
   const [planAssignmentPlanId, setPlanAssignmentPlanId] = useState("");
   const [planAssignmentStatus, setPlanAssignmentStatus] = useState<TenantPlanAssignmentStatus>("active");
   const [planAssignmentError, setPlanAssignmentError] = useState("");
+  const [subscriptionMutationError, setSubscriptionMutationError] =
+    useState<TenantSubscriptionMutationErrorMessage | null>(null);
+  const [subscriptionHistoryPage, setSubscriptionHistoryPage] = useState(1);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState("");
@@ -262,6 +915,16 @@ function Tenants() {
   const tenantSubscriptionQuery = useQuery(
     queries.tenantSubscription(selectedTenantId ?? "", apiMode === "live"),
   );
+  const tenantSubscriptionHistoryQuery = useQuery(
+    queries.tenantSubscriptionHistory(
+      selectedTenantId ?? "",
+      { page: subscriptionHistoryPage, pageSize: SUBSCRIPTION_HISTORY_PAGE_SIZE },
+      apiMode === "live",
+    ),
+  );
+  useEffect(() => {
+    setSubscriptionHistoryPage(1);
+  }, [selectedTenantId]);
   const selectedTenant = selected ?? tenantDetailQuery.data ?? null;
   const plans = useQuery(queries.plans({ page: 1, pageSize: 100 }));
   const planCatalog = plans.data?.items;
@@ -374,16 +1037,30 @@ function Tenants() {
     },
   });
 
+  const refreshTenantSubscription = async (tenantId: string, includeHistory: boolean) => {
+    const filters = tenantSubscriptionRefreshQueryFilters(
+      tenantId,
+      { page: subscriptionHistoryPage, pageSize: SUBSCRIPTION_HISTORY_PAGE_SIZE },
+      includeHistory,
+    );
+    await queryClient.invalidateQueries(filters.current);
+    if (filters.history) await queryClient.invalidateQueries(filters.history);
+  };
+
   const assignPlan = useMutation({
-    mutationFn: (variables: { tenantId: string; planId: string; status: TenantPlanAssignmentStatus }) =>
+    mutationFn: (variables: {
+      tenantId: string;
+      planId: string;
+      status: TenantPlanAssignmentStatus;
+    }) =>
       api.assignTenantPlan(variables.tenantId, {
         planId: variables.planId,
         status: variables.status,
       }),
     retry: false,
-    onSuccess: async () => {
+    onSuccess: async (_, variables) => {
       toast.success(t("ten.assignmentSuccess"));
-      await queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      await refreshTenantSubscription(variables.tenantId, true);
       setPlanAssignmentOpen(false);
       setPlanAssignmentPlanId("");
       setPlanAssignmentStatus("active");
@@ -396,6 +1073,116 @@ function Tenants() {
       planAssignmentPendingRef.current = false;
     },
   });
+
+  const updateSubscriptionOverrides = useMutation({
+    mutationFn: (variables: { tenantId: string; input: TenantSubscriptionOverridesInput }) =>
+      api.updateTenantSubscriptionOverrides(variables.tenantId, variables.input),
+    retry: false,
+    onSuccess: async (_, variables) => {
+      toast.success(t("ten.subscriptionOverridesSaved"));
+      setSubscriptionMutationError(null);
+      await refreshTenantSubscription(variables.tenantId, false);
+    },
+    onError: (mutationError) =>
+      setSubscriptionMutationError(tenantSubscriptionMutationErrorMessage(mutationError)),
+    onSettled: () => {
+      subscriptionMutationPendingRef.current = false;
+    },
+  });
+
+  const setChannelOverride = useMutation({
+    mutationFn: (variables: {
+      tenantId: string;
+      channel: Channel;
+      input: TenantSubscriptionChannelOverrideInput;
+    }) =>
+      api.setTenantSubscriptionChannelOverride(
+        variables.tenantId,
+        variables.channel,
+        variables.input,
+      ),
+    retry: false,
+    onSuccess: async (_, variables) => {
+      toast.success(t("ten.channelOverrideSaved"));
+      setSubscriptionMutationError(null);
+      await refreshTenantSubscription(variables.tenantId, false);
+    },
+    onError: (mutationError) =>
+      setSubscriptionMutationError(tenantSubscriptionMutationErrorMessage(mutationError)),
+    onSettled: () => {
+      subscriptionMutationPendingRef.current = false;
+    },
+  });
+
+  const clearChannelOverride = useMutation({
+    mutationFn: (variables: { tenantId: string; channel: Channel }) =>
+      api.clearTenantSubscriptionChannelOverride(variables.tenantId, variables.channel),
+    retry: false,
+    onSuccess: async (_, variables) => {
+      toast.success(t("ten.channelOverrideRemoved"));
+      setSubscriptionMutationError(null);
+      await refreshTenantSubscription(variables.tenantId, false);
+    },
+    onError: (mutationError) =>
+      setSubscriptionMutationError(tenantSubscriptionMutationErrorMessage(mutationError)),
+    onSettled: () => {
+      subscriptionMutationPendingRef.current = false;
+    },
+  });
+
+  const cancelSubscription = useMutation({
+    mutationFn: (tenantId: string) => api.cancelTenantSubscription(tenantId),
+    retry: false,
+    onSuccess: async (_, tenantId) => {
+      toast.success(t("ten.subscriptionCancelled"));
+      setSubscriptionMutationError(null);
+      await refreshTenantSubscription(tenantId, true);
+    },
+    onError: (mutationError) =>
+      setSubscriptionMutationError(tenantSubscriptionMutationErrorMessage(mutationError)),
+    onSettled: () => {
+      subscriptionMutationPendingRef.current = false;
+    },
+  });
+
+  const beginSubscriptionMutation = (submitMutation: (tenantId: string) => void) => {
+    if (
+      !canStartTenantSubscriptionMutation(
+        apiMode,
+        can("platform.tenants.manage"),
+        !!tenantSubscriptionQuery.data?.subscription,
+        subscriptionMutationPendingRef.current,
+      ) ||
+      !selectedTenantId
+    )
+      return;
+    subscriptionMutationPendingRef.current = true;
+    setSubscriptionMutationError(null);
+    submitMutation(selectedTenantId);
+  };
+
+  const submitSubscriptionOverrides = (input: TenantSubscriptionOverridesInput) => {
+    beginSubscriptionMutation((tenantId) =>
+      updateSubscriptionOverrides.mutate({ tenantId, input }),
+    );
+  };
+
+  const submitChannelOverride = (
+    channel: Channel,
+    input: TenantSubscriptionChannelOverrideInput,
+  ) => {
+    beginSubscriptionMutation((tenantId) =>
+      setChannelOverride.mutate({ tenantId, channel, input }),
+    );
+  };
+
+  const submitClearChannelOverride = (channel: Channel) => {
+    beginSubscriptionMutation((tenantId) => clearChannelOverride.mutate({ tenantId, channel }));
+  };
+
+  const submitSubscriptionCancellation = () => {
+    beginSubscriptionMutation((tenantId) => cancelSubscription.mutate(tenantId));
+  };
 
   const openPlanAssignment = () => {
     if (
@@ -791,12 +1578,34 @@ function Tenants() {
                 const override = selected.subscription.overrides?.channels?.[channel];
                 return <div key={channel} className="flex flex-col gap-1 border-t pt-2 text-sm"><dt className="font-medium">{t(`channel.${channel}`)}</dt><dd className="text-muted-foreground">{t("ten.planDefault")}: {planDefault.enabled ? t("plans.enabled") : t("plans.notEnabled")} | {formatNumber(planDefault.monthly, locale)} {t("ten.monthly")}</dd>{override && <dd className="text-muted-foreground">{t("ten.tenantOverride")}: {override.enabled === false ? t("plans.notEnabled") : override.monthly !== undefined ? formatNumber(override.monthly, locale) : t("ten.restrictedOnly")}</dd>}<dd>{t("ten.effective")}: {effective.enabled ? t("plans.enabled") : t("plans.notEnabled")} | {formatNumber(effective.monthly, locale)} {t("ten.monthly")}</dd></div>;
               })}</dl><div className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("ten.tps")}</dt><dd>{t("ten.planDefault")}: {formatNumber(selected.planDefaults.tpsLimit, locale)} | {t("ten.effective")}: {formatNumber(selected.effectiveEntitlements.tpsLimit, locale)}</dd></div><div><dt className="text-label">{t("plans.quotaPolicy")}</dt><dd>{t("ten.planDefault")}: {t(`usage.policy.${selected.planDefaults.quotaPolicy}`)} | {t("ten.effective")}: {t(`usage.policy.${selected.effectiveEntitlements.quotaPolicy}`)}</dd></div></div><div><dt className="text-label">{t("ten.overrides")}</dt><dd>{selected.subscription.overrides ? t("ten.customOverrides") : t("ten.noOverrides")}</dd></div><div><h4 className="mb-2 text-sm font-medium">{t("plans.features")}</h4><ul className="flex flex-wrap gap-2">{selected.effectiveEntitlements.features.map((feature) => <li key={feature} className="rounded border px-2 py-1 text-xs">{t(FEATURE_LABEL_KEYS[feature])}</li>)}</ul></div></section>}
-              {selectedTenantId && tenantDetailQuery.data && <TenantSubscriptionPanel
-                data={tenantSubscriptionQuery.data}
-                isPending={tenantSubscriptionQuery.isPending}
-                isError={tenantSubscriptionQuery.isError}
-                onRetry={() => void tenantSubscriptionQuery.refetch()}
-              />}
+                {selectedTenantId && tenantDetailQuery.data && (
+                  <TenantSubscriptionPanel
+                    data={tenantSubscriptionQuery.data}
+                    isPending={tenantSubscriptionQuery.isPending}
+                    isError={tenantSubscriptionQuery.isError}
+                    onRetry={() => void tenantSubscriptionQuery.refetch()}
+                    canManage={canManageSubscription}
+                    history={tenantSubscriptionHistoryQuery.data}
+                    historyPage={subscriptionHistoryPage}
+                    historyPageSize={SUBSCRIPTION_HISTORY_PAGE_SIZE}
+                    historyIsPending={tenantSubscriptionHistoryQuery.isPending}
+                    historyIsFetching={tenantSubscriptionHistoryQuery.isFetching}
+                    historyIsError={tenantSubscriptionHistoryQuery.isError}
+                    onHistoryPage={setSubscriptionHistoryPage}
+                    onRetryHistory={() => void tenantSubscriptionHistoryQuery.refetch()}
+                    mutationPending={
+                      updateSubscriptionOverrides.isPending ||
+                      setChannelOverride.isPending ||
+                      clearChannelOverride.isPending ||
+                      cancelSubscription.isPending
+                    }
+                    mutationError={subscriptionMutationError ? t(subscriptionMutationError) : null}
+                    onUpdateOverrides={submitSubscriptionOverrides}
+                    onSetChannelOverride={submitChannelOverride}
+                    onClearChannelOverride={submitClearChannelOverride}
+                    onCancel={submitSubscriptionCancellation}
+                  />
+                )}
               {apiMode === "live" &&
                 selectedTenantId &&
                 tenantDetailQuery.data &&

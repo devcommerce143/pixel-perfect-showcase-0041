@@ -2,11 +2,17 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { isTenantUuid } from "./tenant-mapper.ts";
 import {
+  mapTenantSubscriptionHistoryPage,
   mapTenantPlanAssignmentResponse,
   mapTenantSubscriptionView,
+  TenantSubscriptionRequestError,
   TenantSubscriptionResponseError,
+  tenantSubscriptionHistoryPath,
+  tenantSubscriptionHistoryQueryKey,
   tenantSubscriptionPath,
   tenantSubscriptionQueryKey,
+  toTenantSubscriptionChannelOverrideRequest,
+  toTenantSubscriptionOverridesRequest,
 } from "./tenant-subscription-mapper.ts";
 
 const tenantId = "11111111-1111-4111-8111-111111111111";
@@ -273,9 +279,93 @@ describe("tenant subscription view mapper", () => {
 
   it("builds tenant-prefixed keys and paths and shares backend UUID acceptance", () => {
     assert.deepEqual(tenantSubscriptionQueryKey(tenantId), ["tenants", "subscription", tenantId]);
+    assert.deepEqual(tenantSubscriptionHistoryQueryKey(tenantId, { page: 2, pageSize: 20 }), [
+      "tenants",
+      "subscription-history",
+      tenantId,
+      2,
+      20,
+    ]);
+    assert.equal(
+      tenantSubscriptionHistoryPath(tenantId, { page: 2, pageSize: 20 }),
+      `/tenants/${tenantId}/subscription/history?page=2&pageSize=20`,
+    );
     assert.equal(tenantSubscriptionPath(tenantId), `/tenants/${tenantId}/subscription`);
     assert.equal(tenantSubscriptionPath("tenant/one"), "/tenants/tenant%2Fone/subscription");
     assert.equal(isTenantUuid(tenantId), true);
     assert.equal(isTenantUuid("tenant-one"), false);
+  });
+
+  it("maps paginated history including CANCELLED without relaxing current-subscription validation", () => {
+    const cancelled = { ...subscription(), status: "CANCELLED" };
+    const page = mapTenantSubscriptionHistoryPage(
+      {
+        items: [cancelled],
+        page: 2,
+        pageSize: 10,
+        total: 11,
+      },
+      tenantId,
+    );
+    assert.equal(page.page, 2);
+    assert.equal(page.pageSize, 10);
+    assert.equal(page.total, 11);
+    assert.equal(page.items[0]?.status, "cancelled");
+    assert.throws(
+      () =>
+        mapTenantSubscriptionView({
+          subscription: cancelled,
+          effective: effective({ blockers: ["SUBSCRIPTION_CANCELLED"], operational: false }),
+        }),
+      TenantSubscriptionResponseError,
+    );
+    assert.throws(
+      () =>
+        mapTenantSubscriptionHistoryPage({ items: [], page: 1, pageSize: 101, total: 0 }, tenantId),
+      TenantSubscriptionResponseError,
+    );
+  });
+
+  it("preserves omitted override fields and supports null clearing with backend validation", () => {
+    assert.deepEqual(toTenantSubscriptionOverridesRequest({ tpsLimitOverride: null }), {
+      tpsLimitOverride: null,
+    });
+    assert.deepEqual(
+      toTenantSubscriptionOverridesRequest({
+        tpsLimitOverride: 12,
+        quotaPolicyOverride: "soft_cap",
+      }),
+      {
+        tpsLimitOverride: 12,
+        quotaPolicyOverride: "SOFT_CAP",
+      },
+    );
+    assert.deepEqual(
+      toTenantSubscriptionChannelOverrideRequest({
+        monthlyQuotaOverride: null,
+        tpsOverride: 4,
+      }),
+      {
+        monthlyQuotaOverride: null,
+        tpsOverride: 4,
+      },
+    );
+    assert.throws(() => toTenantSubscriptionOverridesRequest({}), TenantSubscriptionRequestError);
+    assert.throws(
+      () => toTenantSubscriptionOverridesRequest({ tpsLimitOverride: 0 }),
+      TenantSubscriptionRequestError,
+    );
+    assert.throws(
+      () => toTenantSubscriptionChannelOverrideRequest({ monthlyQuotaOverride: -1 }),
+      TenantSubscriptionRequestError,
+    );
+    assert.throws(
+      () => toTenantSubscriptionChannelOverrideRequest({ tpsOverride: 0 }),
+      TenantSubscriptionRequestError,
+    );
+    assert.throws(
+      () => toTenantSubscriptionChannelOverrideRequest({}),
+      TenantSubscriptionRequestError,
+    );
   });
 });

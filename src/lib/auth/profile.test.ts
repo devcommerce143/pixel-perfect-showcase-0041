@@ -10,6 +10,7 @@ function client(result: () => Promise<unknown>): HumanHttpClient {
     post: async <T>() => undefined as T,
     patch: async <T>() => undefined as T,
     put: async <T>() => undefined as T,
+    delete: async <T>() => undefined as T,
   };
 }
 

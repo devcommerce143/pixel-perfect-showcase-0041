@@ -872,4 +872,118 @@ describe("live tenant catalog API", () => {
       assert.equal(calls, 1);
     }
   });
+
+  it("uses the subscription history, override, channel, clear, and immediate-cancel contracts", async () => {
+    const requests: {
+      url: string;
+      method: string;
+      body: unknown;
+      hasContentType: boolean;
+    }[] = [];
+    const assignment = planAssignmentResponse();
+    const api = createLiveApi({
+      apiBaseUrl: base,
+      getAccessToken: () => "test-access-token",
+      fetchImpl: async (input, init) => {
+        const headers = new Headers(init?.headers);
+        requests.push({
+          url: String(input),
+          method: init?.method ?? "",
+          body: init?.body ? (JSON.parse(String(init.body)) as unknown) : undefined,
+          hasContentType: headers.has("Content-Type"),
+        });
+        if (String(input).includes("/history?")) {
+          return new Response(
+            JSON.stringify({
+              items: [{ ...assignment.subscription, status: "CANCELLED" }],
+              page: 1,
+              pageSize: 20,
+              total: 1,
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(JSON.stringify(assignment), { status: 200 });
+      },
+    });
+
+    const history = await api.getTenantSubscriptionHistory(assignmentTenantId, {
+      page: 1,
+      pageSize: 20,
+    });
+    const updated = await api.updateTenantSubscriptionOverrides(assignmentTenantId, {
+      tpsLimitOverride: null,
+      quotaPolicyOverride: "soft_cap",
+    });
+    await api.setTenantSubscriptionChannelOverride(assignmentTenantId, "sms", {
+      enabledOverride: false,
+      monthlyQuotaOverride: 0,
+      tpsOverride: null,
+    });
+    await api.clearTenantSubscriptionChannelOverride(assignmentTenantId, "whatsapp");
+    await api.cancelTenantSubscription(assignmentTenantId);
+
+    assert.equal(history.items[0]?.status, "cancelled");
+    assert.equal(history.total, 1);
+    assert.equal(updated.subscription?.id, assignmentSubscriptionId);
+    assert.deepEqual(requests, [
+      {
+        url: `${base}/tenants/${assignmentTenantId}/subscription/history?page=1&pageSize=20`,
+        method: "GET",
+        body: undefined,
+        hasContentType: false,
+      },
+      {
+        url: `${base}/tenants/${assignmentTenantId}/subscription/overrides`,
+        method: "PUT",
+        body: { tpsLimitOverride: null, quotaPolicyOverride: "SOFT_CAP" },
+        hasContentType: true,
+      },
+      {
+        url: `${base}/tenants/${assignmentTenantId}/subscription/channels/SMS`,
+        method: "PUT",
+        body: { enabledOverride: false, monthlyQuotaOverride: 0, tpsOverride: null },
+        hasContentType: true,
+      },
+      {
+        url: `${base}/tenants/${assignmentTenantId}/subscription/channels/WHATSAPP`,
+        method: "DELETE",
+        body: undefined,
+        hasContentType: false,
+      },
+      {
+        url: `${base}/tenants/${assignmentTenantId}/subscription/cancel`,
+        method: "POST",
+        body: {},
+        hasContentType: true,
+      },
+    ]);
+    assert.equal("endsAt" in (requests[4]?.body as Record<string, unknown>), false);
+  });
+
+  it("rejects invalid subscription override bodies before making a live request", async () => {
+    let calls = 0;
+    const api = createLiveApi({
+      apiBaseUrl: base,
+      getAccessToken: () => "test-access-token",
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response(JSON.stringify(planAssignmentResponse()), { status: 200 });
+      },
+    });
+
+    await assert.rejects(() => api.updateTenantSubscriptionOverrides(assignmentTenantId, {}));
+    await assert.rejects(() =>
+      api.updateTenantSubscriptionOverrides(assignmentTenantId, {
+        tpsLimitOverride: 0,
+      }),
+    );
+    await assert.rejects(() =>
+      api.setTenantSubscriptionChannelOverride(assignmentTenantId, "email", {
+        monthlyQuotaOverride: -1,
+      }),
+    );
+    await assert.rejects(() => api.cancelTenantSubscription("invalid-tenant-id"));
+    assert.equal(calls, 0);
+  });
 });

@@ -1,5 +1,17 @@
-import type { BulkJob, ChannelConfig, ConfigParam, Plan, PlatformApiClient, PortalUser, ProviderUsageBilling, RoutingRule, SenderIdentity, TenantSettings, Webhook } from "../types";
-import { BASE_TIME, TENANTS } from "./mock-data";
+import type {
+  BulkJob,
+  ChannelConfig,
+  ConfigParam,
+  Plan,
+  PlatformApiClient,
+  PortalUser,
+  ProviderUsageBilling,
+  RoutingRule,
+  SenderIdentity,
+  TenantSettings,
+  Webhook,
+} from "../types.ts";
+import { BASE_TIME, TENANTS } from "./mock-data.ts";
 
 const MIN = 60_000;
 const DAY = 86_400_000;

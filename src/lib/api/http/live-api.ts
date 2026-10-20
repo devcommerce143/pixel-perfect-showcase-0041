@@ -15,10 +15,17 @@ import { createUnconnectedLiveApi } from "./unconnected-api.ts";
 import { planListPath } from "../plans-catalog.ts";
 import { mapTenantCreateResponse, mapTenantPage, mapTenantResponse, tenantDetailPath, tenantListPath, tenantStatusPath, toTenantCreateRequest, toTenantProfileUpdateRequest, toTenantStatusRequest, TenantCatalogError } from "./tenant-mapper.ts";
 import {
+  mapTenantSubscriptionHistoryPage,
   mapTenantPlanAssignmentResponse,
   mapTenantSubscriptionView,
   tenantPlanAssignmentPath,
+  tenantSubscriptionCancelPath,
+  tenantSubscriptionChannelPath,
+  tenantSubscriptionHistoryPath,
+  tenantSubscriptionOverridesPath,
   tenantSubscriptionPath,
+  toTenantSubscriptionChannelOverrideRequest,
+  toTenantSubscriptionOverridesRequest,
   toTenantPlanAssignmentRequest,
 } from "./tenant-subscription-mapper.ts";
 import {
@@ -32,7 +39,23 @@ import {
   userItemPath,
   userListPath,
 } from "./user-mapper.ts";
-import type { CreatePortalUserInput, Plan, PlanListQuery, TenantListQuery, TenantPlanAssignmentInput, TenantProfileUpdateInput, TenantStatus, TenantUserRole, UpdatePortalUserProfileInput, UserListQuery, UserStatus } from "../types.ts";
+import type {
+  Channel,
+  CreatePortalUserInput,
+  Plan,
+  PlanListQuery,
+  TenantListQuery,
+  TenantPlanAssignmentInput,
+  TenantProfileUpdateInput,
+  TenantStatus,
+  TenantSubscriptionChannelOverrideInput,
+  TenantSubscriptionHistoryQuery,
+  TenantSubscriptionOverridesInput,
+  TenantUserRole,
+  UpdatePortalUserProfileInput,
+  UserListQuery,
+  UserStatus,
+} from "../types.ts";
 
 const API_PLAN_STATUSES: Record<Plan["status"], "DRAFT" | "ACTIVE" | "INACTIVE" | "ARCHIVED"> = {
   draft: "DRAFT",
@@ -114,6 +137,13 @@ export function createLiveApi(options: {
             tenantId,
           );
       }
+      if (property === "getTenantSubscriptionHistory") {
+        return async (tenantId: string, query: TenantSubscriptionHistoryQuery) =>
+          mapTenantSubscriptionHistoryPage(
+            await http.get(tenantSubscriptionHistoryPath(tenantId, query)),
+            tenantId,
+          );
+      }
       if (property === "assignTenantPlan") {
         return async (tenantId: string, input: TenantPlanAssignmentInput) =>
           mapTenantPlanAssignmentResponse(
@@ -123,6 +153,44 @@ export function createLiveApi(options: {
             ),
             tenantId,
             input,
+          );
+      }
+      if (property === "updateTenantSubscriptionOverrides") {
+        return async (tenantId: string, input: TenantSubscriptionOverridesInput) =>
+          mapTenantSubscriptionView(
+            await http.put(
+              tenantSubscriptionOverridesPath(tenantId),
+              toTenantSubscriptionOverridesRequest(input),
+            ),
+            tenantId,
+          );
+      }
+      if (property === "setTenantSubscriptionChannelOverride") {
+        return async (
+          tenantId: string,
+          channel: Channel,
+          input: TenantSubscriptionChannelOverrideInput,
+        ) =>
+          mapTenantSubscriptionView(
+            await http.put(
+              tenantSubscriptionChannelPath(tenantId, channel),
+              toTenantSubscriptionChannelOverrideRequest(input),
+            ),
+            tenantId,
+          );
+      }
+      if (property === "clearTenantSubscriptionChannelOverride") {
+        return async (tenantId: string, channel: Channel) =>
+          mapTenantSubscriptionView(
+            await http.delete(tenantSubscriptionChannelPath(tenantId, channel)),
+            tenantId,
+          );
+      }
+      if (property === "cancelTenantSubscription") {
+        return async (tenantId: string) =>
+          mapTenantSubscriptionView(
+            await http.post(tenantSubscriptionCancelPath(tenantId), {}),
+            tenantId,
           );
       }
       if (property === "listUsers") {

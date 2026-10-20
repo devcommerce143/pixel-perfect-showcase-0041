@@ -486,6 +486,29 @@ export interface TenantSubscriptionView {
   effective: ResolvedTenantEntitlements;
 }
 
+export interface TenantSubscriptionHistoryPage {
+  items: TenantSubscriptionRecord[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface TenantSubscriptionHistoryQuery {
+  page: number;
+  pageSize: number;
+}
+
+export interface TenantSubscriptionOverridesInput {
+  tpsLimitOverride?: number | null;
+  quotaPolicyOverride?: QuotaPolicy | null;
+}
+
+export interface TenantSubscriptionChannelOverrideInput {
+  enabledOverride?: boolean | null;
+  monthlyQuotaOverride?: number | null;
+  tpsOverride?: number | null;
+}
+
 export type TenantPlanAssignmentResult = Omit<TenantSubscriptionView, "subscription"> & {
   subscription: TenantSubscriptionRecord;
 };

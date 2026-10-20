@@ -10,6 +10,7 @@ export interface HumanHttpClient {
   post<T>(path: string, body: unknown, request?: HumanRequest): Promise<T>;
   patch<T>(path: string, body: unknown, request?: HumanRequest): Promise<T>;
   put<T>(path: string, body: unknown, request?: HumanRequest): Promise<T>;
+  delete<T>(path: string, request?: HumanRequest): Promise<T>;
 }
 
 /**
@@ -36,6 +37,9 @@ export function createHumanHttpClient(options: {
     put<T>(path: string, body: unknown, request?: HumanRequest): Promise<T> {
       return send<T>("PUT", path, body, request);
     },
+    delete<T>(path: string, request?: HumanRequest): Promise<T> {
+      return send<T>("DELETE", path, undefined, request);
+    },
   };
 
   async function send<T>(
@@ -53,9 +57,9 @@ export function createHumanHttpClient(options: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`,
     };
-    if (method !== "GET") headers["Content-Type"] = "application/json";
+    if (method !== "GET" && method !== "DELETE") headers["Content-Type"] = "application/json";
     const init: RequestInit = { method, headers };
-    if (method !== "GET") init.body = JSON.stringify(body);
+    if (method !== "GET" && method !== "DELETE") init.body = JSON.stringify(body);
     if (request?.signal) init.signal = request.signal;
     const response = await fetchImpl(buildApiUrl(options.apiBaseUrl, path), init);
 
