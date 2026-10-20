@@ -1,3 +1,9 @@
+import type { BulkHistoryQuery, BulkHistoryItemsQuery } from "./bulk-job-history-types";
+import {
+  bulkHistoryListKey,
+  bulkHistoryDetailKey,
+  bulkHistoryItemsKey,
+} from "./bulk-job-history-query-keys";
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { api } from "./client";
 import type {
@@ -45,6 +51,39 @@ import {
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
+  bulkHistoryList: (
+    actor: SenderIdentityActor,
+    query: BulkHistoryQuery | null,
+    allTenants: boolean,
+    tenantId?: string,
+  ) =>
+    queryOptions({
+      queryKey: bulkHistoryListKey(actor, query, allTenants ? "all-tenants" : "tenant", tenantId),
+      enabled: !!query,
+      queryFn: () => {
+        if (!query) throw new Error("Valid range required");
+        return allTenants
+          ? api.listAllTenantBulkJobHistory(actor, query)
+          : api.listBulkJobHistory(actor, query, tenantId);
+      },
+    }),
+  bulkHistoryDetail: (actor: SenderIdentityActor, id: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: bulkHistoryDetailKey(actor, id, tenantId),
+      enabled: !!id,
+      queryFn: () => api.getBulkJobHistory(actor, id, tenantId),
+    }),
+  bulkHistoryItems: (
+    actor: SenderIdentityActor,
+    id: string,
+    query: BulkHistoryItemsQuery,
+    tenantId?: string,
+  ) =>
+    queryOptions({
+      queryKey: bulkHistoryItemsKey(actor, id, query, tenantId),
+      enabled: !!id,
+      queryFn: () => api.listBulkJobHistoryItems(actor, id, query, tenantId),
+    }),
   dashboard: () => queryOptions({ queryKey: ["dashboard"], queryFn: () => api.getDashboard() }),
   dashboardMessages: () => queryOptions({ queryKey: ["dashboard", "messages"], queryFn: () => api.getDashboardMessages() }),
   dashboardQuota: () => queryOptions({ queryKey: ["dashboard", "quota"], queryFn: () => api.getDashboardQuota() }),

@@ -1,3 +1,11 @@
+import {
+  bulkHistoryPath,
+  bulkHistoryQueryString,
+  bulkHistoryUuid,
+  mapBulkHistoryJob,
+  mapBulkHistoryItem,
+  mapBulkHistoryPage,
+} from "./bulk-job-history-mapper.ts";
 import type { DolfConnectApi } from "../client.ts";
 import { createHumanHttpClient } from "./client.ts";
 import { ApiError } from "./errors.ts";
@@ -105,6 +113,57 @@ export function createLiveApi(options: {
 
   return new Proxy(unavailable, {
     get(target, property, receiver) {
+      if (property === "listBulkJobHistory") {
+        return async (
+          actor: Parameters<DolfConnectApi["listBulkJobHistory"]>[0],
+          query: Parameters<DolfConnectApi["listBulkJobHistory"]>[1],
+          tenantId?: string,
+        ) =>
+          mapBulkHistoryPage(
+            await http.get(
+              `${bulkHistoryPath(actor.role, tenantId)}?${bulkHistoryQueryString(query)}`,
+            ),
+            (row) => mapBulkHistoryJob(row),
+          );
+      }
+      if (property === "listAllTenantBulkJobHistory") {
+        return async (
+          actor: Parameters<DolfConnectApi["listAllTenantBulkJobHistory"]>[0],
+          query: Parameters<DolfConnectApi["listAllTenantBulkJobHistory"]>[1],
+        ) =>
+          mapBulkHistoryPage(
+            await http.get(
+              `${bulkHistoryPath(actor.role, undefined, true)}?${bulkHistoryQueryString(query)}`,
+            ),
+            (row) => mapBulkHistoryJob(row, true),
+          );
+      }
+      if (property === "getBulkJobHistory") {
+        return async (
+          actor: Parameters<DolfConnectApi["getBulkJobHistory"]>[0],
+          id: string,
+          tenantId?: string,
+        ) =>
+          mapBulkHistoryJob(
+            await http.get(`${bulkHistoryPath(actor.role, tenantId)}/${bulkHistoryUuid(id)}`),
+            false,
+            true,
+          );
+      }
+      if (property === "listBulkJobHistoryItems") {
+        return async (
+          actor: Parameters<DolfConnectApi["listBulkJobHistoryItems"]>[0],
+          id: string,
+          query: Parameters<DolfConnectApi["listBulkJobHistoryItems"]>[2],
+          tenantId?: string,
+        ) =>
+          mapBulkHistoryPage(
+            await http.get(
+              `${bulkHistoryPath(actor.role, tenantId)}/${bulkHistoryUuid(id)}/items?${bulkHistoryQueryString(query)}`,
+            ),
+            mapBulkHistoryItem,
+          );
+      }
       if (property === "getDashboard") {
         return async () => mapDashboardSummary(await http.get("/dashboard"));
       }

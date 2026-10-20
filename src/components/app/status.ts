@@ -4,6 +4,12 @@ export type Tone = "success" | "info" | "warning" | "danger" | "neutral";
 
 /** Single source of truth for status → tone + icon. */
 export const STATUS_DEFS: Record<string, { tone: Tone; icon: LucideIcon }> = {
+  received: { tone: "info", icon: Clock },
+  validating: { tone: "info", icon: Loader2 },
+  materializing: { tone: "info", icon: Loader2 },
+  completed_with_failures: { tone: "warning", icon: AlertTriangle },
+  invalid: { tone: "warning", icon: AlertTriangle },
+  skipped: { tone: "neutral", icon: MinusCircle },
   delivered: { tone: "success", icon: CheckCircle2 },
   active: { tone: "success", icon: CheckCircle2 },
   healthy: { tone: "success", icon: CheckCircle2 },

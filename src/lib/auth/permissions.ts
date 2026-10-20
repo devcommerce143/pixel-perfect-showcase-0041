@@ -9,6 +9,7 @@ export type Permission =
   | "dashboard.view"
   | "messages.view"
   | "messages.send"
+  | "messages.bulk.monitor"
   | "messages.bulk"
   | "templates.view"
   | "templates.manage"
@@ -49,6 +50,7 @@ export type Permission =
 const CLIENT_ADMIN: Permission[] = [
   "dashboard.view",
   "messages.view",
+  "messages.bulk.monitor",
   "messages.send",
   "messages.bulk",
   "templates.view",
@@ -75,6 +77,7 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   super_admin: new Set<Permission>([
     "dashboard.view",
     "messages.view",
+    "messages.bulk.monitor",
     "messages.bulk",
     "templates.view",
     "apps.view",
@@ -109,6 +112,7 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   operator: new Set<Permission>([
     "dashboard.view",
     "messages.view",
+    "messages.bulk.monitor",
     "messages.send",
     "messages.bulk",
     "templates.view",
@@ -119,6 +123,7 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   viewer: new Set<Permission>([
     "dashboard.view",
     "messages.view",
+    "messages.bulk.monitor",
     "templates.view",
     "reports.view",
     "usage.view",

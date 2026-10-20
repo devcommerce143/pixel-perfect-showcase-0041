@@ -1086,6 +1086,10 @@ export function createMockApi(): DolfConnectApi {
       };
       return result;
     },
+    async listBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
+    async listAllTenantBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
+    async getBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
+    async listBulkJobHistoryItems() { throw new Error("Bulk monitoring is available in live mode only"); },
     async listBulkJobs(actor, query) {
       await delay();
 

@@ -1,4 +1,11 @@
 import type {
+  BulkHistoryQuery,
+  BulkHistoryJob,
+  BulkHistoryItem,
+  BulkHistoryItemsQuery,
+  BulkHistoryPage,
+} from "./bulk-job-history-types.ts";
+import type {
   BulkJob,
   BulkJobListQuery,
   BulkSuppressionCandidate,
@@ -152,6 +159,26 @@ export interface DolfConnectApi {
   updateProvider(id: string, input: ProviderConfigInput): Promise<Provider>;
   setProviderEnabled(id: string, enabled: boolean): Promise<void>;
   testProviderConnection(id: string): Promise<ProviderTestResult>;
+  listBulkJobHistory(
+    actor: SenderIdentityActor,
+    query: BulkHistoryQuery,
+    tenantId?: string,
+  ): Promise<BulkHistoryPage<BulkHistoryJob>>;
+  listAllTenantBulkJobHistory(
+    actor: SenderIdentityActor,
+    query: BulkHistoryQuery,
+  ): Promise<BulkHistoryPage<BulkHistoryJob>>;
+  getBulkJobHistory(
+    actor: SenderIdentityActor,
+    id: string,
+    tenantId?: string,
+  ): Promise<BulkHistoryJob>;
+  listBulkJobHistoryItems(
+    actor: SenderIdentityActor,
+    id: string,
+    query: BulkHistoryItemsQuery,
+    tenantId?: string,
+  ): Promise<BulkHistoryPage<BulkHistoryItem>>;
   listBulkJobs(actor: SenderIdentityActor, query: BulkJobListQuery): Promise<Paginated<BulkJob>>;
   getBulkJob(actor: SenderIdentityActor, id: string, tenantId?: string): Promise<BulkJob | null>;
   listBulkTemplates(actor: SenderIdentityActor, applicationId: string, channel: SendMessageInput["channel"]): Promise<Template[]>;

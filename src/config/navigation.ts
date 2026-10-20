@@ -31,7 +31,7 @@ const PLATFORM_NAV: NavGroup[] = [
   {
     id: "communication", labelKey: "nav.group.communication", items: [
       { id: "messages", labelKey: "nav.messages", to: "/messages", icon: History, permission: "messages.view" },
-      { id: "bulk", labelKey: "nav.bulkJobs", to: "/messages/bulk", icon: Layers, permission: "messages.bulk" },
+      { id: "bulk", labelKey: "nav.bulkJobs", to: "/messages/bulk", icon: Layers, permission: "messages.bulk.monitor" },
       { id: "templates", labelKey: "nav.templates", to: "/templates", icon: FileText, permission: "templates.view" },
     ],
   },
@@ -66,7 +66,7 @@ const CLIENT_NAV: NavGroup[] = [
   {
     id: "messaging", labelKey: "nav.group.messaging", items: [
       { id: "send", labelKey: "nav.send", to: "/messages/send", icon: Send, permission: "messages.send" },
-      { id: "bulk", labelKey: "nav.bulk", to: "/messages/bulk", icon: Layers, permission: "messages.bulk" },
+      { id: "bulk", labelKey: "nav.bulkJobs", to: "/messages/bulk", icon: Layers, permission: "messages.bulk.monitor" },
       { id: "messages", labelKey: "nav.history", to: "/messages", icon: History, permission: "messages.view" },
     ],
   },
