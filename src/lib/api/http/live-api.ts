@@ -14,6 +14,15 @@ import { mapDashboardMessages } from "./dashboard-messages-mapper.ts";
 import { mapDashboardQuota } from "./dashboard-quota-mapper.ts";
 import { mapDashboardSummary } from "./dashboard-mapper.ts";
 import {
+  mapSenderIdentity,
+  mapSenderIdentityPage,
+  mapPlatformSenderIdentityPage,
+  platformSenderIdentityListPath,
+  senderIdentityDetailPath,
+  senderIdentityListPath,
+  SenderIdentityRequestError,
+} from "./sender-identity-mapper.ts";
+import {
   mapPlanPage,
   mapPlanResponse,
   PlanCatalogError,
@@ -104,6 +113,67 @@ export function createLiveApi(options: {
       }
       if (property === "getDashboardQuota") {
         return async () => mapDashboardQuota(await http.get("/dashboard/quota"));
+      }
+      if (property === "listSenderIdentityReadPage") {
+        return async (
+          actor: Parameters<DolfConnectApi["listSenderIdentityReadPage"]>[0],
+          query: Parameters<DolfConnectApi["listSenderIdentityReadPage"]>[1],
+          tenantId?: string,
+        ) =>
+          mapSenderIdentityPage(
+            await http.get(
+              senderIdentityListPath(
+                actor.role,
+                query.page ?? 1,
+                query.pageSize ?? 20,
+                query.filters,
+                actor.role === "super_admin" ? tenantId : undefined,
+              ),
+            ),
+          );
+      }
+      if (property === "listAllTenantSenderIdentityReadPage") {
+        return async (
+          actor: Parameters<DolfConnectApi["listAllTenantSenderIdentityReadPage"]>[0],
+          query: Parameters<DolfConnectApi["listAllTenantSenderIdentityReadPage"]>[1],
+        ) => {
+          if (actor.role !== "super_admin") {
+            throw new SenderIdentityRequestError(
+              "Platform sender identities require a platform administrator.",
+            );
+          }
+          return mapPlatformSenderIdentityPage(
+            await http.get(
+              platformSenderIdentityListPath(
+                query.page ?? 1,
+                query.pageSize ?? 20,
+                query.filters,
+              ),
+            ),
+          );
+        };
+      }
+      if (property === "getSenderIdentityRead") {
+        return async (
+          actor: Parameters<DolfConnectApi["getSenderIdentityRead"]>[0],
+          id: string,
+          tenantId?: string,
+        ) => {
+          try {
+            return mapSenderIdentity(
+              await http.get(
+                senderIdentityDetailPath(
+                  actor.role,
+                  id,
+                  actor.role === "super_admin" ? tenantId : undefined,
+                ),
+              ),
+            );
+          } catch (error) {
+            if (error instanceof ApiError && error.statusCode === 404) return null;
+            throw error;
+          }
+        };
       }
       if (property === "listApplicationsPage") {
         return async (

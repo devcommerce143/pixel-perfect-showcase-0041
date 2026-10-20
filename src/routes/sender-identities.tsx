@@ -20,7 +20,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api/client";
 import { queries } from "@/lib/api/queries";
 import { eligibleTenantOptions, isActiveTenant } from "@/lib/api/tenant-options";
-import type { Channel, SenderIdentity, SenderIdentityActor, SenderIdentityHistoryAction, SenderIdentityInput, SenderIdentityOperationalStatus, SenderIdentitySortField, SenderIdentityVerificationStatus } from "@/lib/api/types";
+import type { Channel, PlatformSenderIdentityRead, SenderIdentity, SenderIdentityActor, SenderIdentityHistoryAction, SenderIdentityInput, SenderIdentityOperationalStatus, SenderIdentityRead, SenderIdentitySortField, SenderIdentityVerificationStatus } from "@/lib/api/types";
+import { apiMode } from "@/lib/api/client";
+import {
+  senderIdentityDetailTenantId,
+  senderIdentityScopeKey,
+  senderIdentityScopeIsAvailable,
+  senderIdentitySelectionMatchesScope,
+  senderIdentityUsesReadOnlyView,
+} from "@/lib/api/sender-identity-query-keys";
 import { useSession } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
 import { useI18n, type MessageKey } from "@/lib/i18n/i18n";
@@ -35,6 +43,14 @@ export const Route = createFileRoute("/sender-identities")({
 type LifecycleAction = "submit" | "startVerification" | "verify" | "reject" | "activate" | "suspend" | "reactivate";
 
 function SenderIdentities() {
+  return senderIdentityUsesReadOnlyView(apiMode) ? (
+    <LiveSenderIdentities />
+  ) : (
+    <MockSenderIdentities />
+  );
+}
+
+function MockSenderIdentities() {
   const { t, locale, dir } = useI18n();
   const { user, can } = useSession();
   const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
@@ -77,6 +93,25 @@ function SenderIdentities() {
       verificationStatus: verificationFilter,
       operationalStatus: operationalFilter,
     },
+    ...(platformAllTenants
+      ? [
+          {
+            id: "tenant",
+            header: t("si.tenant"),
+            cell: (identity: SenderIdentityRead | PlatformSenderIdentityRead) =>
+              "tenantName" in identity ? (
+                <div>
+                  <div>{identity.tenantName}</div>
+                  <div className="font-mono text-xs text-muted-foreground">
+                    {identity.tenantId}
+                  </div>
+                </div>
+              ) : (
+                identity.tenantId
+              ),
+          },
+        ]
+      : []),
     sortBy,
     sortDirection,
   }));
@@ -267,4 +302,408 @@ function SenderIdentities() {
       </AlertDialogContent>
     </AlertDialog>
   </>;
+}
+
+function LiveSenderIdentities() {
+  const { t, locale, dir } = useI18n();
+  const { user } = useSession();
+  const { tenantId: selectedTenantId } = useGlobalTenantContext();
+  const actor: SenderIdentityActor = {
+    role: user?.role ?? "viewer",
+    tenantId: user?.tenantId ?? null,
+    userId: user?.id ?? "",
+    name: user?.name ?? "",
+  };
+  const isPlatform = actor.role === "super_admin";
+  const requestTenantId = isPlatform ? selectedTenantId ?? undefined : undefined;
+  const platformAllTenants = isPlatform && !requestTenantId;
+  const scopeKey = senderIdentityScopeKey(
+    actor,
+    requestTenantId,
+    platformAllTenants,
+  );
+  const [channelFilter, setChannelFilter] = useState<Channel | "all">("all");
+  const [verificationFilter, setVerificationFilter] = useState<SenderIdentityVerificationStatus | "all">("all");
+  const [operationalFilter, setOperationalFilter] = useState<SenderIdentityOperationalStatus | "all">("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<10 | 20 | 50>(10);
+  const [selected, setSelected] = useState<{
+    id: string;
+    tenantId: string;
+    scope: string;
+  } | null>(null);
+  const canLoad = senderIdentityScopeIsAvailable(
+    actor.role,
+    requestTenantId,
+  );
+  const filters = {
+    channel: channelFilter,
+    verificationStatus: verificationFilter,
+    operationalStatus: operationalFilter,
+  };
+
+  const query = {
+    page,
+    pageSize,
+    filters: {
+      ...filters,
+    },
+  };
+  const tenantIdentityQuery = useQuery(
+    queries.senderIdentityReadPage(actor, query, requestTenantId, canLoad),
+  );
+  const allTenantIdentityQuery = useQuery(
+    queries.allTenantSenderIdentityReadPage(
+      actor,
+      query,
+      platformAllTenants,
+    ),
+  );
+  const identityQuery = platformAllTenants
+    ? allTenantIdentityQuery
+    : tenantIdentityQuery;
+  const selectedIdentity = senderIdentitySelectionMatchesScope(
+    selected?.scope,
+    scopeKey,
+  )
+    ? selected
+    : null;
+  const detailTenantId = senderIdentityDetailTenantId(
+    isPlatform,
+    requestTenantId,
+    selectedIdentity?.tenantId,
+    platformAllTenants,
+  );
+  const detailQuery = useQuery(
+    queries.senderIdentityRead(
+      actor,
+      selectedIdentity?.id ?? "",
+      detailTenantId,
+      !!selectedIdentity && (!isPlatform || !!detailTenantId),
+    ),
+  );
+
+  useEffect(() => {
+    setPage(1);
+    setSelected(null);
+  }, [scopeKey]);
+
+  const changeFilter = <T extends string>(
+    setter: (value: T) => void,
+    value: T,
+  ) => {
+    setter(value);
+    setPage(1);
+  };
+  const columns: Column<SenderIdentityRead | PlatformSenderIdentityRead>[] = [
+    {
+      id: "id",
+      header: t("si.identityId"),
+      cell: (identity) => (
+        <span className="font-mono text-xs">{identity.id}</span>
+      ),
+    },
+    ...(platformAllTenants
+      ? [
+          {
+            id: "tenant",
+            header: t("si.tenant"),
+            cell: (identity: SenderIdentityRead | PlatformSenderIdentityRead) =>
+              "tenantName" in identity ? (
+                <div>
+                  <div>{identity.tenantName}</div>
+                  <div className="font-mono text-xs text-muted-foreground">
+                    {identity.tenantId}
+                  </div>
+                </div>
+              ) : (
+                identity.tenantId
+              ),
+          },
+        ]
+      : []),
+    {
+      id: "channel",
+      header: t("common.channel"),
+      cell: (identity) => <ChannelLabel channel={identity.channel} />,
+    },
+    {
+      id: "identity",
+      header: t("si.identity"),
+      cell: (identity) => (
+        <div>
+          <div className="font-medium">{senderIdentityReadPrimary(identity)}</div>
+          {(identity.displayName ||
+            (identity.channel === "whatsapp" &&
+              identity.whatsapp.businessDisplayName)) && (
+            <div className="text-caption text-muted-foreground">
+              {identity.displayName ??
+                (identity.channel === "whatsapp"
+                  ? identity.whatsapp.businessDisplayName
+                  : "")}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "verification",
+      header: t("si.verification"),
+      cell: (identity) => (
+        <StatusBadge status={identity.verificationStatus} />
+      ),
+    },
+    {
+      id: "operational",
+      header: t("si.operational"),
+      cell: (identity) => <StatusBadge status={identity.operationalStatus} />,
+    },
+    {
+      id: "updated",
+      header: t("si.updated"),
+      cell: (identity) => formatDateTime(identity.updatedAt, locale),
+      className: "hidden md:table-cell",
+    },
+  ];
+
+  return (
+    <>
+      <PageHeader
+        title={t("si.title")}
+        description={t("si.liveSubtitle")}
+      />
+      <PageBody>
+        <p className="text-sm text-muted-foreground" role="note">
+          {t("si.liveReadOnlyNotice")}
+        </p>
+        {isPlatform && !platformAllTenants && !canLoad ? (
+          <Section>
+            <div className="rounded-md border border-border p-6 text-sm text-muted-foreground">
+              {t("si.liveSelectTenant")}
+            </div>
+          </Section>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterSelect
+                label={t("common.channel")}
+                value={channelFilter}
+                onChange={(value) =>
+                  changeFilter(
+                    setChannelFilter,
+                    value as Channel | "all",
+                  )
+                }
+                options={[
+                  { value: "all", label: t("common.allChannels") },
+                  ...(["sms", "whatsapp", "email"] as const).map((item) => ({
+                    value: item,
+                    label: t(`channel.${item}`),
+                  })),
+                ]}
+              />
+              <FilterSelect
+                label={t("si.verification")}
+                value={verificationFilter}
+                onChange={(value) =>
+                  changeFilter(
+                    setVerificationFilter,
+                    value as SenderIdentityVerificationStatus | "all",
+                  )
+                }
+                options={[
+                  { value: "all", label: t("si.filterVerification") },
+                  ...(
+                    [
+                      "draft",
+                      "submitted",
+                      "pending_verification",
+                      "verified",
+                      "rejected",
+                    ] as const
+                  ).map((item) => ({
+                    value: item,
+                    label: t(`status.${item}` as MessageKey),
+                  })),
+                ]}
+              />
+              <FilterSelect
+                label={t("si.operational")}
+                value={operationalFilter}
+                onChange={(value) =>
+                  changeFilter(
+                    setOperationalFilter,
+                    value as SenderIdentityOperationalStatus | "all",
+                  )
+                }
+                options={[
+                  { value: "all", label: t("si.filterOperational") },
+                  ...(["inactive", "active", "suspended"] as const).map(
+                    (item) => ({
+                      value: item,
+                      label: t(`status.${item}` as MessageKey),
+                    }),
+                  ),
+                ]}
+              />
+            </div>
+            {identityQuery.isError && (
+              <div role="alert" className="flex items-center gap-3 text-sm text-danger">
+                <span>{t("si.loadError")}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void identityQuery.refetch()}
+                  disabled={identityQuery.isFetching}
+                >
+                  {identityQuery.isFetching
+                    ? t("si.liveLoading")
+                    : t("common.retry")}
+                </Button>
+              </div>
+            )}
+            <Section>
+              <DataTable
+                columns={columns}
+                rows={identityQuery.data?.items}
+                loading={identityQuery.isFetching}
+                rowKey={(identity) => identity.id}
+                onRowClick={(identity) =>
+                  setSelected({
+                    id: identity.id,
+                    tenantId: identity.tenantId,
+                    scope: scopeKey,
+                  })
+                }
+              />
+              {identityQuery.data && (
+                <ListPagination
+                  page={identityQuery.data.page}
+                  pageSize={identityQuery.data.pageSize}
+                  total={identityQuery.data.total}
+                  onPage={setPage}
+                  onPageSizeChange={(size) => {
+                    setPageSize(size as 10 | 20 | 50);
+                    setPage(1);
+                  }}
+                />
+              )}
+            </Section>
+          </>
+        )}
+      </PageBody>
+
+      <Sheet
+        open={!!selectedIdentity}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      >
+        <SheetContent dir={dir} className="overflow-y-auto sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>{t("si.identity")}</SheetTitle>
+            <SheetDescription>
+              {selectedIdentity?.id ?? ""}
+            </SheetDescription>
+          </SheetHeader>
+          {selectedIdentity &&
+            (detailQuery.isError ? (
+              <div role="alert" className="mt-6 flex items-center gap-3 text-sm text-danger">
+                <span>{t("si.loadError")}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void detailQuery.refetch()}
+                  disabled={detailQuery.isFetching}
+                >
+                  {detailQuery.isFetching
+                    ? t("si.liveLoading")
+                    : t("common.retry")}
+                </Button>
+              </div>
+            ) : detailQuery.isFetching ? (
+              <p className="mt-6 text-sm text-muted-foreground" role="status">
+                {t("si.liveLoading")}
+              </p>
+            ) : detailQuery.data ? (
+              <div className="mt-6 space-y-5">
+                <div className="flex flex-wrap gap-2">
+                  <ChannelLabel channel={detailQuery.data.channel} />
+                  <StatusBadge status={detailQuery.data.verificationStatus} />
+                  <StatusBadge status={detailQuery.data.operationalStatus} />
+                </div>
+                <dl className="grid gap-4 sm:grid-cols-2">
+                  <SenderIdentityReadDetails
+                    identity={detailQuery.data}
+                    t={t}
+                    locale={locale}
+                  />
+                </dl>
+              </div>
+            ) : (
+              <p className="mt-6 text-sm text-muted-foreground" role="status">
+                {t("si.detailUnavailable")}
+              </p>
+            ))}
+        </SheetContent>
+      </Sheet>
+    </>
+  );
+}
+
+function senderIdentityReadPrimary(identity: SenderIdentityRead): string {
+  if (identity.channel === "sms") return identity.sms.senderId;
+  if (identity.channel === "email") return identity.email.emailAddress;
+  return identity.whatsapp.phoneNumber;
+}
+
+function SenderIdentityReadDetails({
+  identity,
+  t,
+  locale,
+}: {
+  identity: SenderIdentityRead;
+  t: (key: MessageKey) => string;
+  locale: string;
+}) {
+  const field = (label: MessageKey, value: string | null) => (
+    <div className="min-w-0 space-y-1">
+      <dt className="text-xs text-muted-foreground">{t(label)}</dt>
+      <dd className="break-words text-sm">{value || "—"}</dd>
+    </div>
+  );
+  const check = (value: string) =>
+    t(`si.emailCheck.${value}` as MessageKey);
+  return (
+    <>
+      {identity.displayName && field("si.displayName", identity.displayName)}
+      {identity.channel === "sms" &&
+        field("si.countryCode", identity.sms.countryCode)}
+      {identity.channel === "email" && (
+        <>
+          {field("si.domain", identity.email.domain)}
+          {field(
+            "si.domainVerification",
+            check(identity.email.domainVerificationStatus),
+          )}
+          {field("si.spf", check(identity.email.spfStatus))}
+          {field("si.dkim", check(identity.email.dkimStatus))}
+        </>
+      )}
+      {identity.channel === "whatsapp" && (
+        <>
+          {field("si.businessDisplayName", identity.whatsapp.businessDisplayName)}
+          {field("si.countryCode", identity.whatsapp.countryCode)}
+          {field("si.wabaId", identity.whatsapp.wabaId)}
+          {field("si.phoneNumberId", identity.whatsapp.phoneNumberId)}
+        </>
+      )}
+      {field("si.created", formatDateTime(identity.createdAt, locale))}
+      {field("si.updated", formatDateTime(identity.updatedAt, locale))}
+      {identity.rejectionReason &&
+        field("si.rejectionReason", identity.rejectionReason)}
+      {identity.suspensionReason &&
+        field("si.suspensionReason", identity.suspensionReason)}
+    </>
+  );
 }

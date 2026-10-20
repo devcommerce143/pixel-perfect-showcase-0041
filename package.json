@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "node --experimental-strip-types --test src/lib/config/runtime.test.ts src/lib/api/http/client.test.ts src/lib/api/http/dashboard-mapper.test.ts src/lib/api/http/dashboard-messages-mapper.test.ts src/lib/api/http/dashboard-quota-mapper.test.ts src/lib/api/http/live-api.test.ts src/lib/api/dashboard-quota.test.ts src/lib/api/dashboard-recent.test.ts src/lib/api/dashboard-availability.test.ts src/lib/api/http/plan-mapper.test.ts src/lib/api/plans-catalog.test.ts src/lib/auth/profile.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/config/runtime.test.ts src/lib/api/http/client.test.ts src/lib/api/http/dashboard-mapper.test.ts src/lib/api/http/dashboard-messages-mapper.test.ts src/lib/api/http/dashboard-quota-mapper.test.ts src/lib/api/http/live-api.test.ts src/lib/api/dashboard-quota.test.ts src/lib/api/dashboard-recent.test.ts src/lib/api/dashboard-availability.test.ts src/lib/api/http/plan-mapper.test.ts src/lib/api/plans-catalog.test.ts src/lib/auth/profile.test.ts src/lib/api/http/sender-identity-mapper.test.ts",
     "format": "prettier --write ."
   },
   "overrides": {

@@ -1465,6 +1465,15 @@ export function createMockApi(): DolfConnectApi {
       });
       return paginate(rows.map(cloneSenderIdentity), query);
     },
+    async listSenderIdentityReadPage() {
+      throw new Error("Sender identity read DTOs are only used by the live integration.");
+    },
+    async listAllTenantSenderIdentityReadPage() {
+      throw new Error("Platform sender identity read DTOs are only used by the live integration.");
+    },
+    async getSenderIdentityRead() {
+      throw new Error("Sender identity read DTOs are only used by the live integration.");
+    },
     async getSenderIdentity(actor, id) {
       await delay();
       const identity = senderIdentities.find((item) => item.id === id);

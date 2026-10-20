@@ -59,6 +59,8 @@ import type {
   ProviderTestResult,
   SenderIdentity,
   SenderIdentityActor,
+  SenderIdentityRead,
+  PlatformSenderIdentityRead,
   SenderIdentityFilters,
   SenderIdentityInput,
   SenderIdentityVerificationStatus,
@@ -184,8 +186,11 @@ export interface DolfConnectApi {
   updatePlatformClient(actor: SenderIdentityActor, id: string, rateLimit: number): Promise<PlatformApiClient>;
   setPlatformClientStatus(actor: SenderIdentityActor, id: string, status: "active" | "revoked"): Promise<void>;
   listSenderIdentities(actor: SenderIdentityActor, query: SenderIdentityListQuery): Promise<Paginated<SenderIdentity>>;
+  listSenderIdentityReadPage(actor: SenderIdentityActor, query: SenderIdentityListQuery, tenantId?: string): Promise<Paginated<SenderIdentityRead>>;
+  listAllTenantSenderIdentityReadPage(actor: SenderIdentityActor, query: SenderIdentityListQuery): Promise<Paginated<PlatformSenderIdentityRead>>;
     /** Actor context is mock-only; HTTP implementations must derive tenant and role claims from authentication. */
   getSenderIdentity(actor: SenderIdentityActor, id: string): Promise<SenderIdentity | null>;
+  getSenderIdentityRead(actor: SenderIdentityActor, id: string, tenantId?: string): Promise<SenderIdentityRead | null>;
   listSendableSenderIdentities(actor: SenderIdentityActor, applicationId: string, channel: SendMessageInput["channel"]): Promise<SenderIdentity[]>;
   createSenderIdentity(actor: SenderIdentityActor, input: SenderIdentityInput): Promise<SenderIdentity>;
   updateSenderIdentity(actor: SenderIdentityActor, id: string, input: SenderIdentityInput): Promise<SenderIdentity>;

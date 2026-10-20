@@ -36,6 +36,12 @@ import {
   applicationDetailQueryKey,
   applicationPageQueryKey,
 } from "./application-query-keys";
+import {
+  allTenantSenderIdentityPageQueryKey,
+  senderIdentityDetailQueryKey,
+  senderIdentityPageQueryKey,
+  senderIdentityScopeIsAvailable,
+} from "./sender-identity-query-keys";
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
@@ -165,6 +171,50 @@ export const queries = {
   }),
   senderIdentities: (actor: SenderIdentityActor, query: SenderIdentityListQuery) =>
     queryOptions({ queryKey: ["senderIdentities", actor.role, actor.tenantId, query], queryFn: () => api.listSenderIdentities(actor, query), placeholderData: keepPreviousData }),
+  senderIdentityReadPage: (
+    actor: SenderIdentityActor,
+    query: SenderIdentityListQuery,
+    tenantId?: string,
+    enabled = true,
+  ) =>
+    queryOptions({
+      queryKey: senderIdentityPageQueryKey(actor, query, tenantId),
+      queryFn: () => api.listSenderIdentityReadPage(actor, query, tenantId),
+      enabled:
+        enabled &&
+        senderIdentityScopeIsAvailable(actor.role, tenantId),
+    }),
+  allTenantSenderIdentityReadPage: (
+    actor: SenderIdentityActor,
+    query: SenderIdentityListQuery,
+    enabled = true,
+  ) =>
+    queryOptions({
+      queryKey: allTenantSenderIdentityPageQueryKey(actor, query),
+      queryFn: () => {
+        if (actor.role !== "super_admin") {
+          throw new Error(
+            "Platform sender identities require a platform administrator.",
+          );
+        }
+        return api.listAllTenantSenderIdentityReadPage(actor, query);
+      },
+      enabled: enabled && actor.role === "super_admin",
+    }),
+  senderIdentityRead: (
+    actor: SenderIdentityActor,
+    id: string,
+    tenantId?: string,
+    enabled = true,
+  ) =>
+    queryOptions({
+      queryKey: senderIdentityDetailQueryKey(actor, id, tenantId),
+      queryFn: () => api.getSenderIdentityRead(actor, id, tenantId),
+      enabled:
+        enabled &&
+        !!id &&
+        senderIdentityScopeIsAvailable(actor.role, tenantId),
+    }),
   sendableSenderIdentities: (actor: SenderIdentityActor, applicationId: string, channel: Channel) =>
     queryOptions({ queryKey: ["sendableSenderIdentities", actor.role, actor.tenantId, applicationId, channel], enabled: !!applicationId, queryFn: () => api.listSendableSenderIdentities(actor, applicationId, channel) }),
   bulkJobs: (actor: SenderIdentityActor, query: BulkJobListQuery) => queryOptions({ queryKey: ["bulkJobs", actor.role, actor.tenantId, query], queryFn: () => api.listBulkJobs(actor, query), placeholderData: keepPreviousData }),

@@ -246,6 +246,58 @@ export interface EmailSenderIdentity extends SenderIdentityBase {
 
 export type SenderIdentity = SmsSenderIdentity | WhatsAppSenderIdentity | EmailSenderIdentity;
 
+export type SenderDomainCheckStatus = "not_configured" | "pending" | "verified" | "failed";
+export type SenderEmailAuthStatus = "not_configured" | "pending" | "verified" | "failed";
+
+interface SenderIdentityReadBase {
+  id: string;
+  tenantId: string;
+  displayName: string | null;
+  verificationStatus: SenderIdentityVerificationStatus;
+  operationalStatus: SenderIdentityOperationalStatus;
+  providerReference: string | null;
+  rejectionReason: string | null;
+  suspensionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SmsSenderIdentityRead extends SenderIdentityReadBase {
+  channel: "sms";
+  sms: { senderId: string; countryCode: string };
+}
+
+export interface EmailSenderIdentityRead extends SenderIdentityReadBase {
+  channel: "email";
+  email: {
+    emailAddress: string;
+    domain: string;
+    domainVerificationStatus: SenderDomainCheckStatus;
+    spfStatus: SenderEmailAuthStatus;
+    dkimStatus: SenderEmailAuthStatus;
+  };
+}
+
+export interface WhatsAppSenderIdentityRead extends SenderIdentityReadBase {
+  channel: "whatsapp";
+  whatsapp: {
+    businessDisplayName: string;
+    phoneNumber: string;
+    countryCode: string;
+    wabaId: string;
+    phoneNumberId: string;
+  };
+}
+
+export type SenderIdentityRead =
+  | SmsSenderIdentityRead
+  | EmailSenderIdentityRead
+  | WhatsAppSenderIdentityRead;
+
+export type PlatformSenderIdentityRead = SenderIdentityRead & {
+  tenantName: string;
+};
+
 export type SenderIdentityInput =
   | Pick<SmsSenderIdentity, "channel" | "identityValue" | "displayName" | "countryMarket" | "providerReference"> & { tenantId?: string }
   | Pick<WhatsAppSenderIdentity, "channel" | "identityValue" | "displayName" | "businessDisplayName" | "phoneNumber" | "countryCode" | "wabaId" | "phoneNumberId" | "providerReference"> & { tenantId?: string }
