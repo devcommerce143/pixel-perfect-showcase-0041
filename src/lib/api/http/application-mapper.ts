@@ -4,6 +4,7 @@ import type {
   Channel,
   Paginated,
   PlatformApplication,
+  ApplicationListQuery,
   Role,
 } from "../types.ts";
 
@@ -54,26 +55,50 @@ export function applicationListPath(
   page: number,
   pageSize: number,
   tenantId?: string,
+  query?: ApplicationListQuery,
 ): string {
   assertPagination(page, pageSize);
-  const base = role === "super_admin"
-    ? `/tenants/${encodeURIComponent(requireTenantId(tenantId))}/applications`
-    : "/applications";
-  return `${base}?${new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-  }).toString()}`;
+  const base =
+    role === "super_admin"
+      ? `/tenants/${encodeURIComponent(requireTenantId(tenantId))}/applications`
+      : "/applications";
+  return `${base}?${applicationQueryString(page, pageSize, query)}`;
 }
 
 export function platformApplicationListPath(
   page: number,
   pageSize: number,
+  query?: ApplicationListQuery,
 ): string {
   assertPagination(page, pageSize);
-  return `/platform/applications?${new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-  }).toString()}`;
+  return `/platform/applications?${applicationQueryString(page, pageSize, query)}`;
+}
+
+function applicationQueryString(page: number, pageSize: number, query?: ApplicationListQuery) {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (query?.search !== undefined) {
+    if (typeof query.search !== "string" || query.search.length > 120)
+      throw new ApplicationRequestError("Invalid application search");
+    if (query.search.trim()) params.set("search", query.search.trim());
+  }
+  const status = query?.filters?.status;
+  if (status && status !== "all") {
+    if (!Object.hasOwn(STATUSES, status.toUpperCase()))
+      throw new ApplicationRequestError("Invalid application status");
+    params.set("status", status.toUpperCase());
+  }
+  if (query?.sortBy !== undefined || query?.sortDirection !== undefined) {
+    const field = query.sortBy ?? "name",
+      direction = query.sortDirection ?? "asc";
+    if (
+      !["name", "status", "createdAt", "updatedAt"].includes(field) ||
+      !["asc", "desc"].includes(direction)
+    )
+      throw new ApplicationRequestError("Invalid application ordering");
+    params.set("sortBy", field);
+    params.set("sortDirection", direction);
+  }
+  return params.toString();
 }
 
 export function applicationDetailPath(
@@ -182,7 +207,12 @@ function requireTenantId(tenantId: string | undefined): string {
 }
 
 function assertPagination(page: number, pageSize: number): void {
-  if (!Number.isInteger(page) || page < 1) {
+  if (
+    !Number.isInteger(page) ||
+    page < 1 ||
+    !Number.isSafeInteger((page - 1) * pageSize) ||
+    (page - 1) * pageSize > 2147483647
+  ) {
     throw new ApplicationRequestError("Application page must be a positive integer.");
   }
   if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
@@ -200,7 +230,7 @@ function enumValue<const Values extends Record<string, string>>(
   if (typeof value !== "string" || !Object.hasOwn(values, value)) {
     throw new ApplicationResponseError(`Application ${field} is invalid.`);
   }
-  return values[value];
+  return values[value as keyof Values];
 }
 
 function array(value: unknown, field: string): unknown[] {
@@ -228,5 +258,5 @@ function record(value: unknown, field: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new ApplicationResponseError(`${field} response is invalid.`);
   }
-  return value;
+  return value as Record<string, unknown>;
 }

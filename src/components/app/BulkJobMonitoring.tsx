@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { BulkJobCancellation } from "./BulkJobCancellation";
 import { useState } from "react";
 import { DataTable, ListPagination, type Column } from "./DataTable";
 import { PageBody, PageHeader, Section } from "./PageHeader";
@@ -352,6 +353,7 @@ function BulkDetails({ actor, job }: { actor: SenderIdentityActor; job: BulkHist
             {formatNumber(detail.data.itemCount, locale)}
           </p>
           <p className="text-caption">{t("bulkHistory.acceptedHint")}</p>
+          <BulkJobCancellation actor={actor} job={detail.data} />
         </>
       )}
       <FilterSelect

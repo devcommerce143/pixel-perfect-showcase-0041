@@ -6,6 +6,9 @@ import { loadAuthoritativeProfile, mapBackendProfile } from "./profile.ts";
 
 function client(result: () => Promise<unknown>): HumanHttpClient {
   return {
+    getCsv: async () => {
+      throw new Error("Unexpected CSV request in profile test");
+    },
     get: <T>() => result() as Promise<T>,
     post: async <T>() => undefined as T,
     patch: async <T>() => undefined as T,

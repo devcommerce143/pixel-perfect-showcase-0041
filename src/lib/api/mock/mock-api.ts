@@ -619,7 +619,9 @@ export function createMockApi(): DolfConnectApi {
         rateLimit: input.rateLimit ?? null,
       };
       credentials.push(credential);
-      application.credentialCount += 1;
+      application.credentialCount = credentials.filter(
+        (item) => item.applicationId === application.id && item.tenantId === application.tenantId,
+      ).length;
       return { credential: { ...credential, scopes: [...credential.scopes] }, secret };
     },
     async rotateCredential(actor, id) {
@@ -1086,7 +1088,154 @@ export function createMockApi(): DolfConnectApi {
       };
       return result;
     },
+    async listAdministrativeAudit() {
+      throw new Error("Administrative audit requires live mode");
+    },
+    async listCredentialRegistry() {
+      throw new Error("Credential registry requires live mode");
+    },
+    async listWebhookRegistry() {
+      throw new Error("Live webhook registry is unavailable in mock mode");
+    },
+    async getWebhookRegistry() {
+      throw new Error("Live webhook registry is unavailable in mock mode");
+    },
+    async listWebhookDeliveries() {
+      throw new Error("Live webhook registry is unavailable in mock mode");
+    },
+    async applyWebhookRegistryMutation() {
+      throw new Error("Live webhook registry is unavailable in mock mode");
+    },
+    async applyLiveApplicationMutation() {
+      throw new Error("Live application mutation requires live mode");
+    },
+    async applyLiveSenderMutation() {
+      throw new Error("Live sender mutation requires live mode");
+    },
+    async downloadMonitoringCsv() {
+      throw new Error("Monitoring exports require live mode");
+    },
+    async getEmailEvidence() {
+      throw new Error("Email evidence requires live mode");
+    },
+    async recordEmailEvidence() {
+      throw new Error("Email evidence requires live mode");
+    },
+    async resolveUnknownMessage() {
+      throw new Error("UNKNOWN resolution requires live mode");
+    },
+    async getProviderAttempts() {
+      throw new Error("Recorded provider attempts require live mode");
+    },
+    async submitHumanMessage() {
+      throw new Error("Human message acceptance requires live mode");
+    },
+    async listCredentialMonitor() {
+      throw new Error("Credential monitoring requires live mode");
+    },
+    async getTenantPolicy() {
+      throw new Error("Tenant policy reads require live mode");
+    },
+    async getSmsPilotControl() {
+      throw new Error("Pilot control monitoring requires live mode");
+    },
+    async listProviderMonitoring() {
+      throw new Error("Provider monitoring requires live mode");
+    },
+    async getProviderObservedHealth() {
+      throw new Error("Provider monitoring requires live mode");
+    },
+    async applyProviderAccountMutation() {
+      throw new Error("Provider account mutations require live mode");
+    },
+    async listProviderRoutes() {
+      throw new Error("Provider routes require live mode");
+    },
+    async getProviderRoute() {
+      throw new Error("Provider routes require live mode");
+    },
+    async getTenantRouteAssignment() {
+      throw new Error("Provider routes require live mode");
+    },
+    async getSenderRouteAssignment() {
+      throw new Error("Provider routes require live mode");
+    },
+    async applyProviderRouteMutation() {
+      throw new Error("Provider routes require live mode");
+    },
+    async listSenderBindings() {
+      throw new Error("Sender bindings require live mode");
+    },
+    async getSenderBinding() {
+      throw new Error("Sender bindings require live mode");
+    },
+    async applySenderBindingMutation() {
+      throw new Error("Sender bindings require live mode");
+    },
+    async getProviderMetadata() {
+      throw new Error("Provider monitoring requires live mode");
+    },
+    async listProviderRecordedChecks() {
+      throw new Error("Provider monitoring requires live mode");
+    },
+    async getCredentialRegistry() {
+      throw new Error("Credential registry requires live mode");
+    },
+    async issueRegistryCredential() {
+      throw new Error("Credential registry requires live mode");
+    },
+    async rotateRegistryCredential() {
+      throw new Error("Credential registry requires live mode");
+    },
+    async revokeRegistryCredential() {
+      throw new Error("Credential registry requires live mode");
+    },
+    async getAdministrativeAudit() {
+      throw new Error("Administrative audit requires live mode");
+    },
+    async getAuditRetention() {
+      throw new Error("Administrative audit requires live mode");
+    },
+    async updateAuditRetention() {
+      throw new Error("Administrative audit requires live mode");
+    },
+    async getUsageReport() {
+      throw new Error("Usage report requires live mode");
+    },
+    async listTemplateRegistry() {
+      throw new Error("Registry API requires live mode");
+    },
+    async getTemplateRegistry() {
+      throw new Error("Registry API requires live mode");
+    },
+    async registerTemplate() {
+      throw new Error("Registry API requires live mode");
+    },
+    async changeTemplateRegistry() {
+      throw new Error("Registry API requires live mode");
+    },
+    async recordTemplateEvidence() {
+      throw new Error("Registry API requires live mode");
+    },
     async listBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
+    async cancelHumanBulkJob() {
+      throw new Error("Human bulk cancellation is available in live mode only");
+    },
+    async createHumanBulkJob() {
+      throw new Error("Human bulk creation requires live API mode");
+    },
+    async listContentTemplates() {
+      throw new Error("Content versions require live API mode");
+    },
+    async getContentTemplate() {
+      throw new Error("Content versions require live API mode");
+    },
+    async applyContentTemplateMutation() {
+      throw new Error("Content versions require live API mode");
+    },
+    async renderContentTemplate() {
+      throw new Error("Content versions require live API mode");
+    },
     async listAllTenantBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
     async getBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
     async listBulkJobHistoryItems() { throw new Error("Bulk monitoring is available in live mode only"); },

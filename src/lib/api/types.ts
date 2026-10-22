@@ -1,5 +1,6 @@
 /** Typed models mirroring the Dolf Connect API contract (presentation-layer view). */
 import type { Role } from "../auth/permissions";
+export type { Role } from "../auth/permissions";
 
 export type Channel = "sms" | "whatsapp" | "email";
 
@@ -136,6 +137,7 @@ export interface MessageHistoryDetail extends MessageHistoryItem {
 export interface MessageHistoryQuery {
   acceptedFrom: string;
   acceptedTo: string;
+  applicationId?: string;
   page: number;
   pageSize: number;
   channel?: Channel;

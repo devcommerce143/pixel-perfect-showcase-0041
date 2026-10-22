@@ -225,7 +225,10 @@ test("uses authenticated tenant routes and maps live list and detail responses",
 
   assert.equal(page.total, 21);
   assert.equal(detail?.id, applicationId);
-  assert.equal(requests[0], "https://api.example.test/api/v1/applications?page=2&pageSize=20");
+  assert.equal(
+    requests[0],
+    "https://api.example.test/api/v1/applications?page=2&pageSize=20&search=ignored&status=ACTIVE&sortBy=status&sortDirection=desc",
+  );
   assert.equal(requests[1], `https://api.example.test/api/v1/applications/${applicationId}`);
 });
 
@@ -277,7 +280,10 @@ test("uses the platform-wide applications endpoint with pagination", async () =>
     applicationDetailTenantId(true, undefined, rowTenantId),
   );
 
-  assert.equal(requests[0], "https://api.example.test/api/v1/platform/applications?page=2&pageSize=20");
+  assert.equal(
+    requests[0],
+    "https://api.example.test/api/v1/platform/applications?page=2&pageSize=20&search=not+sent&status=ACTIVE",
+  );
   assert.equal(requests[1], `https://api.example.test/api/v1/tenants/${tenantId}/applications/${applicationId}`);
   assert.equal(result.items[0]?.tenantId, tenantId);
   assert.equal(result.items[0]?.tenantName, "Tenant One");

@@ -1,3 +1,122 @@
+import { senderMutationRequest, mapSenderMutation } from "./sender-mutation-mapper.ts";
+import {
+  contentTemplateScope,
+  contentTemplatePath,
+  contentTemplateQuery,
+  contentTemplateMutation,
+  contentTemplateRenderBody,
+  mapContentTemplatePage,
+  mapContentTemplateDetail,
+  mapRenderedContent,
+} from "../content-template.ts";
+import { bulkCancellationPath, mapBulkCancellation } from "../bulk-cancellation.ts";
+import {
+  humanBulkPath,
+  humanBulkBody,
+  humanBulkCsvBody,
+  mapHumanBulkReceipt,
+} from "../human-bulk.ts";
+import { providerAttemptsPath, mapProviderAttempts } from "../provider-attempts.ts";
+import {
+  humanMessagePath,
+  humanMessageBody,
+  humanMessageIdempotencyKey,
+  mapHumanMessageAcceptance,
+} from "../human-message.ts";
+import {
+  unknownResolutionPath,
+  unknownResolutionBody,
+  mapUnknownResolution,
+} from "../unknown-resolution.ts";
+import { tenantPolicyPath, tenantPolicyScope } from "../tenant-policy.ts";
+import { credentialMonitorPath, mapCredentialMonitorPage } from "../credential-monitor.ts";
+import {
+  emailEvidencePath,
+  emailEvidenceBody,
+  mapEmailEvidencePage,
+  mapEmailEvidenceCurrent,
+} from "../email-evidence.ts";
+import { monitoringExportPath } from "./monitoring-export-mapper.ts";
+import {
+  senderBindingsPath,
+  senderBindingPath,
+  mapSenderBindingPage,
+  mapSenderBinding,
+  senderBindingMutationRequest,
+  mapSenderBindingMutation,
+} from "./sender-binding-mapper.ts";
+import {
+  providerRoutesPath,
+  providerRoutePath,
+  tenantRoutePath,
+  senderRoutePath,
+  mapProviderRoutePage,
+  mapProviderRoute,
+  mapTenantRouteAssignment,
+  mapSenderRouteAssignment,
+  providerRouteMutationRequest,
+  mapProviderRouteMutation,
+} from "./provider-route-mapper.ts";
+import {
+  providerAccountMutationRequest,
+  mapProviderAccountMutation,
+} from "./provider-account-mutation-mapper.ts";
+import {
+  providerMonitorPath,
+  providerMetadataPath,
+  providerChecksPath,
+  mapProviderHealthPage,
+  mapProviderMetadata,
+  mapProviderChecks,
+} from "./provider-monitoring-mapper.ts";
+import {
+  mapProviderHealth,
+  smsPilotControlPath,
+  mapSmsPilotControl,
+} from "./provider-monitoring-mapper.ts";
+import {
+  webhookBasePath,
+  webhookItemPath,
+  webhookHistoryQuery,
+  webhookMutationRequest,
+  mapRegisteredWebhooks,
+  mapRegisteredWebhook,
+  mapWebhookHistory,
+  mapWebhookMutation,
+} from "./webhook-registry-mapper.ts";
+import {
+  applicationMutationRequest,
+  mapMutatedApplication,
+} from "./application-mutation-mapper.ts";
+import {
+  credentialBasePath,
+  credentialItemPath,
+  credentialQueryString,
+  credentialIssueBody,
+  credentialRevokeBody,
+  mapCredentialMetadata,
+  mapCredentialRegistryPage,
+  mapIssuedRegistryCredential,
+} from "./credential-registry-mapper.ts";
+import {
+  auditBasePath,
+  auditDetailPath,
+  auditQueryString,
+  mapAdministrativeAudit,
+  mapAdministrativeAuditPage,
+  mapAuditRetention,
+  auditRetentionRequest,
+} from "./administrative-audit-mapper.ts";
+import { usageReportPath, mapUsageReport } from "./usage-report-mapper.ts";
+import {
+  registryPath,
+  registryItemPath,
+  registryQueryString,
+  mapRegistryTemplate,
+  mapRegistryPage,
+  registerTemplateRequest,
+  evidenceRequest,
+} from "./template-registry-mapper.ts";
 import {
   bulkHistoryPath,
   bulkHistoryQueryString,
@@ -93,8 +212,8 @@ const API_PLAN_STATUSES: Record<Plan["status"], "DRAFT" | "ACTIVE" | "INACTIVE" 
 };
 
 /**
- * Live portal API. Dashboard and plan catalog operations use the engine.
- * Every other operation still rejects with `LiveApiNotConnectedError`.
+ * Live portal API. Connected operations use the engine; unsupported operations
+ * reject with `LiveApiNotConnectedError` and never substitute mock data.
  * The request uses the shared human client, which attaches the current Bearer access token.
  */
 export function createLiveApi(options: {
@@ -113,6 +232,467 @@ export function createLiveApi(options: {
 
   return new Proxy(unavailable, {
     get(target, property, receiver) {
+      if (property === "listContentTemplates")
+        return async (
+          ...[actor, query, tenant]: Parameters<DolfConnectApi["listContentTemplates"]>
+        ) =>
+          mapContentTemplatePage(
+            await http.get(contentTemplatePath(actor, tenant) + contentTemplateQuery(query)),
+            contentTemplateScope(actor, tenant),
+            query,
+          );
+      if (property === "getContentTemplate")
+        return async (...[actor, id, tenant]: Parameters<DolfConnectApi["getContentTemplate"]>) =>
+          mapContentTemplateDetail(
+            await http.get(contentTemplatePath(actor, tenant, id)),
+            contentTemplateScope(actor, tenant),
+            id,
+          );
+      if (property === "applyContentTemplateMutation")
+        return async (
+          ...[actor, operation, tenant]: Parameters<DolfConnectApi["applyContentTemplateMutation"]>
+        ) => {
+          const request = contentTemplateMutation(actor, operation, tenant);
+          return mapContentTemplateDetail(
+            await http.post(request.path, request.body),
+            contentTemplateScope(actor, tenant),
+            operation.kind === "create" ? undefined : operation.id,
+          );
+        };
+      if (property === "renderContentTemplate")
+        return async (
+          ...[actor, id, parameters, tenant]: Parameters<DolfConnectApi["renderContentTemplate"]>
+        ) =>
+          mapRenderedContent(
+            await http.post(
+              contentTemplatePath(actor, tenant, id) + "/render",
+              contentTemplateRenderBody(parameters),
+            ),
+            id,
+          );
+      if (property === "createHumanBulkJob")
+        return async (
+          ...[actor, app, input, key, tenant]: Parameters<DolfConnectApi["createHumanBulkJob"]>
+        ) =>
+          mapHumanBulkReceipt(
+            await http.post(
+              humanBulkPath(actor, app, tenant) + ("csv" in input ? "/csv" : ""),
+              "csv" in input ? humanBulkCsvBody(input) : humanBulkBody(input),
+              {
+                idempotencyKey: humanMessageIdempotencyKey(key),
+              },
+            ),
+            actor,
+            app,
+            tenant,
+          );
+      if (property === "cancelHumanBulkJob")
+        return async (...[actor, selection]: Parameters<DolfConnectApi["cancelHumanBulkJob"]>) =>
+          mapBulkCancellation(
+            await http.post(bulkCancellationPath(actor, selection), { confirm: true }),
+            selection,
+          );
+      if (property === "listSenderBindings")
+        return async (...[actor, query]: Parameters<DolfConnectApi["listSenderBindings"]>) =>
+          mapSenderBindingPage(await http.get(senderBindingsPath(actor, query)), query);
+      if (property === "getSenderBinding")
+        return async (
+          ...[actor, id, tenant, account]: Parameters<DolfConnectApi["getSenderBinding"]>
+        ) => mapSenderBinding(await http.get(senderBindingPath(actor, id)), tenant, account, id);
+      if (property === "applySenderBindingMutation")
+        return async (
+          ...[actor, operation]: Parameters<DolfConnectApi["applySenderBindingMutation"]>
+        ) => {
+          const request = senderBindingMutationRequest(actor, operation);
+          return mapSenderBindingMutation(await http.post(request.path, request.body), operation);
+        };
+      if (property === "listProviderRoutes")
+        return async (...[actor, query]: Parameters<DolfConnectApi["listProviderRoutes"]>) =>
+          mapProviderRoutePage(await http.get(providerRoutesPath(actor, query)), query);
+      if (property === "getProviderRoute")
+        return async (...[actor, id]: Parameters<DolfConnectApi["getProviderRoute"]>) =>
+          mapProviderRoute(await http.get(providerRoutePath(actor, id)), id);
+      if (property === "getTenantRouteAssignment")
+        return async (
+          ...[actor, tenant, channel]: Parameters<DolfConnectApi["getTenantRouteAssignment"]>
+        ) => {
+          try {
+            return mapTenantRouteAssignment(
+              await http.get(tenantRoutePath(actor, tenant, channel)),
+              tenant,
+              channel,
+            );
+          } catch (error) {
+            if (error instanceof ApiError && error.statusCode === 404) return null;
+            throw error;
+          }
+        };
+      if (property === "getSenderRouteAssignment")
+        return async (
+          ...[actor, tenant, sender]: Parameters<DolfConnectApi["getSenderRouteAssignment"]>
+        ) => {
+          try {
+            return mapSenderRouteAssignment(
+              await http.get(senderRoutePath(actor, tenant, sender)),
+              tenant,
+              sender,
+            );
+          } catch (error) {
+            if (error instanceof ApiError && error.statusCode === 404) return null;
+            throw error;
+          }
+        };
+      if (property === "applyProviderRouteMutation")
+        return async (
+          ...[actor, operation]: Parameters<DolfConnectApi["applyProviderRouteMutation"]>
+        ) => {
+          const request = providerRouteMutationRequest(actor, operation);
+          return mapProviderRouteMutation(await http.post(request.path, request.body), operation);
+        };
+      if (property === "applyProviderAccountMutation")
+        return async (
+          ...[actor, operation]: Parameters<DolfConnectApi["applyProviderAccountMutation"]>
+        ) => {
+          const request = providerAccountMutationRequest(actor, operation);
+          return mapProviderAccountMutation(await http.post(request.path, request.body), operation);
+        };
+      if (property === "getProviderObservedHealth")
+        return async (...[actor, id]: Parameters<DolfConnectApi["getProviderObservedHealth"]>) => {
+          const result = mapProviderHealth(
+            await http.get(`${providerMetadataPath(actor, id)}/health`),
+          );
+          if (result.providerAccountId !== id) throw new Error("Provider health account mismatch");
+          return result;
+        };
+      if (property === "getEmailEvidence")
+        return async (
+          ...[actor, tenant, sender, page]: Parameters<DolfConnectApi["getEmailEvidence"]>
+        ) =>
+          mapEmailEvidencePage(
+            await http.get(emailEvidencePath(actor, tenant, sender, page)),
+            tenant,
+            sender,
+            page,
+          );
+      if (property === "getProviderAttempts")
+        return async (
+          ...[actor, tenant, message]: Parameters<DolfConnectApi["getProviderAttempts"]>
+        ) =>
+          mapProviderAttempts(
+            await http.get(providerAttemptsPath(actor, tenant, message)),
+            message,
+          );
+      if (property === "submitHumanMessage")
+        return async (
+          ...[actor, app, input, key, tenant]: Parameters<DolfConnectApi["submitHumanMessage"]>
+        ) =>
+          mapHumanMessageAcceptance(
+            await http.post(humanMessagePath(actor, app, tenant), humanMessageBody(input), {
+              idempotencyKey: humanMessageIdempotencyKey(key),
+            }),
+            input.channel,
+          );
+      if (property === "resolveUnknownMessage")
+        return async (
+          ...[actor, tenant, message, input]: Parameters<DolfConnectApi["resolveUnknownMessage"]>
+        ) =>
+          mapUnknownResolution(
+            await http.post(
+              unknownResolutionPath(actor, tenant, message),
+              unknownResolutionBody(input),
+            ),
+            message,
+            input.decision,
+          );
+      if (property === "recordEmailEvidence")
+        return async (
+          ...[actor, tenant, sender, input]: Parameters<DolfConnectApi["recordEmailEvidence"]>
+        ) =>
+          mapEmailEvidenceCurrent(
+            await http.post(emailEvidencePath(actor, tenant, sender), emailEvidenceBody(input)),
+            tenant,
+            sender,
+            input,
+          );
+      if (property === "listCredentialMonitor")
+        return async (...[actor, query]: Parameters<DolfConnectApi["listCredentialMonitor"]>) =>
+          mapCredentialMonitorPage(await http.get(credentialMonitorPath(actor, query)), query);
+      if (property === "getTenantPolicy")
+        return async (...[actor, tenant]: Parameters<DolfConnectApi["getTenantPolicy"]>) =>
+          mapTenantSubscriptionView(
+            await http.get(tenantPolicyPath(actor, tenant)),
+            tenantPolicyScope(actor, tenant),
+          );
+      if (property === "getSmsPilotControl")
+        return async (...[actor]: Parameters<DolfConnectApi["getSmsPilotControl"]>) =>
+          mapSmsPilotControl(await http.get(smsPilotControlPath(actor)));
+      if (property === "listProviderMonitoring")
+        return async (...[actor, query]: Parameters<DolfConnectApi["listProviderMonitoring"]>) =>
+          mapProviderHealthPage(await http.get(providerMonitorPath(actor, query)), query);
+      if (property === "getProviderMetadata")
+        return async (...[actor, id]: Parameters<DolfConnectApi["getProviderMetadata"]>) =>
+          mapProviderMetadata(await http.get(providerMetadataPath(actor, id)), id);
+      if (property === "listProviderRecordedChecks")
+        return async (
+          ...[actor, id, query]: Parameters<DolfConnectApi["listProviderRecordedChecks"]>
+        ) => mapProviderChecks(await http.get(providerChecksPath(actor, id, query)), id, query);
+      if (property === "downloadMonitoringCsv")
+        return async (
+          ...[actor, request, tenant]: Parameters<DolfConnectApi["downloadMonitoringCsv"]>
+        ) => http.getCsv(monitoringExportPath(actor, request, tenant));
+      if (property === "applyLiveSenderMutation")
+        return async (
+          ...[actor, operation, tenant]: Parameters<DolfConnectApi["applyLiveSenderMutation"]>
+        ) => {
+          const request = senderMutationRequest(actor, operation, tenant);
+          return mapSenderMutation(
+            await http.post(request.path, request.body),
+            actor,
+            operation,
+            tenant,
+          );
+        };
+      if (property === "listWebhookRegistry")
+        return async (...[actor, app, tenant]: Parameters<DolfConnectApi["listWebhookRegistry"]>) =>
+          mapRegisteredWebhooks(await http.get(webhookBasePath(actor, app, tenant)), app);
+      if (property === "getWebhookRegistry")
+        return async (
+          ...[actor, app, id, tenant]: Parameters<DolfConnectApi["getWebhookRegistry"]>
+        ) => mapRegisteredWebhook(await http.get(webhookItemPath(actor, app, id, tenant)), app, id);
+      if (property === "listWebhookDeliveries")
+        return async (
+          ...[actor, app, id, query, tenant]: Parameters<DolfConnectApi["listWebhookDeliveries"]>
+        ) =>
+          mapWebhookHistory(
+            await http.get(
+              `${webhookItemPath(actor, app, id, tenant)}/deliveries?${webhookHistoryQuery(query)}`,
+            ),
+            query,
+          );
+      if (property === "applyWebhookRegistryMutation")
+        return async (
+          ...[actor, app, operation, tenant]: Parameters<
+            DolfConnectApi["applyWebhookRegistryMutation"]
+          >
+        ) => {
+          const request = webhookMutationRequest(actor, app, operation, tenant);
+          const result =
+            request.method === "delete"
+              ? await http.delete(request.path)
+              : await http[request.method](request.path, request.body);
+          return mapWebhookMutation(result, app, operation);
+        };
+      if (property === "applyLiveApplicationMutation") {
+        return async (
+          ...[actor, operation, tenantId]: Parameters<
+            DolfConnectApi["applyLiveApplicationMutation"]
+          >
+        ) => {
+          const request = applicationMutationRequest(actor, operation, tenantId);
+          return mapMutatedApplication(
+            await http[request.method](request.path, request.body),
+            actor,
+            operation,
+            tenantId,
+          );
+        };
+      }
+      if (property === "listCredentialRegistry") {
+        return async (
+          ...[actor, applicationId, query, tenantId]: Parameters<
+            DolfConnectApi["listCredentialRegistry"]
+          >
+        ) =>
+          mapCredentialRegistryPage(
+            await http.get(
+              `${credentialBasePath(actor, applicationId, tenantId)}?${credentialQueryString(query)}`,
+            ),
+            actor,
+            applicationId,
+            query,
+            tenantId,
+          );
+      }
+      if (property === "getCredentialRegistry") {
+        return async (
+          ...[actor, applicationId, id, tenantId]: Parameters<
+            DolfConnectApi["getCredentialRegistry"]
+          >
+        ) =>
+          mapCredentialMetadata(
+            await http.get(credentialItemPath(actor, applicationId, id, tenantId)),
+            actor,
+            applicationId,
+            tenantId,
+            id,
+          );
+      }
+      if (property === "issueRegistryCredential") {
+        return async (
+          ...[actor, applicationId, input, tenantId]: Parameters<
+            DolfConnectApi["issueRegistryCredential"]
+          >
+        ) =>
+          mapIssuedRegistryCredential(
+            await http.post(
+              credentialBasePath(actor, applicationId, tenantId),
+              credentialIssueBody(input),
+            ),
+            actor,
+            applicationId,
+            tenantId,
+          );
+      }
+      if (property === "rotateRegistryCredential") {
+        return async (
+          ...[actor, applicationId, id, input, tenantId]: Parameters<
+            DolfConnectApi["rotateRegistryCredential"]
+          >
+        ) =>
+          mapIssuedRegistryCredential(
+            await http.post(
+              `${credentialItemPath(actor, applicationId, id, tenantId)}/rotate`,
+              credentialIssueBody(input),
+            ),
+            actor,
+            applicationId,
+            tenantId,
+            id,
+          );
+      }
+      if (property === "revokeRegistryCredential") {
+        return async (
+          ...[actor, applicationId, id, reason, tenantId]: Parameters<
+            DolfConnectApi["revokeRegistryCredential"]
+          >
+        ) =>
+          mapCredentialMetadata(
+            await http.post(
+              `${credentialItemPath(actor, applicationId, id, tenantId)}/revoke`,
+              credentialRevokeBody(reason),
+            ),
+            actor,
+            applicationId,
+            tenantId,
+            id,
+          );
+      }
+      if (property === "listAdministrativeAudit") {
+        return async (
+          actor: Parameters<DolfConnectApi["listAdministrativeAudit"]>[0],
+          query: Parameters<DolfConnectApi["listAdministrativeAudit"]>[1],
+          tenantId?: string,
+        ) =>
+          mapAdministrativeAuditPage(
+            await http.get(`${auditBasePath(actor, tenantId)}?${auditQueryString(query)}`),
+            query,
+            actor.role === "super_admin" ? tenantId : (actor.tenantId ?? undefined),
+          );
+      }
+      if (property === "getAdministrativeAudit") {
+        return async (
+          actor: Parameters<DolfConnectApi["getAdministrativeAudit"]>[0],
+          id: string,
+          tenantId?: string,
+        ) => {
+          const row = mapAdministrativeAudit(
+            await http.get(auditDetailPath(actor, id, tenantId)),
+            actor.role === "super_admin" ? tenantId : (actor.tenantId ?? undefined),
+          );
+          if (row.id !== id) throw new Error("Audit detail identity mismatch");
+          return row;
+        };
+      }
+      if (property === "getAuditRetention") {
+        return async (actor: Parameters<DolfConnectApi["getAuditRetention"]>[0]) => {
+          if (actor.role !== "super_admin") throw new Error("Platform context required");
+          return mapAuditRetention(await http.get("/platform/audit-retention"));
+        };
+      }
+      if (property === "updateAuditRetention") {
+        return async (actor: Parameters<DolfConnectApi["updateAuditRetention"]>[0], days: number) =>
+          mapAuditRetention(
+            await http.patch("/platform/audit-retention", auditRetentionRequest(actor, days)),
+          );
+      }
+      if (property === "getUsageReport") {
+        return async (
+          actor: Parameters<DolfConnectApi["getUsageReport"]>[0],
+          range: Parameters<DolfConnectApi["getUsageReport"]>[1],
+          tenantId?: string,
+        ) => mapUsageReport(await http.get(usageReportPath(actor, range, tenantId)), range);
+      }
+      if (property === "listTemplateRegistry") {
+        return async (
+          actor: Parameters<DolfConnectApi["listTemplateRegistry"]>[0],
+          query: Parameters<DolfConnectApi["listTemplateRegistry"]>[1],
+          tenantId?: string,
+        ) =>
+          mapRegistryPage(
+            await http.get(`${registryPath(actor, tenantId)}?${registryQueryString(query)}`),
+            actor,
+            tenantId,
+          );
+      }
+      if (property === "getTemplateRegistry") {
+        return async (
+          actor: Parameters<DolfConnectApi["getTemplateRegistry"]>[0],
+          id: string,
+          tenantId?: string,
+        ) =>
+          mapRegistryTemplate(
+            await http.get(registryItemPath(actor, id, tenantId)),
+            actor,
+            tenantId,
+            id,
+          );
+      }
+      if (property === "registerTemplate") {
+        return async (
+          actor: Parameters<DolfConnectApi["registerTemplate"]>[0],
+          input: Parameters<DolfConnectApi["registerTemplate"]>[1],
+          tenantId?: string,
+        ) =>
+          mapRegistryTemplate(
+            await http.post(registryPath(actor, tenantId), registerTemplateRequest(input)),
+            actor,
+            tenantId,
+          );
+      }
+      if (property === "changeTemplateRegistry") {
+        return async (
+          actor: Parameters<DolfConnectApi["changeTemplateRegistry"]>[0],
+          id: string,
+          action: "ready" | "retire",
+          tenantId?: string,
+        ) => {
+          if (action !== "ready" && action !== "retire")
+            throw new Error("Invalid template registry action");
+          return mapRegistryTemplate(
+            await http.post(`${registryItemPath(actor, id, tenantId)}/${action}`, {}),
+            actor,
+            tenantId,
+            id,
+          );
+        };
+      }
+      if (property === "recordTemplateEvidence") {
+        return async (
+          actor: Parameters<DolfConnectApi["recordTemplateEvidence"]>[0],
+          id: string,
+          input: Parameters<DolfConnectApi["recordTemplateEvidence"]>[2],
+          tenantId?: string,
+        ) =>
+          mapRegistryTemplate(
+            await http.post(
+              `${registryItemPath(actor, id, tenantId)}/evidence`,
+              evidenceRequest(actor, input),
+            ),
+            actor,
+            tenantId,
+            id,
+          );
+      }
       if (property === "listBulkJobHistory") {
         return async (
           actor: Parameters<DolfConnectApi["listBulkJobHistory"]>[0],
@@ -247,6 +827,7 @@ export function createLiveApi(options: {
                 query.page ?? 1,
                 query.pageSize ?? 20,
                 actor.role === "super_admin" ? tenantId : undefined,
+                query,
               ),
             ),
           );
@@ -263,10 +844,7 @@ export function createLiveApi(options: {
           }
           return mapPlatformApplicationPage(
             await http.get(
-              platformApplicationListPath(
-                query.page ?? 1,
-                query.pageSize ?? 20,
-              ),
+              platformApplicationListPath(query.page ?? 1, query.pageSize ?? 20, query),
             ),
           );
         };

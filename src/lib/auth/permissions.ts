@@ -10,15 +10,20 @@ export type Permission =
   | "messages.view"
   | "messages.send"
   | "messages.bulk.monitor"
+  | "messages.bulk.cancel"
+  | "messages.bulk.create"
   | "messages.bulk"
   | "templates.view"
   | "templates.manage"
+  | "platform.templates.manage"
   | "apps.view"
   | "apps.manage"
   | "credentials.view"
   | "credentials.manage"
+  | "platform.credentials.manage"
   | "webhooks.view"
   | "webhooks.manage"
+  | "platform.webhooks.manage"
   | "users.manage"
   | "settings.manage"
   | "reports.view"
@@ -42,12 +47,16 @@ export type Permission =
   | "platform.apiClients.manage"
   | "platform.config"
   | "platform.config.manage"
+  | "platform.messages.resolveUnknown"
+  | "platform.messages.submit"
   | "senderIdentities.view"
   | "senderIdentities.request"
   | "platform.senderIdentities"
   | "platform.senderIdentities.manage";
 
 const CLIENT_ADMIN: Permission[] = [
+  "messages.bulk.cancel",
+  "messages.bulk.create",
   "dashboard.view",
   "messages.view",
   "messages.bulk.monitor",
@@ -75,6 +84,14 @@ const CLIENT_ADMIN: Permission[] = [
 
 export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   super_admin: new Set<Permission>([
+    "messages.bulk.cancel",
+    "messages.bulk.create",
+    "platform.messages.submit",
+    "platform.messages.resolveUnknown",
+    "webhooks.view",
+    "platform.webhooks.manage",
+    "platform.credentials.manage",
+    "platform.templates.manage",
     "dashboard.view",
     "messages.view",
     "messages.bulk.monitor",
@@ -110,6 +127,8 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   ]),
   client_admin: new Set(CLIENT_ADMIN),
   operator: new Set<Permission>([
+    "messages.bulk.cancel",
+    "messages.bulk.create",
     "dashboard.view",
     "messages.view",
     "messages.bulk.monitor",

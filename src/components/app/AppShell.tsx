@@ -33,9 +33,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader collapsed={collapsed} onToggleCollapse={toggle} onOpenMobile={() => setMobileOpen(true)} />
-        <div role="status" className="border-b bg-surface-subtle px-4 py-2 text-xs text-muted-foreground">
-          {t(mode === "mock" ? "mode.mockBanner" : "mode.liveBanner")}
-        </div>
+        {mode === "mock" && (
+          <div
+            role="status"
+            className="border-b bg-surface-subtle px-4 py-2 text-xs text-muted-foreground"
+          >
+            {t("mode.mockBanner")}
+          </div>
+        )}
         <main className="flex-1">{children}</main>
       </div>
     </div>

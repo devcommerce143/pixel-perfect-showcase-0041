@@ -5,7 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useI18n, type MessageKey } from "@/lib/i18n/i18n";
-import type { MessageHistoryDetail } from "@/lib/api/types";
+import type { MessageHistoryDetail, SenderIdentityActor } from "@/lib/api/types";
+import { unknownResolutionAvailable, unknownResolutionKey } from "@/lib/api/unknown-resolution";
+import { UnknownResolutionPanel } from "./UnknownResolutionPanel";
+import { ProviderAttemptHistory } from "./ProviderAttemptHistory";
+import { providerAttemptsKey } from "@/lib/api/provider-attempts";
+import { roleHas } from "@/lib/auth/permissions";
 import { formatDateTime } from "@/lib/format";
 import type { ReactNode } from "react";
 
@@ -20,7 +25,15 @@ function Field({ label, children, mono }: { label: string; children: ReactNode; 
   );
 }
 
-export function MessageHistoryDetailLive({ message }: { message: MessageHistoryDetail }) {
+export function MessageHistoryDetailLive({
+  message,
+  actor,
+  tenantId,
+}: {
+  message: MessageHistoryDetail;
+  actor: SenderIdentityActor;
+  tenantId: string | undefined;
+}) {
   const { t, locale } = useI18n();
   const timeline = [
     { status: "accepted", at: message.acceptedAt },
@@ -92,6 +105,14 @@ export function MessageHistoryDetailLive({ message }: { message: MessageHistoryD
             </Section>
           </div>
           <div className="flex flex-col gap-4 xl:col-span-2">
+            {tenantId && unknownResolutionAvailable(actor, tenantId, message) && (
+              <UnknownResolutionPanel
+                key={JSON.stringify(unknownResolutionKey(actor, tenantId, message.id))}
+                actor={actor}
+                tenantId={tenantId}
+                messageId={message.id}
+              />
+            )}
             <Section title={t("msg.historyAttempts")}>
               {message.attempts.length ? (
                 <ol className="divide-y">
@@ -150,6 +171,14 @@ export function MessageHistoryDetailLive({ message }: { message: MessageHistoryD
             </Section>
           </div>
         </div>
+        {tenantId && roleHas(actor.role, "platform.providers") && (
+          <ProviderAttemptHistory
+            key={JSON.stringify(providerAttemptsKey(actor, tenantId, message.id))}
+            actor={actor}
+            tenantId={tenantId}
+            messageId={message.id}
+          />
+        )}
       </PageBody>
     </>
   );

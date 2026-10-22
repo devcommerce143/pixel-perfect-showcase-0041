@@ -34,11 +34,25 @@ import { useI18n } from "@/lib/i18n/i18n";
 import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { pageHead } from "@/lib/seo";
 import { cn } from "@/lib/utils";
+import {
+  LiveApplicationActions,
+  ApplicationCredentialsLink,
+} from "@/components/app/LiveApplicationActions";
 
 export const Route = createFileRoute("/applications")({
   head: () => pageHead("Applications", "Systems integrated with Dolf Connect through secured APIs, with enabled channels and credentials."),
-  component: () => <RequirePermission permission="apps.view"><Applications /></RequirePermission>,
+  component: ApplicationsRoute,
 });
+
+function ApplicationsRoute() {
+  const { user } = useSession();
+  const { tenantId } = useGlobalTenantContext();
+  return (
+    <RequirePermission permission="apps.view">
+      <Applications key={`${user?.id}:${user?.role}:${user?.tenantId}:${tenantId}`} />
+    </RequirePermission>
+  );
+}
 
 function Applications() {
   const { t, locale, dir } = useI18n();
@@ -62,7 +76,7 @@ function Applications() {
   const applicationsQuery = useQuery(queries.applicationsPage(
     actor,
     isLive
-      ? { page, pageSize }
+        ? { page, pageSize, search, filters: { status }, sortBy, sortDirection }
       : { page, pageSize, search, filters: { status, ...(scopedTenantId ? { tenantId: scopedTenantId } : {}) }, sortBy, sortDirection },
     selectedTenantId ?? undefined,
     !isLive || !platformAllTenants,
@@ -70,7 +84,7 @@ function Applications() {
   ));
   const allTenantApplicationsQuery = useQuery(queries.allTenantApplicationsPage(
     actor,
-    { page, pageSize },
+      { page, pageSize, search, filters: { status }, sortBy, sortDirection },
     isLive && platformAllTenants,
   ));
   const [open, setOpen] = useState(false);
@@ -106,7 +120,10 @@ function Applications() {
   ));
   const displayedApplication = isLive
     ? applicationDetailQuery.data && selected
-      ? { ...applicationDetailQuery.data, tenantName: selected.tenantName }
+      ? {
+          ...applicationDetailQuery.data,
+          ...(selected.tenantName ? { tenantName: selected.tenantName } : {}),
+        }
       : applicationDetailQuery.data
     : selected;
   const activeApplicationsQuery = isLive && platformAllTenants
@@ -168,31 +185,133 @@ function Applications() {
     save.mutate();
   };
   const columns: Column<Application>[] = [
-    { id: "name", header: isLive ? t("common.name") : <SortableHeader label={t("common.name")} field="name" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("name")} />, cell: (a) => (<div><div className="font-medium">{a.name}</div><div className="font-mono text-xs text-muted-foreground">{a.id}</div></div>) },
+    {
+      id: "name",
+      header: (
+        <SortableHeader
+          label={t("common.name")}
+          field="name"
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSort={() => toggleSort("name")}
+        />
+      ),
+      cell: (a) => (
+        <div>
+          <div className="font-medium">{a.name}</div>
+          <div className="font-mono text-xs text-muted-foreground">{a.id}</div>
+        </div>
+      ),
+    },
     ...(isPlatform && platformAllTenants ? [{ id: "tenant", header: t("common.tenant"), cell: (a: Application) => <div><div>{a.tenantName ?? tenantNames.get(a.tenantId) ?? a.tenantId}</div><div className="font-mono text-xs text-muted-foreground">{a.tenantId}</div></div>, className: "hidden lg:table-cell" }] : []),
     { id: "env", header: t("common.environment"), cell: (a) => (
       <span className={cn("rounded-sm border px-1.5 py-0.5 text-xs font-medium", a.environment === "production" ? "border-primary/30 text-primary" : "text-muted-foreground")}>
         {t(a.environment === "production" ? "common.production" : "common.sandbox")}
       </span>) },
     { id: "channels", header: t("apps.channels"), cell: (a) => <div className="flex flex-wrap gap-3">{a.channels.map((c) => <ChannelLabel key={c} channel={c} />)}</div>, className: "hidden lg:table-cell" },
-    { id: "creds", header: t("apps.apiCredentials"), cell: (a) => <span className="tabular-nums">{typeof a.credentialCount === "number" ? a.credentialCount : t("apps.notAvailable")}</span> },
-    { id: "status", header: isLive ? t("common.status") : <SortableHeader label={t("common.status")} field="status" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("status")} />, cell: (a) => <StatusBadge status={a.status} /> },
-    { id: "last", header: isLive ? t("apps.lastActivity") : <SortableHeader label={t("apps.lastActivity")} field="lastActivityAt" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("lastActivityAt")} />, cell: (a) => <span className="text-muted-foreground tabular-nums">{a.lastActivityAt ? formatDateTime(a.lastActivityAt, locale) : t("apps.notAvailable")}</span> },
+    ...(!isLive
+      ? [
+          {
+            id: "creds",
+            header: t("apps.apiCredentials"),
+            cell: (a: Application) => (
+              <span className="tabular-nums">
+                {typeof a.credentialCount === "number" ? a.credentialCount : t("apps.notAvailable")}
+              </span>
+            ),
+          },
+        ]
+      : []),
+    {
+      id: "status",
+      header: (
+        <SortableHeader
+          label={t("common.status")}
+          field="status"
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          onSort={() => toggleSort("status")}
+        />
+      ),
+      cell: (a) => <StatusBadge status={a.status} />,
+    },
+    ...(isLive
+      ? [
+          {
+            id: "created",
+            header: (
+              <SortableHeader
+                label={t("apps.createdAt")}
+                field="createdAt"
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+                onSort={() => toggleSort("createdAt")}
+              />
+            ),
+            cell: (a: Application) => (
+              <span className="tabular-nums">{formatDateTime(a.createdAt, locale)}</span>
+            ),
+          },
+        ]
+      : [
+          {
+            id: "last",
+            header: (
+              <SortableHeader
+                label={t("apps.lastActivity")}
+                field="lastActivityAt"
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+                onSort={() => toggleSort("lastActivityAt")}
+              />
+            ),
+            cell: (a: Application) => (
+              <span className="text-muted-foreground tabular-nums">
+                {a.lastActivityAt
+                  ? formatDateTime(a.lastActivityAt, locale)
+                  : t("apps.notAvailable")}
+              </span>
+            ),
+          },
+        ]),
   ];
   return (
     <>
       <PageHeader title={t("apps.title")} description={t("apps.subtitle")}
-        actions={canManageApplications && <Button size="sm" onClick={openCreate}><Plus className="size-4" />{t("apps.new")}</Button>} />
+        actions={
+          isLive ? (
+            <LiveApplicationActions
+              tenantId={selectedTenantId}
+              onSaved={(application) => {
+                setSelected(application);
+                setSelectedScopeKey(currentApplicationScopeKey);
+              }}
+            />
+          ) : (
+            canManageApplications && (
+              <Button size="sm" onClick={openCreate}>
+                <Plus className="size-4" />
+                {t("apps.new")}
+              </Button>
+            )
+          )
+        }
+      />
       <PageBody><Section>
-        {isLive && <div role="status" className="border-b px-4 py-3 text-caption">{t("apps.liveReadOnly")}</div>}
         {isLive && platformAllTenants && <div role="status" className="border-b px-4 py-3 text-caption">{t("apps.allTenantApplicationsNote")}</div>}
         {platformAllTenants && !isLive ? (
           <EmptyState title={t("ten.selectTenant")} body={t("apps.selectTenantForApplications")} />
         ) : (
           <>
-            {isLive
-              ? <div role="status" className="border-b px-4 py-3 text-caption">{t("apps.liveListLimit")}</div>
-              : <TableToolbar search={search} onSearch={(value) => { setSearch(value); setPage(1); }} placeholder={t("common.search")}>
+              {
+                <TableToolbar
+                  search={search}
+                  onSearch={(value) => {
+                    setSearch(value.slice(0, 120));
+                    setPage(1);
+                  }}
+                  placeholder={t("common.search")}
+                >
                   <FilterSelect label={t("common.status")} value={status} onChange={(value) => { setStatus(value as Application["status"] | "all"); setPage(1); }} options={[{ value: "all", label: t("common.allStatuses") }, ...(["active", "disabled"] as const).map((item) => ({ value: item, label: t(`status.${item}`) }))]} />
                 </TableToolbar>}
             {activeApplicationsQuery.isError
@@ -224,13 +343,211 @@ function Applications() {
         }
       }}>
         <SheetContent side={dir === "rtl" ? "left" : "right"} className="w-full sm:max-w-md">
-          {isLive && applicationDetailQuery.isError
-            ? <ErrorState onRetry={() => void applicationDetailQuery.refetch()} />
-            : isLive && applicationDetailQuery.isLoading
-              ? <p role="status" className="p-4 text-caption">{t("apps.detailLoading")}</p>
-              : isLive && applicationDetailQuery.data === null
-                ? <EmptyState title={t("apps.notFound")} />
-                : displayedApplication && <><SheetHeader><SheetTitle>{displayedApplication.name}</SheetTitle><SheetDescription>{displayedApplication.id} · {t(displayedApplication.environment === "production" ? "common.production" : "common.sandbox")}</SheetDescription></SheetHeader><div className="space-y-4 px-4"><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("common.tenant")}</dt><dd>{displayedApplication.tenantName ?? tenantNames.get(displayedApplication.tenantId) ?? user?.tenantName ?? displayedApplication.tenantId}</dd><dd className="font-mono text-xs text-muted-foreground">{displayedApplication.tenantId}</dd></div><div><dt className="text-label">{t("common.applicationId")}</dt><dd className="font-mono text-xs">{displayedApplication.id}</dd></div><div><dt className="text-label">{t("common.environment")}</dt><dd>{t(displayedApplication.environment === "production" ? "common.production" : "common.sandbox")}</dd></div><div><dt className="text-label">{t("common.status")}</dt><dd><StatusBadge status={displayedApplication.status} /></dd></div><div><dt className="text-label">{t("apps.apiCredentials")}</dt><dd>{typeof displayedApplication.credentialCount === "number" ? <Link className="text-primary hover:underline" to={`/credentials?applicationId=${displayedApplication.id}` as never}>{displayedApplication.credentialCount}</Link> : t("apps.notAvailable")}</dd></div><div><dt className="text-label">{t("apps.createdAt")}</dt><dd>{formatDateTime(displayedApplication.createdAt, locale)}</dd></div>{displayedApplication.createdBy && <div><dt className="text-label">{t("apps.createdBy")}</dt><dd>{displayedApplication.createdBy}</dd></div>}{displayedApplication.updatedAt && <div><dt className="text-label">{t("common.updatedAt")}</dt><dd>{formatDateTime(displayedApplication.updatedAt, locale)}</dd></div>}<div><dt className="text-label">{t("apps.lastActivity")}</dt><dd>{displayedApplication.lastActivityAt ? formatDateTime(displayedApplication.lastActivityAt, locale) : t("apps.notAvailable")}</dd></div>{displayedApplication.senderAccess && <div><dt className="text-label">{t("apps.senderAccess")}</dt><dd>{t(displayedApplication.senderAccess === "all_eligible" ? "apps.allEligibleSenders" : "apps.allowListedSenders")}</dd></div>}</dl><div><h3 className="mb-2 text-sm font-semibold">{t("apps.channels")}</h3><div className="flex flex-wrap gap-3">{displayedApplication.channels.map((channel) => <ChannelLabel key={channel} channel={channel} />)}</div></div><div><h3 className="mb-2 text-sm font-semibold">{t("common.scopes")}</h3><div className="flex flex-wrap gap-1">{displayedApplication.scopes.map((scope) => <span key={scope} className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs">{scope}</span>)}</div></div>{displayedApplication.channelAvailability && <div><h3 className="mb-2 text-sm font-semibold">{t("apps.channelAvailability")}</h3><dl className="space-y-2 text-sm">{displayedApplication.channelAvailability.map((availability) => <div key={availability.channel} className="flex flex-wrap justify-between gap-2"><dt><ChannelLabel channel={availability.channel} /></dt><dd>{t(availability.granted ? "apps.channelGranted" : "apps.channelNotGranted")} · {t(availability.available ? "apps.channelAvailable" : "apps.channelUnavailable")}</dd></div>)}</dl></div>}{canManageApplications && <div className="flex gap-2 border-t pt-4"><Button variant="outline" onClick={() => openEdit(displayedApplication)}>{t("common.edit")}</Button><Button variant={displayedApplication.status === "active" ? "destructive" : "outline"} onClick={() => setStatusTarget(displayedApplication)}>{t(displayedApplication.status === "active" ? "apps.deactivate" : "apps.activate")}</Button></div>}</div></>}
+          {isLive && applicationDetailQuery.isError ? (
+            <ErrorState onRetry={() => void applicationDetailQuery.refetch()} />
+          ) : isLive && applicationDetailQuery.isLoading ? (
+            <p role="status" className="p-4 text-caption">
+              {t("apps.detailLoading")}
+            </p>
+          ) : isLive && applicationDetailQuery.data === null ? (
+            <EmptyState title={t("apps.notFound")} />
+          ) : (
+            displayedApplication && (
+              <>
+                <SheetHeader>
+                  <SheetTitle>{displayedApplication.name}</SheetTitle>
+                  <SheetDescription>
+                    {displayedApplication.id} ·{" "}
+                    {t(
+                      displayedApplication.environment === "production"
+                        ? "common.production"
+                        : "common.sandbox",
+                    )}
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-4 px-4">
+                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-label">{t("common.tenant")}</dt>
+                      <dd>
+                        {displayedApplication.tenantName ??
+                          tenantNames.get(displayedApplication.tenantId) ??
+                          user?.tenantName ??
+                          displayedApplication.tenantId}
+                      </dd>
+                      <dd className="font-mono text-xs text-muted-foreground">
+                        {displayedApplication.tenantId}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-label">{t("common.applicationId")}</dt>
+                      <dd className="font-mono text-xs">{displayedApplication.id}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-label">{t("common.environment")}</dt>
+                      <dd>
+                        {t(
+                          displayedApplication.environment === "production"
+                            ? "common.production"
+                            : "common.sandbox",
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-label">{t("common.status")}</dt>
+                      <dd>
+                        <StatusBadge status={displayedApplication.status} />
+                      </dd>
+                    </div>
+                    {!isLive && (
+                      <div>
+                        <dt className="text-label">{t("apps.apiCredentials")}</dt>
+                        <dd>
+                          {typeof displayedApplication.credentialCount === "number" ? (
+                            <Link
+                              className="text-primary hover:underline"
+                              to={`/credentials?applicationId=${displayedApplication.id}` as never}
+                            >
+                              {displayedApplication.credentialCount}
+                            </Link>
+                          ) : (
+                            t("apps.notAvailable")
+                          )}
+                        </dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt className="text-label">{t("apps.createdAt")}</dt>
+                      <dd>{formatDateTime(displayedApplication.createdAt, locale)}</dd>
+                    </div>
+                    {displayedApplication.createdBy && (
+                      <div>
+                        <dt className="text-label">{t("apps.createdBy")}</dt>
+                        <dd>{displayedApplication.createdBy}</dd>
+                      </div>
+                    )}
+                    {displayedApplication.updatedAt && (
+                      <div>
+                        <dt className="text-label">{t("common.updatedAt")}</dt>
+                        <dd>{formatDateTime(displayedApplication.updatedAt, locale)}</dd>
+                      </div>
+                    )}
+                    {!isLive && (
+                      <div>
+                        <dt className="text-label">{t("apps.lastActivity")}</dt>
+                        <dd>
+                          {displayedApplication.lastActivityAt
+                            ? formatDateTime(displayedApplication.lastActivityAt, locale)
+                            : t("apps.notAvailable")}
+                        </dd>
+                      </div>
+                    )}
+                    {displayedApplication.senderAccess && (
+                      <div>
+                        <dt className="text-label">{t("apps.senderAccess")}</dt>
+                        <dd>
+                          {t(
+                            displayedApplication.senderAccess === "all_eligible"
+                              ? "apps.allEligibleSenders"
+                              : "apps.allowListedSenders",
+                          )}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold">{t("apps.channels")}</h3>
+                    <div className="flex flex-wrap gap-3">
+                      {displayedApplication.channels.map((channel) => (
+                        <ChannelLabel key={channel} channel={channel} />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold">{t("common.scopes")}</h3>
+                    <div className="flex flex-wrap gap-1">
+                      {displayedApplication.scopes.map((scope) => (
+                        <span
+                          key={scope}
+                          className="rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs"
+                        >
+                          {scope}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {displayedApplication.channelAvailability && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold">
+                        {t("apps.channelAvailability")}
+                      </h3>
+                      <dl className="space-y-2 text-sm">
+                        {displayedApplication.channelAvailability.map((availability) => (
+                          <div
+                            key={availability.channel}
+                            className="flex flex-wrap justify-between gap-2"
+                          >
+                            <dt>
+                              <ChannelLabel channel={availability.channel} />
+                            </dt>
+                            <dd>
+                              {t(
+                                availability.granted
+                                  ? "apps.channelGranted"
+                                  : "apps.channelNotGranted",
+                              )}{" "}
+                              ·{" "}
+                              {t(
+                                availability.available
+                                  ? "apps.channelAvailable"
+                                  : "apps.channelUnavailable",
+                              )}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  )}
+                  {isLive && <ApplicationCredentialsLink application={displayedApplication} />}
+                  {isLive && (
+                    <LiveApplicationActions
+                      key={`${user?.id}:${currentApplicationScopeKey}:${displayedApplication.id}`}
+                      application={displayedApplication}
+                      tenantId={detailTenantId}
+                      onSaved={(saved) => {
+                        setSelected({
+                          ...saved,
+                          ...(displayedApplication.tenantName
+                            ? { tenantName: displayedApplication.tenantName }
+                            : {}),
+                        });
+                        setSelectedScopeKey(currentApplicationScopeKey);
+                      }}
+                    />
+                  )}
+                  {canManageApplications && (
+                    <div className="flex gap-2 border-t pt-4">
+                      <Button variant="outline" onClick={() => openEdit(displayedApplication)}>
+                        {t("common.edit")}
+                      </Button>
+                      <Button
+                        variant={
+                          displayedApplication.status === "active" ? "destructive" : "outline"
+                        }
+                        onClick={() => setStatusTarget(displayedApplication)}
+                      >
+                        {t(
+                          displayedApplication.status === "active"
+                            ? "apps.deactivate"
+                            : "apps.activate",
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )
+          )}
         </SheetContent>
       </Sheet>
       {!isLive && <AlertDialog open={impactConfirm} onOpenChange={setImpactConfirm}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t("apps.accessChangeTitle")}</AlertDialogTitle><AlertDialogDescription>{t("apps.accessChangeBody", { name: selected?.name ?? "" })}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction disabled={save.isPending} onClick={(event) => { event.preventDefault(); setImpactConfirm(false); save.mutate(); }}>{t("common.confirm")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}

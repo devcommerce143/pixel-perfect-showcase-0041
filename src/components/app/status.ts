@@ -4,6 +4,16 @@ export type Tone = "success" | "info" | "warning" | "danger" | "neutral";
 
 /** Single source of truth for status → tone + icon. */
 export const STATUS_DEFS: Record<string, { tone: Tone; icon: LucideIcon }> = {
+  committed: { tone: "info", icon: CheckCircle2 },
+  released: { tone: "neutral", icon: MinusCircle },
+  unhealthy: { tone: "danger", icon: XCircle },
+  claimed: { tone: "info", icon: Loader2 },
+  succeeded: { tone: "success", icon: CheckCircle2 },
+  exhausted: { tone: "danger", icon: XCircle },
+  denied: { tone: "danger", icon: Ban },
+  ready: { tone: "info", icon: CheckCircle2 },
+  retired: { tone: "neutral", icon: MinusCircle },
+  paused: { tone: "warning", icon: Clock },
   received: { tone: "info", icon: Clock },
   validating: { tone: "info", icon: Loader2 },
   materializing: { tone: "info", icon: Loader2 },
@@ -46,6 +56,7 @@ export const STATUS_DEFS: Record<string, { tone: Tone; icon: LucideIcon }> = {
   suspended: { tone: "danger", icon: Ban },
   draft: { tone: "neutral", icon: MinusCircle },
   disabled: { tone: "neutral", icon: MinusCircle },
+  not_configured: { tone: "neutral", icon: MinusCircle },
     inactive: { tone: "neutral", icon: MinusCircle },
     archived: { tone: "neutral", icon: MinusCircle },
   expired: { tone: "neutral", icon: MinusCircle },

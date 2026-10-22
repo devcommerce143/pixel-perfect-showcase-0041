@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { LiveSenderActions } from "@/components/app/LiveSenderActions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Fingerprint, Plus } from "lucide-react";
@@ -43,8 +44,10 @@ export const Route = createFileRoute("/sender-identities")({
 type LifecycleAction = "submit" | "startVerification" | "verify" | "reject" | "activate" | "suspend" | "reactivate";
 
 function SenderIdentities() {
+  const { user } = useSession();
+  const { tenantId } = useGlobalTenantContext();
   return senderIdentityUsesReadOnlyView(apiMode) ? (
-    <LiveSenderIdentities />
+    <LiveSenderIdentities key={`${user?.id}:${user?.role}:${user?.tenantId}:${tenantId}`} />
   ) : (
     <MockSenderIdentities />
   );
@@ -93,25 +96,6 @@ function MockSenderIdentities() {
       verificationStatus: verificationFilter,
       operationalStatus: operationalFilter,
     },
-    ...(platformAllTenants
-      ? [
-          {
-            id: "tenant",
-            header: t("si.tenant"),
-            cell: (identity: SenderIdentityRead | PlatformSenderIdentityRead) =>
-              "tenantName" in identity ? (
-                <div>
-                  <div>{identity.tenantName}</div>
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {identity.tenantId}
-                  </div>
-                </div>
-              ) : (
-                identity.tenantId
-              ),
-          },
-        ]
-      : []),
     sortBy,
     sortDirection,
   }));
@@ -471,10 +455,11 @@ function LiveSenderIdentities() {
       <PageHeader
         title={t("si.title")}
         description={t("si.liveSubtitle")}
+        actions={<LiveSenderActions actor={actor} tenantId={requestTenantId} />}
       />
       <PageBody>
         <p className="text-sm text-muted-foreground" role="note">
-          {t("si.liveReadOnlyNotice")}
+          {t("liveSenders.internalOnly")}
         </p>
         {isPlatform && !platformAllTenants && !canLoad ? (
           <Section>
@@ -639,6 +624,12 @@ function LiveSenderIdentities() {
                     locale={locale}
                   />
                 </dl>
+                <LiveSenderActions
+                  key={detailQuery.data.id}
+                  actor={actor}
+                  tenantId={detailTenantId}
+                  identity={detailQuery.data}
+                />
               </div>
             ) : (
               <p className="mt-6 text-sm text-muted-foreground" role="status">
@@ -664,7 +655,7 @@ function SenderIdentityReadDetails({
 }: {
   identity: SenderIdentityRead;
   t: (key: MessageKey) => string;
-  locale: string;
+  locale: "en" | "ar";
 }) {
   const field = (label: MessageKey, value: string | null) => (
     <div className="min-w-0 space-y-1">

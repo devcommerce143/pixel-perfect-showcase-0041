@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { MonitoringCsvButton } from "@/components/app/MonitoringCsvButton";
+import { MessageHistoryApplicationFilter } from "@/components/app/MessageHistoryApplicationFilter";
 import { useQuery } from "@tanstack/react-query";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -14,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { MessageTable } from "@/features/messages/MessageTable";
 import { MessageHistoryTable } from "@/features/messages/MessageHistoryTable";
 import { queries } from "@/lib/api/queries";
-import { messageHistoryScope } from "@/lib/api/message-history-query-keys";
+import { messageHistoryScope, historyApplicationScope } from "@/lib/api/message-history-query-keys";
+import type { HistoryApplicationSelection } from "@/lib/api/history-application-options";
 import { buildMessageHistoryQuery, defaultMessageHistoryDateRange, isValidMessageHistoryDateRange, messageHistoryPageCsv } from "@/lib/api/http/message-history-mapper";
 import type { Channel, MessageHistoryDateRange, MessageHistoryStatus, SenderIdentityActor } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
@@ -36,6 +39,17 @@ function MessageHistory() {
   const { tenantId: selectedTenantId, scopedTenantId } = useGlobalTenantContext();
   const historyScope = messageHistoryScope(isPlatform, selectedTenantId);
   const actor: SenderIdentityActor = { role: user?.role ?? "viewer", tenantId: user?.tenantId ?? null, userId: user?.id ?? "", name: user?.name ?? "" };
+  const applicationScope = historyApplicationScope(
+    actor,
+    isPlatform ? selectedTenantId : undefined,
+    historyScope === "all-tenants",
+  );
+  const [applicationSelection, setApplicationSelection] = useState<
+    HistoryApplicationSelection | undefined
+  >();
+  const selectedApplication =
+    applicationSelection?.scope === applicationScope ? applicationSelection : undefined;
+  const applicationId = selectedApplication?.id;
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [channel, setChannel] = useState("all");
@@ -52,8 +66,9 @@ function MessageHistory() {
       pageSize: 20,
       ...(channel !== "all" ? { channel: channel as Channel } : {}),
       ...(status !== "all" ? { status: status as MessageHistoryStatus } : {}),
+      ...(applicationId ? { applicationId } : {}),
     });
-  }, [channel, dateRange, page, rangeValid, status]);
+  }, [channel, dateRange, page, rangeValid, status, applicationId]);
   const liveQuery = useQuery(queries.messageHistory(
     historyQuery,
     actor,
@@ -67,7 +82,9 @@ function MessageHistory() {
   ));
   const activeLiveQuery = historyScope === "all-tenants" ? allTenantsLiveQuery : liveQuery;
   const q = mode === "live" ? activeLiveQuery : mockQuery;
-  useEffect(() => { setPage(1); }, [selectedTenantId]);
+  useEffect(() => {
+    setPage(1);
+  }, [selectedTenantId, actor.userId, actor.role, actor.tenantId]);
   const exportMessages = async () => {
     if (mode === "live" || !mockQuery.data?.total) return;
     const all = await queryClient.fetchQuery(queries.messages({ ...messageQuery, page: 1, pageSize: mockQuery.data.total }, actor));
@@ -93,6 +110,18 @@ function MessageHistory() {
               ? <Button variant="outline" size="sm" disabled={!mockQuery.data?.total} onClick={() => void exportMessages()}><Download className="size-4" />{t("common.export")}</Button>
               : <Button variant="outline" size="sm" disabled={!activeLiveQuery.data?.items.length} aria-describedby="message-history-export-note" onClick={exportCurrentHistoryPage}><Download className="size-4" />{t("msg.exportCurrentPage")}</Button>}
             {can("messages.send") && <Button asChild size="sm"><Link to="/messages/send"><Send className="size-4 rtl:-scale-x-100" />{t("nav.send")}</Link></Button>}
+            {mode === "live" && (
+              <MonitoringCsvButton
+                actor={actor}
+                tenantId={isPlatform ? selectedTenantId : undefined}
+                request={
+                  historyQuery
+                    ? { kind: "history", scope: historyScope, query: historyQuery }
+                    : null
+                }
+                disabled={!rangeValid || activeLiveQuery.isError}
+              />
+            )}
           </>
         }
       />
@@ -108,6 +137,7 @@ function MessageHistory() {
           ) : (
             <div className="flex flex-col gap-3 border-b px-4 py-3">
               <p id="message-history-export-note" className="text-caption text-muted-foreground">{t("msg.exportCurrentPageNote")}</p>
+              <p className="text-caption text-muted-foreground">{t("monitoringExport.limit")}</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
                 <div className="grid gap-1.5">
                   <Label htmlFor="message-history-from">{t("msg.dateFrom")}</Label>
@@ -121,6 +151,17 @@ function MessageHistory() {
                   options={[{ value: "all", label: t("common.allChannels") }, ...(["sms", "whatsapp", "email"] as const).map((c) => ({ value: c, label: t(`channel.${c}`) }))]} />
                 <FilterSelect label={t("common.status")} value={status} onChange={(v) => { setStatus(v); setPage(1); }}
                   options={[{ value: "all", label: t("common.allStatuses") }, ...HISTORY_STATUSES.map((s) => ({ value: s, label: t(`status.${s}` as MessageKey) }))]} />
+                <MessageHistoryApplicationFilter
+                  key={applicationScope}
+                  actor={actor}
+                  tenantId={isPlatform ? selectedTenantId : undefined}
+                  allTenants={historyScope === "all-tenants"}
+                  selected={selectedApplication}
+                  onChange={(value) => {
+                    setApplicationSelection(value);
+                    setPage(1);
+                  }}
+                />
               </div>
               {!rangeValid && <p role="alert" className="text-sm text-danger">{t("msg.dateRangeInvalid")}</p>}
             </div>

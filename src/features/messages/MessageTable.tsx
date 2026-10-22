@@ -28,7 +28,13 @@ export function MessageTable({ rows, loading, compact, showTenant }: { rows: Mes
       loading={loading}
       dense={compact}
       rowKey={(m) => m.id}
-      onRowClick={(m) => navigate({ to: "/messages/$messageId", params: { messageId: m.id } })}
+      onRowClick={(m) =>
+        navigate({
+          to: "/messages/$messageId",
+          params: { messageId: m.id },
+          search: (previous) => ({ ...previous, historyTenantId: m.tenantId }),
+        })
+      }
     />
   );
 }

@@ -4,6 +4,7 @@ import {
   ShieldCheck, Split, Users, Webhook, Workflow,
 } from "lucide-react";
 import type { Permission, Role } from "@/lib/auth/permissions";
+import { apiMode } from "@/lib/api/client";
 import type { MessageKey } from "@/lib/i18n/i18n";
 
 export interface NavItem {
@@ -12,6 +13,7 @@ export interface NavItem {
   to: string;
   icon: LucideIcon;
   permission: Permission;
+  liveOnly?: boolean;
 }
 export interface NavGroup {
   id: string;
@@ -31,6 +33,14 @@ const PLATFORM_NAV: NavGroup[] = [
   {
     id: "communication", labelKey: "nav.group.communication", items: [
       { id: "messages", labelKey: "nav.messages", to: "/messages", icon: History, permission: "messages.view" },
+      {
+        id: "send",
+        labelKey: "nav.send",
+        to: "/messages/send",
+        icon: Send,
+        permission: "platform.messages.submit",
+        liveOnly: true,
+      },
       { id: "bulk", labelKey: "nav.bulkJobs", to: "/messages/bulk", icon: Layers, permission: "messages.bulk.monitor" },
       { id: "templates", labelKey: "nav.templates", to: "/templates", icon: FileText, permission: "templates.view" },
     ],
@@ -98,7 +108,10 @@ const CLIENT_NAV: NavGroup[] = [
 export function getNavigation(role: Role, can: (p: Permission) => boolean): NavGroup[] {
   const source = role === "super_admin" ? PLATFORM_NAV : CLIENT_NAV;
   return source
-    .map((g) => ({ ...g, items: g.items.filter((i) => can(i.permission)) }))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => (!i.liveOnly || apiMode === "live") && can(i.permission)),
+    }))
     .filter((g) => g.items.length > 0);
 }
 

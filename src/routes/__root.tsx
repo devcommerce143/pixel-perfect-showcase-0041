@@ -16,6 +16,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { I18nProvider } from "@/lib/i18n/i18n";
 import { SessionProvider } from "@/lib/auth/session";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
+import { SessionDataBoundary } from "@/components/auth/SessionDataBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -121,10 +122,12 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <SessionProvider>
-          <TooltipProvider delayDuration={200}>
-            <AuthBoundary />
-            <Toaster position="bottom-right" />
-          </TooltipProvider>
+          <SessionDataBoundary>
+            <TooltipProvider delayDuration={200}>
+              <AuthBoundary />
+              <Toaster position="bottom-right" />
+            </TooltipProvider>
+          </SessionDataBoundary>
         </SessionProvider>
       </I18nProvider>
     </QueryClientProvider>

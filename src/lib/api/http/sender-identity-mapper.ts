@@ -247,7 +247,7 @@ function enumValue<const Values extends Record<string, string>>(
   if (typeof value !== "string" || !Object.hasOwn(values, value)) {
     throw new SenderIdentityResponseError(`Sender identity ${field} is invalid.`);
   }
-  return values[value];
+  return values[value as keyof Values];
 }
 
 function record(value: unknown, field: string): Record<string, unknown> {

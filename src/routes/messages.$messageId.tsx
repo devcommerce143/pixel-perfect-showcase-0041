@@ -64,7 +64,14 @@ function MessageDetail() {
   }
   if (mode === "live" && liveQuery.isLoading) return <PageBody><div className="panel"><TableSkeleton rows={6} /></div></PageBody>;
   if (mode === "live" && liveQuery.isError) return <PageBody><div className="panel"><ErrorState onRetry={() => void liveQuery.refetch()} /></div></PageBody>;
-  if (mode === "live" && liveQuery.data) return <MessageHistoryDetailLive message={liveQuery.data} />;
+  if (mode === "live" && liveQuery.data)
+    return (
+      <MessageHistoryDetailLive
+        message={liveQuery.data}
+        actor={actor}
+        tenantId={isPlatform ? detailTenantId : undefined}
+      />
+    );
   if (mode === "live" && !liveQuery.data) return <PageBody><div className="panel"><EmptyState icon={FileSearch} title={t("common.notFound")} body={t("msg.notFound")} action={back} /></div></PageBody>;
 
   const message = mockQuery.data;

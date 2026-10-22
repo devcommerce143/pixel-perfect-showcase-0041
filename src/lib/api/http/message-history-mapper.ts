@@ -9,6 +9,7 @@ import type {
   Paginated,
   PlatformMessageHistoryItem,
 } from "../types.ts";
+import { isTenantUuid } from "./tenant-mapper.ts";
 
 export const MESSAGE_HISTORY_RANGE_MAX_MS = 31 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -65,7 +66,7 @@ export function defaultMessageHistoryDateRange(now = new Date()): MessageHistory
 
 export function buildMessageHistoryQuery(
   range: MessageHistoryDateRange,
-  filters: Pick<MessageHistoryQuery, "page" | "pageSize" | "channel" | "status">,
+  filters: Pick<MessageHistoryQuery, "page" | "pageSize" | "channel" | "status" | "applicationId">,
 ): MessageHistoryQuery {
   const from = parseDateInput(range.from);
   const through = parseDateInput(range.through);
@@ -81,6 +82,8 @@ export function buildMessageHistoryQuery(
   if (!Number.isInteger(filters.pageSize) || filters.pageSize < 1 || filters.pageSize > 100) {
     throw new RangeError("Message history page size must be between 1 and 100.");
   }
+  if (filters.applicationId !== undefined && !isTenantUuid(filters.applicationId))
+    throw new RangeError("Message history application ID must be a UUID.");
   return {
     acceptedFrom,
     acceptedTo,
@@ -88,6 +91,7 @@ export function buildMessageHistoryQuery(
     pageSize: filters.pageSize,
     ...(filters.channel ? { channel: filters.channel } : {}),
     ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.applicationId !== undefined ? { applicationId: filters.applicationId } : {}),
   };
 }
 
@@ -126,6 +130,11 @@ function messageHistoryQueryString(query: MessageHistoryQuery): string {
   });
   if (query.channel) params.set("channel", query.channel.toUpperCase());
   if (query.status) params.set("status", query.status.toUpperCase());
+  if (query.applicationId !== undefined) {
+    if (!isTenantUuid(query.applicationId))
+      throw new RangeError("Message history application ID must be a UUID.");
+    params.set("applicationId", query.applicationId);
+  }
   return params.toString();
 }
 
@@ -226,14 +235,15 @@ export function mapMessageHistoryDetail(value: unknown): MessageHistoryDetail {
     correlationId: nullableString(response["correlationId"], "correlationId"),
     contentPurgedAt: nullableTimestamp(response["contentPurgedAt"], "contentPurgedAt"),
     recipientNormalized: nonEmptyString(response["recipientNormalized"], "recipientNormalized"),
-    attempts: response["attempts"].map(mapAttempt),
+    attempts: response["attempts"].map(mapMessageHistoryAttempt),
   };
 }
 
 function mapMessageHistoryItem(value: unknown): MessageHistoryItem {
   const item = record(value, "Message history item");
-  const channel = CHANNELS[String(item["channel"])];
-  const status = STATUSES[String(item["status"])];
+  const channelKey = String(item["channel"]);
+  const channel = Object.hasOwn(CHANNELS, channelKey) ? CHANNELS[channelKey] : undefined;
+  const status = mapMessageHistoryStatus(item["status"]);
   if (!channel) throw new MessageHistoryResponseError("Message history channel is unsupported.");
   if (!status) throw new MessageHistoryResponseError("Message history status is unsupported.");
   return {
@@ -246,9 +256,16 @@ function mapMessageHistoryItem(value: unknown): MessageHistoryItem {
   };
 }
 
-function mapAttempt(value: unknown): MessageHistoryAttempt {
+export function mapMessageHistoryStatus(value: unknown): MessageHistoryStatus {
+  if (typeof value !== "string" || !Object.hasOwn(STATUSES, value))
+    throw new MessageHistoryResponseError("Message history status is unsupported.");
+  return STATUSES[value]!;
+}
+
+export function mapMessageHistoryAttempt(value: unknown): MessageHistoryAttempt {
   const attempt = record(value, "Message history attempt");
-  const state = ATTEMPT_STATES[String(attempt["state"])];
+  const stateKey = String(attempt["state"]);
+  const state = Object.hasOwn(ATTEMPT_STATES, stateKey) ? ATTEMPT_STATES[stateKey] : undefined;
   const errorCategory = nullableString(attempt["errorCategory"], "errorCategory");
   if (!state)
     throw new MessageHistoryResponseError("Message history attempt state is unsupported.");

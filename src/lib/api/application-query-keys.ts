@@ -7,6 +7,7 @@ export function applicationPageQueryKey(
 ) {
   return [
     "applicationsPage",
+    actor.userId,
     actor.role,
     actor.tenantId,
     actor.role === "super_admin" ? ["platform-tenant", tenantId ?? null] : ["tenant"],
@@ -20,6 +21,7 @@ export function allTenantApplicationPageQueryKey(
 ) {
   return [
     "applicationsPage",
+    actor.userId,
     actor.role,
     actor.tenantId,
     ["all-tenants"],
@@ -34,6 +36,7 @@ export function applicationDetailQueryKey(
 ) {
   return [
     "application",
+    actor.userId,
     actor.role,
     actor.tenantId,
     actor.role === "super_admin" ? ["platform-tenant", tenantId ?? null] : ["tenant"],

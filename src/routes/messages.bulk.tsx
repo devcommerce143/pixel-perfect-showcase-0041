@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MockBulkSend } from "@/components/app/MockBulkSend";
-import { BulkJobMonitoring } from "@/components/app/BulkJobMonitoring";
+import { LiveBulkWorkspace } from "@/components/app/LiveBulkWorkspace";
 import { RequirePermission } from "@/components/app/RequirePermission";
 import { apiMode } from "@/lib/api/client";
 import { useSession } from "@/lib/auth/session";
@@ -22,7 +22,7 @@ function BulkRoute() {
     );
   return (
     <RequirePermission permission="messages.bulk.monitor">
-      <BulkJobMonitoring key={`${user?.id}:${user?.role}:${user?.tenantId}:${tenantId ?? "all"}`} />
+      <LiveBulkWorkspace key={`${user?.id}:${user?.role}:${user?.tenantId}:${tenantId ?? "all"}`} />
     </RequirePermission>
   );
 }

@@ -1,3 +1,34 @@
+import { webhookScopeKey, webhookHistoryKey } from "./webhook-registry";
+import { contentTemplateKey } from "./content-template";
+import type { ContentTemplateQuery } from "./content-template";
+import { tenantPolicyKey } from "./tenant-policy";
+import { credentialMonitorKey } from "./credential-monitor";
+import { emailEvidenceKey } from "./email-evidence";
+import { providerAttemptsKey } from "./provider-attempts";
+import { roleHas } from "../auth/permissions";
+import { humanMessageKey } from "./human-message";
+import type { CredentialMonitorQuery } from "./credential-monitor";
+import { providerMonitorKey } from "./provider-monitoring";
+import { providerRouteKey } from "./provider-routes";
+import { senderBindingKey } from "./sender-bindings";
+import { readHistoryApplicationOptions } from "./history-application-options";
+import type { SenderBindingQuery } from "./sender-bindings";
+import type { ProviderRouteQuery, RouteChannel } from "./provider-routes";
+import type { ProviderMonitorQuery } from "./provider-monitoring";
+import type { WebhookHistoryQuery, WebhookRegistryOperation } from "./webhook-registry";
+import { applicationMutationKey } from "./application-mutations";
+import type { CredentialRegistryQuery, CredentialIssueInput } from "./credential-registry";
+import { credentialScopeKey, credentialListKey } from "./credential-registry";
+import type { AdministrativeAuditQuery } from "./administrative-audit";
+import { administrativeAuditKey } from "./administrative-audit";
+import type { UsageReportRange } from "./usage-report";
+import { usageReportKey } from "./usage-report";
+import type {
+  RegistryQuery,
+  RegisterTemplateInput,
+  TemplateEvidenceInput,
+} from "./template-registry";
+import { registryListKey, registryDetailKey } from "./template-registry";
 import type { BulkHistoryQuery, BulkHistoryItemsQuery } from "./bulk-job-history-types";
 import {
   bulkHistoryListKey,
@@ -35,6 +66,8 @@ import {
 import {
   allTenantMessageHistoryQueryKey,
   tenantMessageHistoryQueryKey,
+  messageHistoryDetailQueryKey,
+  historyApplicationScope,
 } from "./message-history-query-keys";
 import {
   allTenantApplicationPageQueryKey,
@@ -51,6 +84,342 @@ import {
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
+  humanMessageApplications: (actor: SenderIdentityActor, page: number, tenantId?: string) =>
+    queryOptions({
+      queryKey: [...humanMessageKey(actor, tenantId), "applications", page],
+      enabled: !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () =>
+        api.listApplicationsPage(
+          actor,
+          { page, pageSize: 20, filters: { status: "active" } },
+          tenantId,
+        ),
+    }),
+  humanMessageSenders: (
+    actor: SenderIdentityActor,
+    channel: Channel,
+    page: number,
+    tenantId: string | undefined,
+    applicationId: string,
+  ) =>
+    queryOptions({
+      queryKey: [...humanMessageKey(actor, tenantId), "senders", applicationId, channel, page],
+      enabled: !!actor.userId && !!applicationId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () =>
+        api.listSenderIdentityReadPage(
+          actor,
+          {
+            page,
+            pageSize: 20,
+            filters: { channel, verificationStatus: "verified", operationalStatus: "active" },
+          },
+          tenantId,
+        ),
+    }),
+  providerAttempts: (actor: SenderIdentityActor, tenantId: string, messageId: string) =>
+    queryOptions({
+      queryKey: providerAttemptsKey(actor, tenantId, messageId),
+      enabled:
+        !!actor.userId &&
+        roleHas(actor.role, "platform.providers") &&
+        isTenantUuid(tenantId) &&
+        isTenantUuid(messageId),
+      queryFn: () => api.getProviderAttempts(actor, tenantId, messageId),
+    }),
+  historyApplicationOptions: (
+    actor: SenderIdentityActor,
+    page: number,
+    tenantId?: string,
+    allTenants = false,
+  ) =>
+    queryOptions({
+      queryKey: [
+        "historyApplicationOptions",
+        historyApplicationScope(actor, tenantId, allTenants),
+        page,
+      ],
+      enabled: !!actor.userId && (actor.role !== "super_admin" || allTenants || !!tenantId),
+      queryFn: () => readHistoryApplicationOptions(api, actor, page, tenantId, allTenants),
+    }),
+  storedSenderBindings: (actor: SenderIdentityActor, query: SenderBindingQuery) =>
+    queryOptions({
+      queryKey: [
+        ...senderBindingKey(actor, query.tenantId, query.providerAccountId ?? "all"),
+        "list",
+        query,
+      ],
+      enabled: !!actor.userId && actor.role === "super_admin" && isTenantUuid(query.tenantId),
+      queryFn: () => api.listSenderBindings(actor, query),
+    }),
+  storedSenderBinding: (actor: SenderIdentityActor, tenant: string, account: string, id: string) =>
+    queryOptions({
+      queryKey: [...senderBindingKey(actor, tenant, account), "detail", id],
+      enabled: !!actor.userId && actor.role === "super_admin" && isTenantUuid(tenant) && !!id,
+      queryFn: () => api.getSenderBinding(actor, id, tenant, account),
+    }),
+  bindingSenderOptions: (
+    actor: SenderIdentityActor,
+    tenant: string,
+    account: string,
+    channel: RouteChannel,
+    page: number,
+  ) =>
+    queryOptions({
+      queryKey: [...senderBindingKey(actor, tenant, account), "senders", channel, page],
+      enabled: !!actor.userId && actor.role === "super_admin" && isTenantUuid(tenant),
+      queryFn: () =>
+        api.listSenderIdentityReadPage(
+          actor,
+          {
+            page,
+            pageSize: 20,
+            filters: {
+              channel: channel.toLowerCase() as "sms" | "email" | "whatsapp",
+              ...(channel !== "SMS"
+                ? { verificationStatus: "verified" as const, operationalStatus: "active" as const }
+                : {}),
+            },
+          },
+          tenant,
+        ),
+    }),
+  configuredProviderRoutes: (actor: SenderIdentityActor, query: ProviderRouteQuery) =>
+    queryOptions({
+      queryKey: [...providerRouteKey(actor), "list", query],
+      enabled: !!actor.userId && actor.role === "super_admin",
+      queryFn: () => api.listProviderRoutes(actor, query),
+    }),
+  configuredProviderRoute: (actor: SenderIdentityActor, id: string) =>
+    queryOptions({
+      queryKey: [...providerRouteKey(actor), "detail", id],
+      enabled: !!actor.userId && actor.role === "super_admin" && !!id,
+      queryFn: () => api.getProviderRoute(actor, id),
+    }),
+  configuredTenantRoute: (actor: SenderIdentityActor, tenant: string, channel: RouteChannel) =>
+    queryOptions({
+      queryKey: [...providerRouteKey(actor), "tenant", tenant, channel],
+      enabled: !!actor.userId && actor.role === "super_admin" && isTenantUuid(tenant),
+      queryFn: () => api.getTenantRouteAssignment(actor, tenant, channel),
+    }),
+  configuredSenderRoute: (actor: SenderIdentityActor, tenant: string, sender: string) =>
+    queryOptions({
+      queryKey: [...providerRouteKey(actor), "sender", tenant, sender],
+      enabled: !!actor.userId && actor.role === "super_admin" && isTenantUuid(tenant) && !!sender,
+      queryFn: () => api.getSenderRouteAssignment(actor, tenant, sender),
+    }),
+  routeSenderOptions: (
+    actor: SenderIdentityActor,
+    tenant: string,
+    channel: RouteChannel,
+    page: number,
+  ) =>
+    queryOptions({
+      queryKey: [...providerRouteKey(actor), "senderOptions", tenant, channel, page],
+      enabled: !!actor.userId && actor.role === "super_admin" && isTenantUuid(tenant),
+      queryFn: () =>
+        api.listSenderIdentityReadPage(
+          actor,
+          {
+            page,
+            pageSize: 20,
+            filters: { channel: channel.toLowerCase() as "sms" | "email" | "whatsapp" },
+          },
+          tenant,
+        ),
+    }),
+  providerObservedHealth: (actor: SenderIdentityActor, id: string) =>
+    queryOptions({
+      queryKey: [...providerMonitorKey(actor), "health", id],
+      enabled: !!actor.userId && actor.role === "super_admin" && !!id,
+      queryFn: () => api.getProviderObservedHealth(actor, id),
+    }),
+  emailEvidence: (actor: SenderIdentityActor, tenantId: string, senderId: string, page: number) =>
+    queryOptions({
+      queryKey: [...emailEvidenceKey(actor, tenantId, senderId), page],
+      enabled:
+        !!actor.userId &&
+        actor.role === "super_admin" &&
+        isTenantUuid(tenantId) &&
+        isTenantUuid(senderId),
+      queryFn: () => api.getEmailEvidence(actor, tenantId, senderId, page),
+    }),
+  credentialMonitor: (actor: SenderIdentityActor, query: CredentialMonitorQuery) =>
+    queryOptions({
+      queryKey: credentialMonitorKey(actor, query),
+      enabled: !!actor.userId && actor.role === "super_admin",
+      queryFn: () => api.listCredentialMonitor(actor, query),
+    }),
+  tenantPolicy: (actor: SenderIdentityActor, tenantId?: string) =>
+    queryOptions({
+      queryKey: tenantPolicyKey(actor, tenantId),
+      enabled:
+        !!actor.userId &&
+        isTenantUuid((actor.role === "super_admin" ? tenantId : actor.tenantId) ?? ""),
+      queryFn: () => api.getTenantPolicy(actor, tenantId),
+    }),
+  smsPilotControl: (actor: SenderIdentityActor) =>
+    queryOptions({
+      queryKey: [...providerMonitorKey(actor), "smsPilotControl"],
+      enabled: !!actor.userId && actor.role === "super_admin",
+      queryFn: () => api.getSmsPilotControl(actor),
+    }),
+  providerMonitoring: (actor: SenderIdentityActor, query: ProviderMonitorQuery) =>
+    queryOptions({
+      queryKey: [...providerMonitorKey(actor), "accounts", query],
+      enabled: !!actor.userId && actor.role === "super_admin",
+      queryFn: () => api.listProviderMonitoring(actor, query),
+    }),
+  providerMetadata: (actor: SenderIdentityActor, id: string) =>
+    queryOptions({
+      queryKey: [...providerMonitorKey(actor), "metadata", id],
+      enabled: !!actor.userId && actor.role === "super_admin" && !!id,
+      queryFn: () => api.getProviderMetadata(actor, id),
+    }),
+  providerRecordedChecks: (actor: SenderIdentityActor, id: string, query: ProviderMonitorQuery) =>
+    queryOptions({
+      queryKey: [...providerMonitorKey(actor), "checks", id, query],
+      enabled: !!actor.userId && actor.role === "super_admin" && !!id,
+      queryFn: () => api.listProviderRecordedChecks(actor, id, query),
+    }),
+  webhookApplications: (
+    actor: SenderIdentityActor,
+    page: number,
+    pageSize: number,
+    tenantId?: string,
+  ) =>
+    queryOptions({
+      queryKey: [...webhookScopeKey(actor, "", tenantId), "applications", page, pageSize],
+      enabled: !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listApplicationsPage(actor, { page, pageSize }, tenantId),
+    }),
+  webhookRegistry: (actor: SenderIdentityActor, app: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: webhookScopeKey(actor, app, tenantId),
+      enabled: !!actor.userId && !!app && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listWebhookRegistry(actor, app, tenantId),
+    }),
+  webhookApplication: (actor: SenderIdentityActor, app: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: [...webhookScopeKey(actor, app, tenantId), "application"],
+      enabled: !!actor.userId && !!app && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.getApplication(actor, app, tenantId),
+    }),
+  webhookRegistryHistory: (
+    actor: SenderIdentityActor,
+    app: string,
+    id: string,
+    query: WebhookHistoryQuery,
+    tenantId?: string,
+  ) =>
+    queryOptions({
+      queryKey: webhookHistoryKey(actor, app, id, query, tenantId),
+      enabled: !!actor.userId && !!app && !!id && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listWebhookDeliveries(actor, app, id, query, tenantId),
+    }),
+  applicationSenderOptions: (
+    actor: SenderIdentityActor,
+    page: number,
+    tenantId?: string,
+    enabled = false,
+  ) =>
+    queryOptions({
+      queryKey: [...applicationMutationKey(actor, tenantId), "senders", page],
+      enabled: enabled && !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listSenderIdentityReadPage(actor, { page, pageSize: 20 }, tenantId),
+    }),
+  credentialApplications: (actor: SenderIdentityActor, page: number, tenantId?: string) =>
+    queryOptions({
+      queryKey: [...credentialScopeKey(actor, "", tenantId), "applications", page],
+      enabled: !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listApplicationsPage(actor, { page, pageSize: 20 }, tenantId),
+    }),
+  credentialApplication: (actor: SenderIdentityActor, applicationId: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: [...credentialScopeKey(actor, applicationId, tenantId), "application"],
+      enabled: !!actor.userId && !!applicationId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.getApplication(actor, applicationId, tenantId),
+    }),
+  credentialRegistry: (
+    actor: SenderIdentityActor,
+    applicationId: string,
+    query: CredentialRegistryQuery,
+    tenantId?: string,
+  ) =>
+    queryOptions({
+      queryKey: credentialListKey(actor, applicationId, query, tenantId),
+      enabled: !!actor.userId && !!applicationId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listCredentialRegistry(actor, applicationId, query, tenantId),
+    }),
+  credentialRegistryDetail: (
+    actor: SenderIdentityActor,
+    applicationId: string,
+    id: string,
+    tenantId?: string,
+  ) =>
+    queryOptions({
+      queryKey: [...credentialScopeKey(actor, applicationId, tenantId), "detail", id],
+      enabled:
+        !!actor.userId && !!applicationId && !!id && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.getCredentialRegistry(actor, applicationId, id, tenantId),
+    }),
+  administrativeAudit: (
+    actor: SenderIdentityActor,
+    query: AdministrativeAuditQuery | null,
+    tenantId?: string,
+  ) =>
+    queryOptions({
+      queryKey: administrativeAuditKey(actor, query, tenantId),
+      enabled: !!actor.userId && !!query,
+      queryFn: () => {
+        if (!query) throw new Error("Valid UTC window required");
+        return api.listAdministrativeAudit(actor, query, tenantId);
+      },
+    }),
+  administrativeAuditDetail: (actor: SenderIdentityActor, id: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: [...administrativeAuditKey(actor, null, tenantId), "detail", id],
+      enabled: !!id && !!actor.userId,
+      queryFn: () => api.getAdministrativeAudit(actor, id, tenantId),
+    }),
+  auditRetention: (actor: SenderIdentityActor) =>
+    queryOptions({
+      queryKey: ["auditRetention", actor.userId, actor.role, actor.tenantId],
+      enabled: !!actor.userId && actor.role === "super_admin",
+      queryFn: () => api.getAuditRetention(actor),
+    }),
+  usageReport: (actor: SenderIdentityActor, range: UsageReportRange | null, tenantId?: string) =>
+    queryOptions({
+      queryKey: usageReportKey(actor, range, tenantId),
+      enabled: !!range && !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => {
+        if (!range) throw new Error("Valid UTC range required");
+        return api.getUsageReport(actor, range, tenantId);
+      },
+    }),
+  contentTemplates: (actor: SenderIdentityActor, query: ContentTemplateQuery, tenantId?: string) =>
+    queryOptions({
+      queryKey: contentTemplateKey(actor, tenantId, query),
+      enabled: !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listContentTemplates(actor, query, tenantId),
+    }),
+  contentTemplate: (actor: SenderIdentityActor, id: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: contentTemplateKey(actor, tenantId, undefined, id),
+      enabled: !!id && !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.getContentTemplate(actor, id, tenantId),
+    }),
+  templateRegistry: (actor: SenderIdentityActor, query: RegistryQuery, tenantId?: string) =>
+    queryOptions({
+      queryKey: registryListKey(actor, query, tenantId),
+      enabled: !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.listTemplateRegistry(actor, query, tenantId),
+    }),
+  templateRegistryDetail: (actor: SenderIdentityActor, id: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: registryDetailKey(actor, id, tenantId),
+      enabled: !!id && !!actor.userId && (actor.role !== "super_admin" || !!tenantId),
+      queryFn: () => api.getTemplateRegistry(actor, id, tenantId),
+    }),
   bulkHistoryList: (
     actor: SenderIdentityActor,
     query: BulkHistoryQuery | null,
@@ -113,7 +482,7 @@ export const queries = {
     }),
   messageHistoryDetail: (id: string, actor: SenderIdentityActor, tenantId?: string, enabled = true) =>
     queryOptions({
-      queryKey: ["messageHistoryDetail", actor.role, actor.tenantId, tenantId, id],
+      queryKey: messageHistoryDetailQueryKey(id, actor, tenantId),
       queryFn: () => api.getMessageHistory(id, actor, tenantId),
       enabled: enabled && !!id,
     }),
@@ -286,4 +655,148 @@ export const templateMutations = {
   submitForApproval: (actor: SenderIdentityActor, id: string) => api.submitTemplateForApproval(actor, id),
   activate: (actor: SenderIdentityActor, id: string) => api.activateTemplate(actor, id),
   deactivate: (actor: SenderIdentityActor, id: string) => api.deactivateTemplate(actor, id),
+};
+
+export const registryMutations = {
+  register: (actor: SenderIdentityActor, input: RegisterTemplateInput, tenantId?: string) =>
+    api.registerTemplate(actor, input, tenantId),
+  lifecycle: (
+    actor: SenderIdentityActor,
+    id: string,
+    action: "ready" | "retire",
+    tenantId?: string,
+  ) => api.changeTemplateRegistry(actor, id, action, tenantId),
+  evidence: (
+    actor: SenderIdentityActor,
+    id: string,
+    input: TemplateEvidenceInput,
+    tenantId?: string,
+  ) => api.recordTemplateEvidence(actor, id, input, tenantId),
+};
+
+export const auditMutations = {
+  updateRetention: (actor: SenderIdentityActor, days: number) =>
+    api.updateAuditRetention(actor, days),
+};
+
+export const credentialRegistryMutations = {
+  issue: (
+    actor: SenderIdentityActor,
+    applicationId: string,
+    input: CredentialIssueInput,
+    tenantId?: string,
+  ) => api.issueRegistryCredential(actor, applicationId, input, tenantId),
+  rotate: (
+    actor: SenderIdentityActor,
+    applicationId: string,
+    id: string,
+    input: CredentialIssueInput,
+    tenantId?: string,
+  ) => api.rotateRegistryCredential(actor, applicationId, id, input, tenantId),
+  revoke: (
+    actor: SenderIdentityActor,
+    applicationId: string,
+    id: string,
+    reason: string,
+    tenantId?: string,
+  ) => api.revokeRegistryCredential(actor, applicationId, id, reason, tenantId),
+};
+
+export const liveApplicationMutations = {
+  apply: (
+    actor: SenderIdentityActor,
+    operation: import("./application-mutations").LiveApplicationMutation,
+    tenantId?: string,
+  ) => api.applyLiveApplicationMutation(actor, operation, tenantId),
+};
+
+export const webhookRegistryMutations = {
+  apply: (
+    actor: SenderIdentityActor,
+    app: string,
+    operation: WebhookRegistryOperation,
+    tenantId?: string,
+  ) => api.applyWebhookRegistryMutation(actor, app, operation, tenantId),
+};
+
+export const liveSenderMutations = {
+  apply: (
+    actor: SenderIdentityActor,
+    operation: import("./sender-mutations").LiveSenderMutation,
+    tenantId?: string,
+  ) => api.applyLiveSenderMutation(actor, operation, tenantId),
+};
+
+export const monitoringExports = {
+  download: (
+    actor: SenderIdentityActor,
+    request: import("./monitoring-export").MonitoringExport,
+    tenantId?: string,
+  ) => api.downloadMonitoringCsv(actor, request, tenantId),
+};
+
+export const providerAccountMutations = {
+  apply: (
+    actor: SenderIdentityActor,
+    operation: import("./provider-account-mutations").ProviderAccountMutation,
+  ) => api.applyProviderAccountMutation(actor, operation),
+};
+
+export const providerRouteMutations = {
+  apply: (
+    actor: SenderIdentityActor,
+    operation: import("./provider-routes").ProviderRouteOperation,
+  ) => api.applyProviderRouteMutation(actor, operation),
+};
+
+export const senderBindingMutations = {
+  apply: (
+    actor: SenderIdentityActor,
+    operation: import("./sender-bindings").SenderBindingOperation,
+  ) => api.applySenderBindingMutation(actor, operation),
+};
+export const emailEvidenceMutations = {
+  record: (
+    actor: SenderIdentityActor,
+    tenantId: string,
+    senderId: string,
+    input: import("./email-evidence").EmailEvidenceInput,
+  ) => api.recordEmailEvidence(actor, tenantId, senderId, input),
+};
+
+export const unknownResolutionMutations = {
+  resolve: (
+    actor: SenderIdentityActor,
+    tenantId: string,
+    messageId: string,
+    input: import("./unknown-resolution").UnknownResolutionInput,
+  ) => api.resolveUnknownMessage(actor, tenantId, messageId, input),
+};
+
+export const humanMessageMutations = {
+  submit: (
+    actor: SenderIdentityActor,
+    app: string,
+    input: import("./human-message").HumanMessageInput,
+    key: string,
+    tenantId?: string,
+  ) => api.submitHumanMessage(actor, app, input, key, tenantId),
+};
+export const mockMessageMutations = {
+  send: (...args: Parameters<typeof api.sendMessage>) => api.sendMessage(...args),
+};
+export const bulkCancellationMutations = {
+  cancel: (
+    actor: SenderIdentityActor,
+    target: import("./bulk-cancellation").BulkCancellationTarget,
+  ) => api.cancelHumanBulkJob(actor, target),
+};
+export const humanBulkMutations = {
+  create: (...args: Parameters<typeof api.createHumanBulkJob>) => api.createHumanBulkJob(...args),
+};
+export const contentTemplateMutations = {
+  apply: (...args: Parameters<typeof api.applyContentTemplateMutation>) =>
+    api.applyContentTemplateMutation(...args),
+  render: (...args: Parameters<typeof api.renderContentTemplate>) =>
+    api.renderContentTemplate(...args),
 };

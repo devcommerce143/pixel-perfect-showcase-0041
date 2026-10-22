@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Download } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import {
+  DashboardRecordedHealth,
+  DashboardRecentAudit,
+} from "@/features/dashboard/RecordedOperations";
+import { DashboardCsvButton } from "@/features/dashboard/DashboardCsvButton";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { EmptyState } from "@/components/app/States";
 import { StatusBadge } from "@/components/app/StatusBadge";
@@ -18,6 +23,7 @@ import { isLiveDashboardUnavailable } from "@/lib/api/dashboard-availability";
 import { dashboardQuotaSource } from "@/lib/api/dashboard-quota";
 import { recentDashboardMessagesSource } from "@/lib/api/dashboard-recent";
 import { queries } from "@/lib/api/queries";
+import { apiMode } from "@/lib/api/client";
 import type { DashboardSummary, Message, SenderIdentityActor } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/format";
@@ -89,6 +95,8 @@ function deriveScopedDashboardSummary(base: DashboardSummary, tenantMessages: Me
 export const Route = createFileRoute("/")({
   head: () => pageHead("Dashboard", "Operational overview of message volume, delivery outcomes, channel usage and quota for Dolf Connect."),
   loader: async ({ context }) => {
+    // Live tokens are client-owned. AuthBoundary mounts the dashboard after profile restoration.
+    if (apiMode === "live") return;
     try {
       await context.queryClient.ensureQueryData(queries.dashboard());
     } catch (error) {
@@ -171,7 +179,11 @@ function Dashboard() {
         actions={
           <>
             <span className="text-caption me-2">{t("common.last14")}</span>
-            <Button variant="outline" size="sm"><Download className="size-4" />{t("common.export")}</Button>
+            <DashboardCsvButton
+              summary={dashboardData}
+              tenantId={user?.tenantId ?? undefined}
+              disabled={dashboardQuery.isFetching}
+            />
           </>
         }
       />
@@ -216,7 +228,9 @@ function Dashboard() {
 
           {isPlatform ? (
             <Section title={t("dash.platformHealth")} actions={<Button asChild variant="ghost" size="sm" className="h-7 text-primary"><Link to="/platform/health">{t("dash.viewAll")}<ArrowRight className="size-3.5 rtl:rotate-180" /></Link></Button>}>
-              {live ? <EmptyState title={t("dash.sectionUnavailableTitle")} body={t("dash.sectionUnavailableBody")} /> : (
+              {live ? (
+                <DashboardRecordedHealth actor={actor} />
+              ) : (
               <ul className="divide-y">
                 {providers.data?.map((p) => (
                   <li key={p.id} className="flex items-center justify-between gap-2 px-4 py-2.5 text-table">
@@ -232,7 +246,9 @@ function Dashboard() {
             </Section>
           ) : can("audit.view") ? (
             <Section title={t("dash.recentActivity")} actions={<Button asChild variant="ghost" size="sm" className="h-7 text-primary"><Link to="/audit">{t("dash.viewAll")}<ArrowRight className="size-3.5 rtl:rotate-180" /></Link></Button>}>
-              {live ? <EmptyState title={t("dash.sectionUnavailableTitle")} body={t("dash.sectionUnavailableBody")} /> : (
+              {live ? (
+                <DashboardRecentAudit actor={actor} />
+              ) : (
               <ul className="divide-y">
                 {activity.data?.items.map((a) => (
                   <li key={a.id} className="flex items-start justify-between gap-3 px-4 py-2.5">
