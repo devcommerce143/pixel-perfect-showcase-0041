@@ -1,3 +1,4 @@
+import { RecordReference } from "@/components/app/RecordReference";
 import { useEffect, type ReactNode } from "react";
 import { Outlet, useRouter, useRouterState } from "@tanstack/react-router";
 import { LoaderCircle } from "lucide-react";
@@ -28,7 +29,7 @@ export function AuthBoundary() {
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const search = useRouterState({ select: (state) => state.location.search });
-  const { status, configurationIssues, correlationId, errorMessage, retryProfile, signOut } =
+  const { status, configurationIssues, correlationId, retryProfile, signOut } =
     useSession();
   const { t } = useI18n();
   const isLogin = pathname === "/login";
@@ -92,7 +93,7 @@ export function AuthBoundary() {
     return (
       <FoundationNotice
         title={t("common.errorTitle")}
-        body={errorMessage ?? t("auth.profileError")}
+        body={t("auth.profileError")}
         correlationId={correlationId}
       >
         <Button
@@ -143,7 +144,7 @@ function FoundationNotice({
         <p className="text-subtle mt-2">{body}</p>
         {correlationId && (
           <p className="mt-2 text-caption text-muted-foreground">
-            {t("auth.correlation", { id: correlationId })}
+            <RecordReference value={correlationId} />
           </p>
         )}
         {children}

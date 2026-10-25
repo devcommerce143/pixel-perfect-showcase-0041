@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { sendingRestriction } from "@/lib/api/user-message";
+import { bulkWorkbookCsv } from "@/lib/api/bulk-workbook";
+import { EntityName } from "@/components/app/EntityName";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { BulkManualRecipients, BulkRecipientTable } from "./BulkRecipients";
+import { csvRecipientPreview, manualRecipientPreview } from "@/lib/api/bulk-recipient-preview";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileSearch } from "lucide-react";
@@ -43,7 +49,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export function LiveMessageSend({ bulk = false }: { bulk?: boolean } = {}) {
+export function LiveMessageSend({
+  bulk = false,
+  headerActions,
+}: { bulk?: boolean; headerActions?: ReactNode } = {}) {
   const { user, isPlatform } = useSession();
   const { tenantId } = useGlobalTenantContext();
   const { t } = useI18n();
@@ -59,13 +68,19 @@ export function LiveMessageSend({ bulk = false }: { bulk?: boolean } = {}) {
     scope = humanMessageScope(actor, namedTenant);
   } catch {
     return (
-      <PageBody>
-        <EmptyState
-          icon={FileSearch}
-          title={t("msg.selectTenantTitle")}
-          body={t("msg.selectTenantBody")}
+      <>
+        <PageHeader
+          title={t(bulk ? "humanBulk.title" : "humanSend.title")}
+          actions={headerActions}
         />
-      </PageBody>
+        <PageBody>
+          <EmptyState
+            icon={FileSearch}
+            title={t("msg.selectTenantTitle")}
+            body={t("send.selectTenantBody")}
+          />
+        </PageBody>
+      </>
     );
   }
   return (
@@ -77,6 +92,7 @@ export function LiveMessageSend({ bulk = false }: { bulk?: boolean } = {}) {
       tenantId={namedTenant}
       scope={scope}
       bulk={bulk}
+      headerActions={headerActions}
     />
   );
 }
@@ -128,11 +144,13 @@ function HumanMessageForm({
   tenantId,
   scope,
   bulk,
+  headerActions,
 }: {
   actor: SenderIdentityActor;
   tenantId: string | undefined;
   scope: string;
   bulk: boolean;
+  headerActions?: ReactNode;
 }) {
   const { t } = useI18n();
   const client = useQueryClient();
@@ -144,6 +162,7 @@ function HumanMessageForm({
   const [csvMode, setCsvMode] = useState<"SHARED" | "PERSONALIZED">("PERSONALIZED");
   const [csvError, setCsvError] = useState(false),
     [readingCsv, setReadingCsv] = useState(false);
+  const [csvFileTypeError, setCsvFileTypeError] = useState(false);
   const csvReadToken = useRef(0);
   const [channel, setChannel] = useState<Channel>("sms");
   const [sender, setSender] = useState<SenderIdentityRead | null>(null);
@@ -231,6 +250,19 @@ function HumanMessageForm({
     },
   });
   const locked = frozen !== null;
+  const csvPreview = useMemo(
+    () => (bulk && csvText !== null ? csvRecipientPreview(csvText, channel, csvMode) : null),
+    [bulk, csvText, channel, csvMode],
+  );
+  const frozenPreview = useMemo(
+    () =>
+      !bulk || !frozen
+        ? null
+        : frozen.csv
+          ? csvRecipientPreview(frozen.csv.csv, frozen.input.channel, frozen.csv.mode)
+          : manualRecipientPreview(frozen.input.recipient, frozen.input.channel),
+    [bulk, frozen],
+  );
   const policyAllows =
     policy.data?.effective.operational === true &&
     (!bulk || policy.data.effective.features.includes("bulk_messaging")) &&
@@ -253,9 +285,16 @@ function HumanMessageForm({
           };
   let valid = false;
   try {
-    if (bulk && csvText !== null)
+    if (bulk && csvText !== null) {
+      if (
+        !csvPreview ||
+        csvPreview.issue ||
+        !csvPreview.rows.length ||
+        csvPreview.rows.some((row) => row.errors.length)
+      )
+        throw new Error("Invalid CSV preview");
       humanBulkCsvBody({ channel, senderId: sender?.id ?? "", csv: csvText, mode: csvMode });
-    else if (bulk) humanBulkBody(draft);
+    } else if (bulk) humanBulkBody(draft);
     else humanMessageBody(draft);
     valid = true;
   } catch {
@@ -290,11 +329,10 @@ function HumanMessageForm({
       <PageHeader
         title={t(bulk ? "humanBulk.title" : "humanSend.title")}
         description={t(bulk ? "humanBulk.subtitle" : "humanSend.subtitle")}
+        actions={headerActions}
       />
       <PageBody>
-        <p className="rounded-md border p-3 text-sm">
-          {t(bulk ? "humanBulk.note" : "humanSend.note")}
-        </p>
+        {bulk && <p className="rounded-md border p-3 text-sm">{t("humanBulk.note")}</p>}
         {receipt && (
           <Section
             title={t(
@@ -309,7 +347,7 @@ function HumanMessageForm({
               <StatusBadge status={receipt.status} />
               {"itemCount" in receipt ? (
                 <>
-                  <p className="break-all font-mono text-sm">{receipt.id}</p>
+                  <p className="break-all font-mono text-sm">{t("entity.message")}</p>
                   <p>
                     {t("humanBulk.counts", {
                       total: receipt.itemCount,
@@ -326,7 +364,7 @@ function HumanMessageForm({
                   params={{ messageId: receipt.id }}
                   search={{ historyTenantId: tenantId }}
                 >
-                  {receipt.id}
+                  {t("entity.message")}
                 </Link>
               )}
               <p className="text-sm">
@@ -336,84 +374,36 @@ function HumanMessageForm({
           </Section>
         )}
         {policy.isLoading && <TableSkeleton rows={2} />}
-        {policy.isError && <ErrorState onRetry={() => void policy.refetch()} />}
-        {policy.data && !policyAllows && (
-          <p role="status" className="text-sm text-muted-foreground">
-            {t("humanSend.notOperational")}
-          </p>
+        {policy.isError && (
+          <ErrorState error={policy.error} onRetry={() => void policy.refetch()} />
         )}
+        {policy.data && !policyAllows && (
+          <MessageAlert variant="warning" title={t("notice.sendingUnavailable")}>
+            {t(
+              sendingRestriction(policy.data.effective, channel, bulk) ??
+                "humanSend.notOperational",
+              { channel: t(`channel.${channel}`) },
+            )}
+          </MessageAlert>
+        )}
+        {app.data && senders.isSuccess && senderRows.length === 0 && (
+          <MessageAlert variant="warning">{t("notice.senderSetup")}</MessageAlert>
+        )}
+        {channel === "whatsapp" &&
+          csvText === null &&
+          app.data &&
+          templates.isSuccess &&
+          templateRows.length === 0 && (
+            <MessageAlert variant="warning">{t("notice.templateSetup")}</MessageAlert>
+          )}
         <Section title={t("humanSend.details")}>
           <div className="grid gap-4 p-4 md:grid-cols-2">
-            {bulk && (
-              <div className="space-y-2 md:col-span-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="human-bulk-csv"
-                    checked={csvText !== null}
-                    disabled={locked}
-                    onCheckedChange={(value) => {
-                      csvReadToken.current++;
-                      setReadingCsv(false);
-                      setCsvError(false);
-                      setCsvText(value === true ? "" : null);
-                    }}
-                  />
-                  <Label htmlFor="human-bulk-csv">{t("humanBulk.useCsv")}</Label>
-                </div>
-                {csvText !== null && (
-                  <>
-                    <p className="text-caption">{t("humanBulk.csvHint")}</p>
-                    <Select
-                      value={csvMode}
-                      disabled={locked}
-                      onValueChange={(value) => setCsvMode(value as "SHARED" | "PERSONALIZED")}
-                    >
-                      <SelectTrigger aria-label={t("humanBulk.csvMode")}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PERSONALIZED">{t("humanBulk.personalized")}</SelectItem>
-                        <SelectItem value="SHARED">{t("humanBulk.shared")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="file"
-                      accept=".csv,text/csv"
-                      aria-label={t("humanBulk.csvFile")}
-                      disabled={locked || readingCsv}
-                      onChange={async (event) => {
-                        const file = event.target.files?.[0],
-                          sequence = ++csvReadToken.current;
-                        setCsvText("");
-                        setCsvError(false);
-                        if (!file || file.size > 2 * 1024 * 1024) {
-                          setCsvError(true);
-                          return;
-                        }
-                        setReadingCsv(true);
-                        try {
-                          const text = await file.text();
-                          if (active.current && sequence === csvReadToken.current) setCsvText(text);
-                        } catch {
-                          if (active.current && sequence === csvReadToken.current)
-                            setCsvError(true);
-                        } finally {
-                          if (active.current && sequence === csvReadToken.current)
-                            setReadingCsv(false);
-                        }
-                      }}
-                    />
-                    {csvError && <p role="alert">{t("humanBulk.csvError")}</p>}
-                  </>
-                )}
-              </div>
-            )}
             <div className="space-y-2">
               <Label>{t("common.application")}</Label>
               {apps.isLoading ? (
                 <TableSkeleton rows={2} />
               ) : apps.isError ? (
-                <ErrorState onRetry={() => void apps.refetch()} />
+                <ErrorState error={apps.error} onRetry={() => void apps.refetch()} />
               ) : (
                 <>
                   <Select
@@ -442,7 +432,7 @@ function HumanMessageForm({
                           value={item.id}
                           disabled={!item.scopes.includes("messages:send")}
                         >
-                          {item.name} · {item.id}
+                          {item.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -457,7 +447,7 @@ function HumanMessageForm({
                   )}
                 </>
               )}
-              {app.isError && <ErrorState onRetry={() => void app.refetch()} />}
+              {app.isError && <ErrorState error={app.error} onRetry={() => void app.refetch()} />}
             </div>
             <div className="space-y-2">
               <Label>{t("common.channel")}</Label>
@@ -491,7 +481,7 @@ function HumanMessageForm({
               ) : senders.isLoading ? (
                 <TableSkeleton rows={2} />
               ) : senders.isError ? (
-                <ErrorState onRetry={() => void senders.refetch()} />
+                <ErrorState error={senders.error} onRetry={() => void senders.refetch()} />
               ) : (
                 <>
                   <Select
@@ -506,7 +496,14 @@ function HumanMessageForm({
                     </SelectTrigger>
                     <SelectContent>
                       {sender && !senderRows.some((item) => item.id === sender.id) && (
-                        <SelectItem value={sender.id}>{sender.displayName ?? sender.id}</SelectItem>
+                        <SelectItem value={sender.id}>
+                          <EntityName
+                            kind="sender"
+                            id={sender.id}
+                            name={sender.displayName}
+                            tenantId={tenantId}
+                          />
+                        </SelectItem>
                       )}
                       {senderRows.map((item) => (
                         <SelectItem
@@ -516,7 +513,12 @@ function HumanMessageForm({
                             !app.data || !humanMessageSenderEligible(app.data, item, channel, scope)
                           }
                         >
-                          {item.displayName ?? item.id} · {item.id}
+                          <EntityName
+                            kind="sender"
+                            id={item.id}
+                            name={item.displayName}
+                            tenantId={tenantId}
+                          />
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -533,20 +535,108 @@ function HumanMessageForm({
                 </>
               )}
             </div>
+            {bulk && (
+              <div className="space-y-2 md:col-span-2">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="human-bulk-csv"
+                    checked={csvText !== null}
+                    disabled={locked}
+                    onCheckedChange={(value) => {
+                      csvReadToken.current++;
+                      setReadingCsv(false);
+                      setCsvError(false);
+                      setCsvFileTypeError(false);
+                      setCsvText(value === true ? "" : null);
+                    }}
+                  />
+                  <Label htmlFor="human-bulk-csv">{t("humanBulk.useCsv")}</Label>
+                </div>
+                {csvText !== null && (
+                  <>
+                    <p className="text-caption">{t("humanBulk.csvHint")}</p>
+                    <p className="text-caption">{t("humanBulk.sampleHelp")}</p>
+                    <p className="text-caption">{t("humanBulk.excelHelp")}</p>
+                    <Select
+                      value={csvMode}
+                      disabled={locked}
+                      onValueChange={(value) => setCsvMode(value as "SHARED" | "PERSONALIZED")}
+                    >
+                      <SelectTrigger aria-label={t("humanBulk.csvMode")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PERSONALIZED">{t("humanBulk.personalized")}</SelectItem>
+                        <SelectItem value="SHARED">{t("humanBulk.shared")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="file"
+                      accept={
+                        channel === "sms"
+                          ? ".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                          : ".csv,text/csv"
+                      }
+                      aria-label={t("humanBulk.csvFile")}
+                      disabled={locked || readingCsv}
+                      onChange={async (event) => {
+                        const file = event.target.files?.[0],
+                          sequence = ++csvReadToken.current;
+                        setCsvText("");
+                        setCsvError(false);
+                        setCsvFileTypeError(false);
+                        if (
+                          file &&
+                          (/\.(xls|xlsm)$/i.test(file.name) ||
+                            (/\.xlsx$/i.test(file.name) && channel !== "sms"))
+                        ) {
+                          setCsvFileTypeError(true);
+                          setCsvError(true);
+                          return;
+                        }
+                        if (!file || file.size > 2 * 1024 * 1024) {
+                          setCsvError(true);
+                          return;
+                        }
+                        setReadingCsv(true);
+                        try {
+                          const text = /\.xlsx$/i.test(file.name)
+                            ? await bulkWorkbookCsv(await file.arrayBuffer())
+                            : await file.text();
+                          if (active.current && sequence === csvReadToken.current) setCsvText(text);
+                        } catch {
+                          if (active.current && sequence === csvReadToken.current)
+                            setCsvError(true);
+                        } finally {
+                          if (active.current && sequence === csvReadToken.current)
+                            setReadingCsv(false);
+                        }
+                      }}
+                    />
+                    {csvError && (
+                      <MessageAlert>
+                        {t(csvFileTypeError ? "humanBulk.csvOnly" : "humanBulk.csvError")}
+                      </MessageAlert>
+                    )}
+                    {csvPreview && csvText && (
+                      <BulkRecipientTable preview={csvPreview} channel={channel} csv />
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             {csvText === null && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="human-message-recipient">
+                <div className={bulk ? "space-y-2 md:col-span-2" : "space-y-2"}>
+                  <Label htmlFor={bulk ? "bulk-add-recipient" : "human-message-recipient"}>
                     {t(bulk ? "humanBulk.recipients" : "send.recipient")}
                   </Label>
                   {bulk ? (
-                    <Textarea
-                      id="human-message-recipient"
-                      dir="ltr"
-                      maxLength={321000}
+                    <BulkManualRecipients
                       value={recipient}
-                      disabled={locked}
-                      onChange={(event) => setRecipient(event.target.value)}
+                      locked={locked}
+                      channel={channel}
+                      onChange={setRecipient}
                     />
                   ) : (
                     <Input
@@ -606,7 +696,10 @@ function HumanMessageForm({
                     {templates.isLoading ? (
                       <TableSkeleton rows={2} />
                     ) : templates.isError ? (
-                      <ErrorState onRetry={() => void templates.refetch()} />
+                      <ErrorState
+                        error={templates.error}
+                        onRetry={() => void templates.refetch()}
+                      />
                     ) : (
                       <>
                         <Select
@@ -674,7 +767,7 @@ function HumanMessageForm({
             </Button>
           </div>
         </Section>
-        {mutation.isError && !open && <p role="alert">{t("humanSend.unconfirmed")}</p>}
+        {mutation.isError && !open && <MessageAlert>{t("humanSend.unconfirmed")}</MessageAlert>}
       </PageBody>
       <Dialog
         open={open}
@@ -682,24 +775,29 @@ function HumanMessageForm({
           if (!value) close();
         }}
       >
-        <DialogContent>
+        <DialogContent className={bulk ? "max-h-[90svh] overflow-y-auto sm:max-w-5xl" : ""}>
           <DialogHeader>
             <DialogTitle>{t("humanSend.review")}</DialogTitle>
             <DialogDescription>
               {t(bulk ? "humanBulk.confirmNote" : "humanSend.confirmNote")}
             </DialogDescription>
           </DialogHeader>
+          {!bulk && <MessageAlert variant="info">{t("humanSend.note")}</MessageAlert>}
           {frozen && (
             <>
               <dl className="space-y-2 text-sm">
                 <div>
                   <dt>{t("common.application")}</dt>
-                  <dd className="break-all font-mono">{frozen.applicationId}</dd>
+                  <dd className="break-all font-mono">
+                    <EntityName kind="application" id={frozen.applicationId} tenantId={tenantId} />
+                  </dd>
                 </div>
                 <div>
                   <dt>{t("send.recipient")}</dt>
                   <dd dir="ltr" className="max-h-32 overflow-y-auto whitespace-pre-wrap">
-                    {frozen.csv ? t("humanBulk.csvFile") : frozen.input.recipient}
+                    {frozenPreview
+                      ? t("bulkPreview.total", { count: frozenPreview.rows.length })
+                      : frozen.input.recipient}
                   </dd>
                 </div>
                 {frozen.csv && (
@@ -716,21 +814,30 @@ function HumanMessageForm({
                 )}
                 <div>
                   <dt>{t("msg.senderIdentity")}</dt>
-                  <dd className="break-all font-mono">{frozen.input.senderId}</dd>
+                  <dd className="break-all font-mono">
+                    <EntityName kind="sender" id={frozen.input.senderId} tenantId={tenantId} />
+                  </dd>
                 </div>
               </dl>
-              <div
-                className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-md border p-3 text-sm"
-                dir="auto"
-              >
-                {frozen.csv
-                  ? frozen.csv.csv
-                  : frozen.input.channel === "sms"
+              {frozenPreview && (
+                <BulkRecipientTable
+                  preview={frozenPreview}
+                  channel={frozen.input.channel}
+                  csv={!!frozen.csv}
+                />
+              )}
+              {!frozen.csv && (
+                <div
+                  className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-md border p-3 text-sm"
+                  dir="auto"
+                >
+                  {frozen.input.channel === "sms"
                     ? frozen.input.sms.body
                     : frozen.input.channel === "email"
                       ? `${frozen.input.email.subject}\n\n${frozen.input.email.body}`
                       : `${frozen.input.whatsapp.templateKey} · ${frozen.input.whatsapp.language}`}
-              </div>
+                </div>
+              )}
               <div className="flex items-start gap-2">
                 <Checkbox
                   id="human-message-ack"
@@ -745,13 +852,13 @@ function HumanMessageForm({
                 </Label>
               </div>
               {mutation.isError && (
-                <p role="alert" className="text-danger">
+                <MessageAlert className="text-danger">
                   {t(
                     mutation.error instanceof ApiError && mutation.error.statusCode === 409
                       ? "humanSend.conflict"
                       : "humanSend.unconfirmed",
                   )}
-                </p>
+                </MessageAlert>
               )}
               <DialogFooter>
                 <Button variant="outline" disabled={mutation.isPending} onClick={close}>

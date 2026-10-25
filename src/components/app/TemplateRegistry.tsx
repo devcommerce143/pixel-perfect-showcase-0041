@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -236,7 +237,7 @@ export function TemplateRegistry() {
             </Button>
           </div>
           {list.isError ? (
-            <ErrorState onRetry={() => void list.refetch()} />
+            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : (
             <>
               <DataTable
@@ -273,10 +274,12 @@ export function TemplateRegistry() {
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{t("registry.details")}</DialogTitle>
-            <DialogDescription className="font-mono">{selectedId}</DialogDescription>
+            <DialogDescription>
+              {detail.data?.templateKey ?? t("entity.unavailable")}
+            </DialogDescription>
           </DialogHeader>
           {detail.isError ? (
-            <ErrorState onRetry={() => void detail.refetch()} />
+            <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
           ) : !detail.data ? (
             <TableSkeleton />
           ) : (
@@ -325,9 +328,7 @@ export function TemplateRegistry() {
               </dl>
               <p className="text-sm text-muted-foreground">{t("registry.evidenceHint")}</p>
               {failure && !form && !pendingAction && (
-                <p role="alert" className="text-sm text-danger">
-                  {t(failure)}
-                </p>
+                <MessageAlert className="text-sm text-danger">{t(failure)}</MessageAlert>
               )}
               <div className="flex flex-wrap gap-2">
                 {canManage && detail.data.registryStatus === "DRAFT" && (
@@ -480,11 +481,7 @@ export function TemplateRegistry() {
                 )}
               </>
             )}
-            {failure && (
-              <p role="alert" className="text-sm text-danger">
-                {t(failure)}
-              </p>
-            )}
+            {failure && <MessageAlert className="text-sm text-danger">{t(failure)}</MessageAlert>}
             <DialogFooter>
               <Button
                 type="button"
@@ -527,11 +524,7 @@ export function TemplateRegistry() {
               {t(pendingAction === "ready" ? "registry.readyConfirm" : "registry.retireConfirm")}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {failure && (
-            <p role="alert" className="text-sm text-danger">
-              {t(failure)}
-            </p>
-          )}
+          {failure && <MessageAlert className="text-sm text-danger">{t(failure)}</MessageAlert>}
           <AlertDialogFooter>
             <Button
               variant="outline"

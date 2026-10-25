@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
@@ -29,6 +30,7 @@ import {
   type PlanEditField,
 } from "@/lib/api/http/plan-editing";
 import { queries } from "@/lib/api/queries";
+import { planTenantCountLabel } from "@/lib/api/plans-catalog";
 import type { Channel, Plan, PlanFeatureKey, QuotaPolicy } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
 import { formatNumber } from "@/lib/format";
@@ -260,7 +262,7 @@ function Plans() {
   });
   const valid = validCode && !!draft.name.trim() && validTps && validQuotas;
   const editingPlan = q.data?.items.find((plan) => plan.id === editingId);
-  const tenantCount = (count: number | null) => count == null ? t("plans.tenantsUnavailable") : t("plans.tenants", { count });
+  const tenantCount = (count: number | null) => planTenantCountLabel(count, (value) => t("plans.tenants", { count: value }));
   const displayPlanName = (plan: Plan) => plan.code === "STANDARD" ? t("plans.standard") : plan.name;
   const setChannel = (channel: Channel, value: Partial<PlanDraft["channels"][Channel]>) => {
     setDraft((current) => ({ ...current, channels: { ...current.channels, [channel]: { ...current.channels[channel], ...value } } }));
@@ -358,11 +360,11 @@ function Plans() {
     <>
       <PageHeader title={t("plans.title")} description={t("plans.subtitle")} actions={can("platform.plans.manage") && <Button size="sm" onClick={openCreate}><Plus className="size-4" />{t("plans.new")}</Button>} />
       <PageBody>
-        {q.isError ? <Section><ErrorState onRetry={() => void q.refetch()} /></Section> : q.isPending || !q.data ? <TableSkeleton /> : q.data.total === 0 ? <Section><EmptyState title={t("plans.emptyTitle")} body={t("plans.emptyBody")} /></Section> : (
+        {q.isError ? <Section><ErrorState error={q.error} onRetry={() => void q.refetch()} /></Section> : q.isPending || !q.data ? <TableSkeleton /> : q.data.total === 0 ? <Section><EmptyState title={t("plans.emptyTitle")} body={t("plans.emptyBody")} /></Section> : (
           <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {q.data.items.map((plan) => (
-              <Section key={plan.id} title={displayPlanName(plan)} description={tenantCount(plan.tenants)} actions={<div className="flex items-center gap-2"><StatusBadge status={plan.status} /><Button variant="ghost" size="sm" onClick={() => setSelected(plan)}>{t("common.view")}</Button></div>}>
+              <Section key={plan.id} title={displayPlanName(plan)} description={tenantCount(plan.tenants) ?? ""} actions={<div className="flex items-center gap-2"><StatusBadge status={plan.status} /><Button variant="ghost" size="sm" onClick={() => setSelected(plan)}>{t("common.view")}</Button></div>}>
                 <div className="space-y-3 p-4">
                   <p className="text-sm text-muted-foreground">{plan.description}</p>
                   <p className="font-mono text-xs text-muted-foreground">{plan.code}</p>
@@ -500,7 +502,7 @@ function Plans() {
               <h3 className="text-sm font-semibold">{t("plans.features")}</h3>
               <div className="grid gap-3 sm:grid-cols-2">{FEATURES.map((feature) => <label key={feature.key} className="flex items-center gap-2 text-sm"><Checkbox checked={draft.features[feature.key]} onCheckedChange={(checked) => setDraft((current) => ({ ...current, features: { ...current.features, [feature.key]: checked === true } }))} />{t(feature.label)}</label>)}</div>
             </section>
-            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+            {error && <MessageAlert className="text-sm text-danger">{error}</MessageAlert>}
             <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={save.isPending || refreshing || refreshBlocked || (!!partialUpdate && partialUpdate.latest?.status !== "archived")} onClick={() => setOpen(false)}>{t("common.cancel")}</Button><Button type="submit" disabled={save.isPending || refreshBlocked || (partialUpdate?.conflicts.length ?? 0) > 0 || partialUpdate?.latest?.status === "archived"}>{save.isPending ? t(editingId ? "common.saving" : "common.creating") : t(editingId ? "common.save" : "common.create")}</Button></div>
             </fieldset>
           </form>
@@ -512,7 +514,7 @@ function Plans() {
           {selected && <>
             <SheetHeader><SheetTitle>{displayPlanName(selected)}</SheetTitle><SheetDescription>{selected.code}</SheetDescription></SheetHeader>
             <div className="space-y-5 px-4 pb-6">
-              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={selected.status} /><span className="text-sm">{tenantCount(selected.tenants)}</span></div>
+              <div className="flex flex-wrap items-center gap-2"><StatusBadge status={selected.status} />{selected.tenants !== null && <span className="text-sm">{tenantCount(selected.tenants)}</span>}</div>
               <p className="text-sm text-muted-foreground">{selected.description || t("common.notFound")}</p>
               <section className="space-y-2"><h3 className="text-sm font-semibold">{t("plans.entitlements")}</h3><dl className="divide-y">{CHANNELS.map((channel) => {
                 const entitlement = selected.entitlements.find((item) => item.channel === channel);

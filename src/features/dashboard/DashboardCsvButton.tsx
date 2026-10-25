@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useState } from "react";
 import { Download } from "lucide-react";
 import { dashboardSummaryCsv } from "@/lib/api/dashboard-completion";
@@ -43,9 +44,7 @@ export function DashboardCsvButton({
         {t("dashOps.export")}
       </Button>
       {failed && (
-        <p role="alert" className="text-danger text-sm">
-          {t("common.errorBody")}
-        </p>
+        <MessageAlert className="text-danger text-sm">{t("common.errorBody")}</MessageAlert>
       )}
     </div>
   );

@@ -1,3 +1,6 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { RecordReference } from "@/components/app/RecordReference";
+import { EntityName } from "@/components/app/EntityName";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -174,7 +177,7 @@ export function CredentialRegistry({
             setFailure(null);
           }}
         >
-          {row.clientId}
+          {t("entity.credential")}
         </Button>
       ),
     },
@@ -254,7 +257,7 @@ export function CredentialRegistry({
                 {apps.isPending ? (
                   <TableSkeleton rows={2} />
                 ) : apps.isError ? (
-                  <ErrorState onRetry={() => void apps.refetch()} />
+                  <ErrorState error={apps.error} onRetry={() => void apps.refetch()} />
                 ) : (
                   <>
                     <Select
@@ -307,15 +310,22 @@ export function CredentialRegistry({
                 <EmptyState title={t("liveCredentials.chooseApplication")} />
               ) : (
                 <>
-                  {application.isError && <ErrorState onRetry={() => void application.refetch()} />}
+                  {application.isError && (
+                    <ErrorState
+                      error={application.error}
+                      onRetry={() => void application.refetch()}
+                    />
+                  )}
                   {application.data && (
                     <div className="border-b p-4">
                       {application.data.name}{" "}
-                      <code className="ms-2 text-muted-foreground">{applicationId}</code>
+                      <code className="ms-2 text-muted-foreground">
+                        <EntityName kind="application" id={applicationId} tenantId={tenantId} />
+                      </code>
                     </div>
                   )}
                   {list.isError ? (
-                    <ErrorState onRetry={() => void list.refetch()} />
+                    <ErrorState error={list.error} onRetry={() => void list.refetch()} />
                   ) : (
                     <DataTable
                       columns={columns}
@@ -351,12 +361,12 @@ export function CredentialRegistry({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("liveCredentials.detail")}</DialogTitle>
-            <DialogDescription>{selectedId}</DialogDescription>
+            <DialogDescription>{t("entity.credential")}</DialogDescription>
           </DialogHeader>
           {detail.isPending ? (
             <TableSkeleton rows={3} />
           ) : detail.isError ? (
-            <ErrorState onRetry={() => void detail.refetch()} />
+            <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
           ) : (
             record && (
               <div className="space-y-3">
@@ -442,7 +452,7 @@ export function CredentialRegistry({
             <div className="space-y-4">
               <Label>{t("liveCredentials.scopes")}</Label>
               {application.isError ? (
-                <ErrorState onRetry={() => void application.refetch()} />
+                <ErrorState error={application.error} onRetry={() => void application.refetch()} />
               ) : (
                 availableScopes.map((scope) => (
                   <label key={scope} className="flex items-center gap-2 text-sm">
@@ -483,9 +493,7 @@ export function CredentialRegistry({
             </div>
           )}
           {failure && (
-            <p role="alert" className="text-sm text-destructive">
-              {t(failure)}
-            </p>
+            <MessageAlert className="text-sm text-destructive">{t(failure)}</MessageAlert>
           )}
           <DialogFooter>
             <Button variant="outline" disabled={mutation.isPending} onClick={() => setForm(null)}>
@@ -518,7 +526,12 @@ export function CredentialRegistry({
           </DialogHeader>
           {secret && (
             <div className="space-y-3">
-              <p className="break-all font-mono text-sm">{secret.credential.clientId}</p>
+              <p className="break-all font-mono text-sm">
+                <RecordReference
+                  value={secret.credential.clientId}
+                  label={t("entity.credential")}
+                />
+              </p>
               <pre className="whitespace-pre-wrap break-all rounded border p-3 text-sm" dir="ltr">
                 {secret.secret}
               </pre>

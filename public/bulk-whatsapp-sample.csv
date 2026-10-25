@@ -1,0 +1,2 @@
+recipient,template_key,language,variables
+REPLACE_WITH_PHONE,replace_with_approved_template,en,{}

@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -544,9 +545,7 @@ function TenantSubscriptionPanel({
           </p>
         ))}
       {mutationError && (
-        <p role="alert" className="text-sm text-danger">
-          {mutationError}
-        </p>
+        <MessageAlert className="text-sm text-danger">{mutationError}</MessageAlert>
       )}
       {effective && (
         <div className="space-y-3 border-t pt-4">
@@ -1359,7 +1358,27 @@ function Tenants() {
   };
 
   const columns: Column<TenantCatalogItem>[] = [
-    { id: "name", header: apiMode === "mock" ? <SortableHeader label={t("common.name")} field="name" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("name")} /> : t("common.name"), cell: (tenant) => <div><div className="font-medium">{tenant.name}</div><div className="font-mono text-xs text-muted-foreground">{t("ten.id")}: {tenant.id} | {tenant.code}</div></div> },
+    {
+      id: "name",
+      header:
+        apiMode === "mock" ? (
+          <SortableHeader
+            label={t("common.name")}
+            field="name"
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSort={() => toggleSort("name")}
+          />
+        ) : (
+          t("common.name")
+        ),
+      cell: (tenant) => (
+        <div>
+          <div className="font-medium">{tenant.name}</div>
+          <div className="font-mono text-xs text-muted-foreground">{tenant.code}</div>
+        </div>
+      ),
+    },
     ...(apiMode === "mock" ? [
       { id: "plan", header: <SortableHeader label={t("ten.plan")} field="plan" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("plan")} />, cell: (tenant: TenantCatalogItem) => asDirectoryItem(tenant)?.planName ?? t("ten.unavailable"), className: "" },
     ] : []),
@@ -1389,7 +1408,6 @@ function Tenants() {
               {t("ten.clearFilters")}
             </Button>}
           </TableToolbar>
-          {apiMode === "live" && <p className="border-b px-4 py-2 text-xs text-muted-foreground">{t("ten.liveListLimits")}</p>}
           {directoryError && <ErrorState onRetry={retryDirectory} />}
           {directoryError && !directoryPage ? null : apiMode === "live" &&
             tenantCatalogQuery.isSuccess &&
@@ -1482,7 +1500,7 @@ function Tenants() {
                 </section>}
 
             <section className="space-y-3"><h3 className="text-sm font-semibold">{t("common.notes")}</h3><Textarea id="tenant-notes" rows={2} maxLength={4000} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></section>
-            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+            {error && <MessageAlert className="text-sm text-danger">{error}</MessageAlert>}
             <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setOpen(false)}>{t("common.cancel")}</Button><Button type="submit" disabled={save.isPending}>{save.isPending ? t(editingId ? "common.saving" : "common.creating") : t(editingId ? "common.save" : "ten.new")}</Button></div>
           </form>
         </SheetContent>
@@ -1548,7 +1566,7 @@ function Tenants() {
                 />
               </div>
             </section>
-            {profileError && <p role="alert" className="text-sm text-danger">{profileError}</p>}
+            {profileError && <MessageAlert className="text-sm text-danger">{profileError}</MessageAlert>}
             <div className="flex justify-end gap-2 border-t pt-4">
               <Button type="button" variant="outline" disabled={profileSave.isPending} onClick={() => setProfileTenant(null)}>{t("common.cancel")}</Button>
               <Button type="submit" disabled={profileSave.isPending}>{profileSave.isPending ? t("common.saving") : t("common.save")}</Button>
@@ -1567,11 +1585,59 @@ function Tenants() {
           {selectedTenantId && tenantDetailQuery.isPending && <p role="status" className="px-4 py-6 text-sm text-muted-foreground">{t("ten.detailLoading")}</p>}
           {selectedTenantId && tenantDetailQuery.isError && tenantDetailQuery.error instanceof ApiError && tenantDetailQuery.error.statusCode === 404
             ? <EmptyState title={t("ten.detailNotFound")} body={t("ten.detailNotFoundBody")} />
-            : selectedTenantId && tenantDetailQuery.isError && <ErrorState onRetry={() => void tenantDetailQuery.refetch()} />}
+            : selectedTenantId && tenantDetailQuery.isError && <ErrorState error={tenantDetailQuery.error} onRetry={() => void tenantDetailQuery.refetch()} />}
           {selectedTenant && <>
-            <SheetHeader><SheetTitle>{selectedTenant.name}</SheetTitle><SheetDescription>{t("ten.id")}: {selectedTenant.id} | {t("ten.code")}: {selectedTenant.code}</SheetDescription></SheetHeader>
+              <SheetHeader>
+                <SheetTitle>{selectedTenant.name}</SheetTitle>
+                <SheetDescription>
+                  {t("ten.code")}: {selectedTenant.code}
+                </SheetDescription>
+              </SheetHeader>
             <div className="space-y-5 px-4 pb-6">
-              <section className="space-y-3"><h3 className="text-sm font-semibold">{t("ten.organization")}</h3><div className="flex items-center gap-2"><StatusBadge status={selectedTenant.status} /><span className="text-sm">{selectedTenant.dataRegion}</span></div><dl className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("ten.language")}</dt><dd>{selectedTenant.defaultLanguage === "ar" ? "العربية" : "English"}</dd></div><div><dt className="text-label">{t("ten.timezone")}</dt><dd dir="ltr" className="text-start">{selectedTenant.timezone}</dd></div><div><dt className="text-label">{t("ten.createdAt")}</dt><dd>{new Date(selectedTenant.createdAt).toLocaleString(locale)}</dd></div><div><dt className="text-label">{t("ten.updatedAt")}</dt><dd>{new Date(selectedTenant.updatedAt).toLocaleString(locale)}</dd></div>{selectedTenant.notes && <div className="col-span-2"><dt className="text-label">{t("common.notes")}</dt><dd>{selectedTenant.notes}</dd></div>}{selectedTenantId && tenantDetailQuery.data?.primaryAdminUserId && <div className="col-span-2"><dt className="text-label">{t("ten.primaryAdminUserId")}</dt><dd className="font-mono text-xs">{tenantDetailQuery.data.primaryAdminUserId}</dd></div>}</dl>{selectedTenantId && <p className="text-xs text-muted-foreground">{t("ten.liveDetailLimits")}</p>}</section>
+                <section className="space-y-3">
+                  <h3 className="text-sm font-semibold">{t("ten.organization")}</h3>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={selectedTenant.status} />
+                    <span className="text-sm">{selectedTenant.dataRegion}</span>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <dt className="text-label">{t("ten.language")}</dt>
+                      <dd>{selectedTenant.defaultLanguage === "ar" ? "العربية" : "English"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-label">{t("ten.timezone")}</dt>
+                      <dd dir="ltr" className="text-start">
+                        {selectedTenant.timezone}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-label">{t("ten.createdAt")}</dt>
+                      <dd>{new Date(selectedTenant.createdAt).toLocaleString(locale)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-label">{t("ten.updatedAt")}</dt>
+                      <dd>{new Date(selectedTenant.updatedAt).toLocaleString(locale)}</dd>
+                    </div>
+                    {selectedTenant.notes && (
+                      <div className="col-span-2">
+                        <dt className="text-label">{t("common.notes")}</dt>
+                        <dd>{selectedTenant.notes}</dd>
+                      </div>
+                    )}
+                    {selectedTenantId && tenantDetailQuery.data?.primaryAdminUserId && (
+                      <div className="col-span-2">
+                        <dt className="text-label">{t("ten.primaryAdminUserId")}</dt>
+                        <dd className="font-mono text-xs">
+                          {selected?.primaryAdministrator?.name ?? t("entity.unavailable")}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                  {selectedTenantId && (
+                    <p className="text-xs text-muted-foreground">{t("ten.liveDetailLimits")}</p>
+                  )}
+                </section>
               {selected && <section className="space-y-3 border-t pt-4"><h3 className="text-sm font-semibold">{t("ten.subscription")}</h3><div className="grid grid-cols-2 gap-3 text-sm"><div><dt className="text-label">{t("ten.plan")}</dt><dd>{selected.planName} <span className="text-xs text-muted-foreground">({t(`status.${selected.planStatus}`)})</span></dd></div><div><dt className="text-label">{t("ten.subscriptionStatus")}</dt><dd><StatusBadge status={selected.subscription.status} /></dd></div></div><dl className="space-y-3">{CHANNELS.map((channel) => {
                 const planDefault = selected.planDefaults.channels[channel];
                 const effective = selected.effectiveEntitlements.channels[channel];
@@ -1647,7 +1713,7 @@ function Tenants() {
         }
       }}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{t(statusTarget?.status === "suspended" ? "ten.suspendTitle" : "ten.reactivateTitle")}</AlertDialogTitle><AlertDialogDescription>{statusTarget?.status === "suspended"
         ? t("ten.suspendBody", { name: statusTarget.tenant.name, current: t(`status.${statusTarget.tenant.status}`) })
-        : t("ten.reactivateBody", { name: statusTarget?.tenant.name ?? "", current: statusTarget ? t(`status.${statusTarget.tenant.status}`) : "", next: t("status.active") })}</AlertDialogDescription></AlertDialogHeader>{statusError && <p role="alert" className="text-sm text-danger">{statusError}</p>}<AlertDialogFooter><AlertDialogCancel disabled={changeStatus.isPending}>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); submitStatusChange(); }} disabled={changeStatus.isPending}>{t(statusTarget?.status === "suspended" ? "ten.suspend" : "ten.reactivate")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+        : t("ten.reactivateBody", { name: statusTarget?.tenant.name ?? "", current: statusTarget ? t(`status.${statusTarget.tenant.status}`) : "", next: t("status.active") })}</AlertDialogDescription></AlertDialogHeader>{statusError && <MessageAlert className="text-sm text-danger">{statusError}</MessageAlert>}<AlertDialogFooter><AlertDialogCancel disabled={changeStatus.isPending}>{t("common.cancel")}</AlertDialogCancel><AlertDialogAction onClick={(event) => { event.preventDefault(); submitStatusChange(); }} disabled={changeStatus.isPending}>{t(statusTarget?.status === "suspended" ? "ten.suspend" : "ten.reactivate")}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
 
       <AlertDialog open={planAssignmentOpen} onOpenChange={(value) => {
         if (!value && !planAssignmentPendingRef.current) {
@@ -1713,7 +1779,9 @@ function Tenants() {
               </Select>
             </div>
           </div>
-          {planAssignmentError && <p role="alert" className="text-sm text-danger">{planAssignmentError}</p>}
+          {planAssignmentError && (
+            <MessageAlert className="text-sm text-danger">{planAssignmentError}</MessageAlert>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={assignPlan.isPending}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction

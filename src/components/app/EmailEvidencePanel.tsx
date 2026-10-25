@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queries, emailEvidenceMutations } from "@/lib/api/queries";
@@ -113,7 +114,7 @@ export function EmailEvidencePanel({
       <h3 className="font-semibold">{t("emailEvidence.title")}</h3>
       <p className="text-sm text-subtle">{t("emailEvidence.note")}</p>
       {history.isError ? (
-        <ErrorState onRetry={() => void history.refetch()} />
+        <ErrorState error={history.error} onRetry={() => void history.refetch()} />
       ) : history.isPending ? (
         <TableSkeleton rows={2} />
       ) : (
@@ -246,13 +247,13 @@ export function EmailEvidencePanel({
                 </div>
               ))}
               {mutation.isError && (
-                <p role="alert" className="text-danger">
+                <MessageAlert className="text-danger">
                   {t(
                     mutation.error instanceof ApiError && mutation.error.statusCode === 409
                       ? "emailEvidence.conflict"
                       : "emailEvidence.error",
                   )}
-                </p>
+                </MessageAlert>
               )}
               <DialogFooter>
                 <Button

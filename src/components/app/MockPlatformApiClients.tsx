@@ -119,7 +119,7 @@ export function MockPlatformApiClients() {
           onSort={() => toggleSort("clientId")}
         />
       ),
-      cell: (c) => <span className="font-mono text-xs font-medium">{c.clientId}</span>,
+      cell: (c) => <span className="font-mono text-xs font-medium">{c.tenantName}</span>,
     },
     {
       id: "t",
@@ -235,8 +235,8 @@ export function MockPlatformApiClients() {
           {selected && (
             <>
               <SheetHeader>
-                <SheetTitle>{selected.clientId}</SheetTitle>
-                <SheetDescription>{selected.id}</SheetDescription>
+                <SheetTitle>{selected.tenantName}</SheetTitle>
+                <SheetDescription>{selected.tenantName}</SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-4">
                 <dl className="grid grid-cols-2 gap-4 text-sm">

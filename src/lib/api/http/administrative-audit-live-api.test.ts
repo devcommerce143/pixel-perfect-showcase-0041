@@ -45,6 +45,23 @@ const policy = {
 };
 
 describe("administrative audit safe contracts", () => {
+  it("uses allowlisted server actor names while retaining internal identity and rejecting UUID name fallbacks", () => {
+    const named = mapAdministrativeAudit(
+      { ...event, actorName: "Sara Ahmed", privateEmail: "not-for-display" },
+      tenantId,
+    );
+    assert.equal(named.actorName, "Sara Ahmed");
+    assert.equal(named.actorUserId, id);
+    assert.equal("privateEmail" in named, false);
+    assert.equal(mapAdministrativeAudit({ ...event, actorName: id }, tenantId).actorName, null);
+    assert.equal(
+      mapAdministrativeAudit(
+        { ...event, actorName: "Sara", actorKind: "SYSTEM", actorUserId: null },
+        tenantId,
+      ).actorName,
+      null,
+    );
+  });
   it("admits the exact content-version, approved live-test and binding-maintenance actions", () => {
     for (const [action, resourceType] of [
       ["content-template.create", "template"],

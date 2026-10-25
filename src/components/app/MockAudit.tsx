@@ -1,3 +1,4 @@
+import { EntityName } from "@/components/app/EntityName";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Bot, Download, User } from "lucide-react";
@@ -96,7 +97,9 @@ export function MockAudit() {
           {
             id: "tenant",
             header: t("common.tenant"),
-            cell: (a: AuditEvent) => a.tenantName ?? a.tenantId ?? "—",
+            cell: (a: AuditEvent) => (
+              <EntityName kind="tenant" id={a.tenantId} name={a.tenantName} />
+            ),
             className: "hidden lg:table-cell",
           },
         ]

@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { useEffect, useRef, useState } from "react";
 import { EmailEvidencePanel } from "./EmailEvidencePanel";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -187,8 +189,11 @@ export function LiveSenderActions({
             <DialogDescription>{t("liveSenders.internalOnly")}</DialogDescription>
           </DialogHeader>
           <p className="font-mono text-xs">
-            {actor.role === "super_admin" ? tenantId : actor.tenantId}
-            {identity ? ` / ${identity.id}` : ""}
+            <EntityName
+              kind="tenant"
+              id={actor.role === "super_admin" ? tenantId : actor.tenantId}
+            />
+            {identity ? ` / ${identity.displayName ?? t("entity.unavailable")}` : ""}
           </p>
           {operation === "create" && (
             <div className="space-y-3">
@@ -294,7 +299,9 @@ export function LiveSenderActions({
               />
             </>
           )}
-          {mutation.isError && <p role="alert">{t(senderMutationFailureKey(mutation.error))}</p>}
+          {mutation.isError && (
+            <MessageAlert>{t(senderMutationFailureKey(mutation.error))}</MessageAlert>
+          )}
           <DialogFooter>
             <Button
               variant="outline"

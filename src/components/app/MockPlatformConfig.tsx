@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Lock } from "lucide-react";
@@ -152,11 +153,7 @@ export function MockPlatformConfig() {
                   aria-invalid={!!error}
                 />
               </div>
-              {error && (
-                <p role="alert" className="text-sm text-danger">
-                  {error}
-                </p>
-              )}
+              {error && <MessageAlert className="text-sm text-danger">{error}</MessageAlert>}
               <div className="flex justify-end gap-2 border-t pt-4">
                 <Button
                   type="button"

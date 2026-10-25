@@ -1,3 +1,5 @@
+import { RecordReference } from "@/components/app/RecordReference";
+import { EntityName, useEntityName } from "@/components/app/EntityName";
 import { ChannelLabel } from "@/components/app/ChannelLabel";
 import { PageBody, PageHeader, Section } from "@/components/app/PageHeader";
 import { StatusBadge } from "@/components/app/StatusBadge";
@@ -35,6 +37,7 @@ export function MessageHistoryDetailLive({
   tenantId: string | undefined;
 }) {
   const { t, locale } = useI18n();
+  const applicationName = useEntityName("application", message.applicationId, tenantId);
   const timeline = [
     { status: "accepted", at: message.acceptedAt },
     ...(message.queuedAt ? [{ status: "queued", at: message.queuedAt }] : []),
@@ -43,8 +46,8 @@ export function MessageHistoryDetailLive({
   return (
     <>
       <PageHeader
-        title={message.id}
-        description={`${t(`channel.${message.channel}`)} · ${message.applicationId} · ${formatDateTime(message.acceptedAt, locale)}`}
+        title={t("entity.message")}
+        description={`${t(`channel.${message.channel}`)} · ${applicationName} · ${formatDateTime(message.acceptedAt, locale)}`}
         actions={
           <>
             <StatusBadge status={message.status} className="px-2 py-1 text-[0.8125rem]" />
@@ -62,23 +65,23 @@ export function MessageHistoryDetailLive({
           <div className="flex flex-col gap-4 xl:col-span-3">
             <Section title={t("msg.metadata")}>
               <dl className="divide-y">
-                <Field label={t("common.messageId")} mono>
-                  {message.id}
+                <Field label={t("entity.message")}>
+                  <RecordReference value={message.id} label={applicationName} />
                 </Field>
                 <Field label={t("common.channel")}>
                   <ChannelLabel channel={message.channel} />
                 </Field>
-                <Field label={t("msg.applicationId")} mono>
-                  {message.applicationId}
+                <Field label={t("common.application")} mono>
+                  {applicationName}
                 </Field>
                 <Field label={t("msg.recipient")} mono>
                   <span dir="ltr">{message.recipientNormalized}</span>
                 </Field>
                 <Field label={t("msg.senderIdentity")} mono>
-                  {message.senderIdentityId}
+                  <EntityName kind="sender" id={message.senderIdentityId} tenantId={tenantId} />
                 </Field>
                 <Field label={t("msg.templateId")} mono>
-                  {message.templateId ?? "—"}
+                  <EntityName kind="template" id={message.templateId} tenantId={tenantId} />
                 </Field>
                 <Field label={t("msg.acceptedAt")}>
                   {formatDateTime(message.acceptedAt, locale)}
@@ -87,7 +90,7 @@ export function MessageHistoryDetailLive({
                   {message.queuedAt ? formatDateTime(message.queuedAt, locale) : "—"}
                 </Field>
                 <Field label={t("msg.correlation")} mono>
-                  {message.correlationId ?? "—"}
+                  <RecordReference value={message.correlationId} />
                 </Field>
               </dl>
             </Section>

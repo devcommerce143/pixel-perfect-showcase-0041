@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -59,8 +61,8 @@ export function CredentialMonitor({
       header: t("cred.clientId"),
       cell: (row) => (
         <div className="font-mono text-xs">
-          {row.clientId}
-          <p className="text-caption">{row.id}</p>
+          {row.applicationName}
+          <p className="text-caption">{t("entity.credential")}</p>
         </div>
       ),
     },
@@ -70,7 +72,9 @@ export function CredentialMonitor({
       cell: (row) => (
         <div>
           {row.tenantName}
-          <p className="font-mono text-xs">{row.tenantId}</p>
+          <p className="font-mono text-xs">
+            <EntityName kind="tenant" id={row.tenantId} />
+          </p>
         </div>
       ),
     },
@@ -80,7 +84,9 @@ export function CredentialMonitor({
       cell: (row) => (
         <div>
           {row.applicationName}
-          <p className="font-mono text-xs">{row.applicationId}</p>
+          <p className="font-mono text-xs">
+            <EntityName kind="application" id={row.applicationId} tenantId={row.tenantId} />
+          </p>
         </div>
       ),
     },
@@ -160,9 +166,9 @@ export function CredentialMonitor({
                   onChange={(event) => setApplication(event.target.value.trim())}
                 />
                 {invalidApplication && (
-                  <p role="alert" className="text-danger">
+                  <MessageAlert className="text-danger">
                     {t("monitorCred.invalidApplication")}
-                  </p>
+                  </MessageAlert>
                 )}
               </div>
               <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
@@ -192,7 +198,7 @@ export function CredentialMonitor({
             </form>
           </div>
           {list.isError ? (
-            <ErrorState onRetry={() => void list.refetch()} />
+            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : (
             <>
               <DataTable

@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { unknownResolutionMutations } from "@/lib/api/queries";
@@ -139,7 +141,7 @@ export function UnknownResolutionPanel({
           {draft && (
             <>
               <p className="break-all font-mono text-xs" dir="ltr">
-                {tenantId} / {messageId}
+                <EntityName kind="tenant" id={tenantId} /> / {t("entity.message")}
               </p>
               <Label>{t("unknownResolve.decision")}</Label>
               <Select
@@ -215,13 +217,13 @@ export function UnknownResolutionPanel({
                 </Label>
               </div>
               {mutation.isError && (
-                <p role="alert" className="text-danger">
+                <MessageAlert className="text-danger">
                   {t(
                     mutation.error instanceof ApiError && mutation.error.statusCode === 409
                       ? "unknownResolve.conflict"
                       : "unknownResolve.error",
                   )}
-                </p>
+                </MessageAlert>
               )}
               <DialogFooter>
                 <Button

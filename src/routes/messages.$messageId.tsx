@@ -1,3 +1,4 @@
+import { RecordReference } from "@/components/app/RecordReference";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Copy, FileSearch, Info, XCircle } from "lucide-react";
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/messages/$messageId")({
   validateSearch: (search: Record<string, unknown>) => ({
     historyTenantId: typeof search["historyTenantId"] === "string" ? search["historyTenantId"] : undefined,
   }),
-  head: ({ params }) => pageHead(params.messageId, `Message history and metadata for message ${params.messageId}.`),
+  head: () => pageHead("Message details", "Message history and metadata."),
   component: () => <RequirePermission permission="messages.view"><MessageDetail /></RequirePermission>,
 });
 
@@ -63,7 +64,7 @@ function MessageDetail() {
     return <PageBody><div className="panel"><EmptyState icon={FileSearch} title={t("common.notFound")} body={t("msg.notFound")} action={back} /></div></PageBody>;
   }
   if (mode === "live" && liveQuery.isLoading) return <PageBody><div className="panel"><TableSkeleton rows={6} /></div></PageBody>;
-  if (mode === "live" && liveQuery.isError) return <PageBody><div className="panel"><ErrorState onRetry={() => void liveQuery.refetch()} /></div></PageBody>;
+  if (mode === "live" && liveQuery.isError) return <PageBody><div className="panel"><ErrorState error={liveQuery.error} onRetry={() => void liveQuery.refetch()} /></div></PageBody>;
   if (mode === "live" && liveQuery.data)
     return (
       <MessageHistoryDetailLive
@@ -76,13 +77,22 @@ function MessageDetail() {
 
   const message = mockQuery.data;
   if (mockQuery.isLoading) return <PageBody><div className="panel"><TableSkeleton rows={6} /></div></PageBody>;
-  if (mockQuery.isError) return <PageBody><div className="panel"><ErrorState onRetry={() => void mockQuery.refetch()} /></div></PageBody>;
+  if (mockQuery.isError) return <PageBody><div className="panel"><ErrorState error={mockQuery.error} onRetry={() => void mockQuery.refetch()} /></div></PageBody>;
   if (!message) return <PageBody><div className="panel"><EmptyState icon={FileSearch} title={t("common.notFound")} body={t("msg.notFound")} action={back} /></div></PageBody>;
 
   const timeline = message.statusHistory ?? message.events;
   return (
     <>
-      <PageHeader title={message.id} description={`${t(`channel.${message.channel}`)} · ${message.applicationName} · ${formatDateTime(message.createdAt, locale)}`} actions={<><StatusBadge status={message.status} className="px-2 py-1 text-[0.8125rem]" />{back}</>} />
+      <PageHeader
+        title={message.applicationName}
+        description={`${t(`channel.${message.channel}`)} · ${message.applicationName} · ${formatDateTime(message.createdAt, locale)}`}
+        actions={
+          <>
+            <StatusBadge status={message.status} className="px-2 py-1 text-[0.8125rem]" />
+            {back}
+          </>
+        }
+      />
       <PageBody>
         {(message.failure || message.errorMessage) && (
           <div role="alert" className="flex items-start gap-2.5 rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-danger">
@@ -100,23 +110,56 @@ function MessageDetail() {
             <Section title={t("msg.metadata")}>
               <dl className="divide-y">
                 <Field label={t("common.messageId")} mono>
-                  <span className="inline-flex items-center gap-1.5">{message.id}<button onClick={() => copy(message.id)} aria-label={t("common.copy")} className="text-muted-foreground hover:text-foreground"><Copy className="size-3.5" /></button></span>
+                  <span className="inline-flex items-center gap-1.5">
+                    {message.applicationName}
+                    <button
+                      onClick={() => copy(message.id)}
+                      aria-label={t("common.copy")}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Copy className="size-3.5" />
+                    </button>
+                  </span>
                 </Field>
                 {isPlatform && !selectedTenantId && <Field label={t("common.tenant")}>{message.tenantName}</Field>}
                 <Field label={t("common.channel")}><ChannelLabel channel={message.channel} /></Field>
                 <Field label={t("common.recipient")} mono><span dir="ltr">{message.recipient}</span></Field>
-                <Field label={t("common.application")}>{message.applicationName} <span className="font-mono text-xs text-muted-foreground">({message.applicationId})</span></Field>
+                <Field label={t("common.application")}>{message.applicationName}</Field>
                 <Field label={t("msg.senderIdentity")}><span dir="ltr">{message.senderIdentityValue ?? "—"}</span></Field>
                 <Field label={t("common.template")} mono>{message.templateName ? `${message.templateName}${message.templateVersion ? ` · v${message.templateVersion}` : ""}` : "—"}</Field>
                 {message.subject && <Field label={t("send.subject")}>{message.subject}</Field>}
-                <Field label={t("msg.source")}>{t(message.source === "api" ? "msg.source.api" : message.source === "portal" ? "msg.source.portal" : "msg.source.bulk")}{message.bulkJobId && <span className="ms-2 font-mono text-xs text-muted-foreground">{message.bulkJobId}</span>}</Field>
+                <Field label={t("msg.source")}>
+                  {t(
+                    message.source === "api"
+                      ? "msg.source.api"
+                      : message.source === "portal"
+                        ? "msg.source.portal"
+                        : "msg.source.bulk",
+                  )}
+                  {message.bulkJobId && (
+                    <span className="ms-2 font-mono text-xs text-muted-foreground">
+                      {t("entity.job")}
+                    </span>
+                  )}
+                </Field>
                 <Field label={t("common.createdAt")}>{formatDateTime(message.createdAt, locale)}</Field>
                 {message.submittedAt && <Field label={t("msg.submittedAt")}>{formatDateTime(message.submittedAt, locale)}</Field>}
                 <Field label={t("common.updatedAt")}>{formatDateTime(message.updatedAt, locale)}</Field>
                 {message.clientReference && <Field label={t("msg.clientReference")} mono>{message.clientReference}</Field>}
-                {message.idempotencyStatus && <Field label={t("msg.idempotency")}>{t(`msg.idempotency.${message.idempotencyStatus}` as MessageKey)}{message.idempotencyReference && <span className="ms-2 font-mono text-xs text-muted-foreground">{message.idempotencyReference}</span>}</Field>}
+                {message.idempotencyStatus && (
+                  <Field label={t("msg.idempotency")}>
+                    {t(`msg.idempotency.${message.idempotencyStatus}` as MessageKey)}
+                    {message.idempotencyReference && (
+                      <span className="ms-2 font-mono text-xs text-muted-foreground">
+                        <RecordReference value={message.idempotencyReference} />
+                      </span>
+                    )}
+                  </Field>
+                )}
                 {message.channel === "sms" && <Field label={t("msg.segments")}>{message.segments}</Field>}
-                <Field label={t("msg.correlation")} mono>{message.correlationId}</Field>
+                <Field label={t("msg.correlation")} mono>
+                  <RecordReference value={message.correlationId} />
+                </Field>
               </dl>
             </Section>
             <Section title={t("send.body")}>

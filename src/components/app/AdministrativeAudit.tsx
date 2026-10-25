@@ -1,3 +1,6 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { RecordReference } from "@/components/app/RecordReference";
+import { EntityName } from "@/components/app/EntityName";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DataTable, ListPagination, type Column } from "./DataTable";
@@ -125,7 +128,12 @@ export function AdministrativeAudit() {
           {
             id: "tenant",
             header: t("common.tenant"),
-            cell: (row: AdministrativeAuditEvent) => row.tenantId ?? t("liveAudit.platform"),
+            cell: (row: AdministrativeAuditEvent) =>
+              row.tenantId ? (
+                <EntityName kind="tenant" id={row.tenantId} />
+              ) : (
+                t("liveAudit.platform")
+              ),
           },
         ]
       : []),
@@ -141,7 +149,12 @@ export function AdministrativeAudit() {
                 ? "liveAudit.machine"
                 : "liveAudit.system",
           )}{" "}
-          {row.actorUserId ?? row.actorCredentialId ?? "—"}
+          {row.actorKind === "HUMAN"
+            ? (row.actorName ??
+              (row.actorUserId === user?.id && user.name ? user.name : t("entity.unavailable")))
+            : row.actorKind === "MACHINE"
+              ? t("entity.credential")
+              : ""}
         </span>
       ),
     },
@@ -159,7 +172,19 @@ export function AdministrativeAudit() {
       header: t("audit.resource"),
       cell: (row) => (
         <span dir="ltr" className="font-mono text-xs">
-          {row.resourceType} {row.resourceId ?? "—"}
+          {row.resourceType}{" "}
+          {row.resourceId &&
+          ["tenant", "application", "sender", "provider", "template", "route"].includes(
+            row.resourceType,
+          ) ? (
+            <EntityName
+              kind={row.resourceType as import("@/lib/api/entity-names").NamedEntity}
+              id={row.resourceId}
+              tenantId={row.tenantId ?? undefined}
+            />
+          ) : (
+            <RecordReference value={row.resourceId} />
+          )}
         </span>
       ),
     },
@@ -289,17 +314,15 @@ export function AdministrativeAudit() {
               </Button>
             </div>
             {filterError && (
-              <p role="alert" className="text-sm sm:col-span-2 lg:col-span-4">
+              <MessageAlert className="text-sm sm:col-span-2 lg:col-span-4">
                 {t("liveAudit.invalidFilters")}
-              </p>
+              </MessageAlert>
             )}
           </form>
           {!query ? (
-            <p role="alert" className="p-4">
-              {t("liveUsage.invalidRange")}
-            </p>
+            <MessageAlert className="p-4">{t("liveUsage.invalidRange")}</MessageAlert>
           ) : events.isError ? (
-            <ErrorState onRetry={() => void events.refetch()} />
+            <ErrorState error={events.error} onRetry={() => void events.refetch()} />
           ) : (
             <>
               <DataTable
@@ -359,7 +382,7 @@ function AuditDetail({
           <DialogDescription>{t("liveAudit.description")}</DialogDescription>
         </DialogHeader>
         {event.tenantId !== null && detail.isError ? (
-          <ErrorState onRetry={() => void detail.refetch()} />
+          <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
         ) : data ? (
           <dl className="grid grid-cols-2 gap-3 break-all text-sm">
             <dt>{t("audit.time")}</dt>
@@ -369,10 +392,44 @@ function AuditDetail({
             <dt>{t("audit.result")}</dt>
             <dd>{data.outcome}</dd>
             <dt>{t("liveAudit.correlation")}</dt>
-            <dd dir="ltr">{data.correlationId}</dd>
+            <dd>
+              <RecordReference value={data.correlationId} />
+            </dd>
             <dt>{t("liveAudit.changes")}</dt>
             <dd dir="ltr">
-              <pre className="whitespace-pre-wrap">{JSON.stringify(data.details, null, 2)}</pre>
+              <dl className="space-y-2">
+                {Object.entries(data.details).map(([key, value]) => {
+                  const kind = (
+                    {
+                      providerAccountId: "provider",
+                      nextProviderAccountId: "provider",
+                      senderIdentityId: "sender",
+                      routeId: "route",
+                    } as const
+                  )[
+                    key as
+                      "providerAccountId" | "nextProviderAccountId" | "senderIdentityId" | "routeId"
+                  ];
+                  return (
+                    <div key={key}>
+                      <dt className="text-caption">{key}</dt>
+                      <dd>
+                        {typeof value === "string" && kind ? (
+                          <EntityName
+                            kind={kind}
+                            id={value}
+                            tenantId={data.tenantId ?? undefined}
+                          />
+                        ) : typeof value === "string" && /Id$/.test(key) ? (
+                          <RecordReference value={value} />
+                        ) : (
+                          String(value)
+                        )}
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
             </dd>
           </dl>
         ) : (
@@ -406,7 +463,7 @@ export function AuditRetention({ actor }: { actor: SenderIdentityActor }) {
         <h2 className="font-semibold">{t("liveAudit.retention")}</h2>
         <p className="text-sm text-muted-foreground">{t("liveAudit.retentionHint")}</p>
         {policy.isError ? (
-          <ErrorState onRetry={() => void policy.refetch()} />
+          <ErrorState error={policy.error} onRetry={() => void policy.refetch()} />
         ) : (
           <p>
             {policy.data?.retentionDays ?? "—"} {t("liveAudit.days")}
@@ -438,7 +495,7 @@ export function AuditRetention({ actor }: { actor: SenderIdentityActor }) {
           {t("common.save")}
         </Button>
         {mutation.isSuccess && <p role="status">{t("liveAudit.saved")}</p>}
-        {mutation.isError && <p role="alert">{t("common.errorBody")}</p>}
+        {mutation.isError && <MessageAlert>{t("common.errorBody")}</MessageAlert>}
         <AlertDialog
           open={confirm}
           onOpenChange={(open) => {

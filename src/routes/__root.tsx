@@ -13,7 +13,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { I18nProvider } from "@/lib/i18n/i18n";
+import { I18nProvider, useI18n } from "@/lib/i18n/i18n";
+import { ErrorState } from "@/components/app/States";
 import { SessionProvider } from "@/lib/auth/session";
 import { AuthBoundary } from "@/components/auth/AuthBoundary";
 import { SessionDataBoundary } from "@/components/auth/SessionDataBoundary";
@@ -21,15 +22,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
+  return <I18nProvider><MissingPageNotice /></I18nProvider>;
+}
+
+function MissingPageNotice() {
+  const { t } = useI18n();
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <div className="max-w-md text-center">
-        <p className="text-label">404</p>
-        <h1 className="mt-1 text-page-title">Page not found</h1>
-        <p className="mt-2 text-subtle">The page you're looking for doesn't exist or has been moved.</p>
+        <h1 className="mt-1 text-page-title">{t("notice.pageMissing")}</h1>
+        <p className="mt-2 text-subtle">{t("notice.pageMissingBody")}</p>
         <div className="mt-6">
           <Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-            Go to dashboard
+            {t("common.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -38,7 +43,6 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
-  console.error(error);
   const router = useRouter();
   useEffect(() => {
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
@@ -47,22 +51,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">This page didn't load</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Something went wrong on our end. You can try refreshing or head back home.</p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent">
-            Go home
-          </a>
-        </div>
+        <I18nProvider><ErrorState error={error} onRetry={() => { void router.invalidate(); reset(); }} /></I18nProvider>
       </div>
     </div>
   );

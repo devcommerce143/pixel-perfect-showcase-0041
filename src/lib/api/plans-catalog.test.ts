@@ -2,11 +2,37 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ar } from "../i18n/ar.ts";
 import { en } from "../i18n/en.ts";
-import { normalizePlanListQuery, planListPath, plansCatalogSource, slicePlanPage } from "./plans-catalog.ts";
+import {
+  normalizePlanListQuery,
+  planListPath,
+  planTenantCountLabel,
+  plansCatalogSource,
+  slicePlanPage,
+} from "./plans-catalog.ts";
 
-const COPY_KEYS = ["plans.emptyTitle", "plans.emptyBody", "plans.tenantsUnavailable"] as const;
+const COPY_KEYS = ["plans.emptyTitle", "plans.emptyBody"] as const;
 
 describe("plan catalog source", () => {
+  it("omits unavailable counts without inventing zero or a failure message", () => {
+    const unexpected = () => {
+      throw new Error("Unknown counts must not be formatted");
+    };
+    for (const value of [null, -1, NaN, 1.5])
+      assert.equal(planTenantCountLabel(value, unexpected), undefined);
+  });
+
+  it("preserves known zero and positive counts with localized labels", () => {
+    for (const dictionary of [en, ar]) {
+      for (const count of [0, 3]) {
+        assert.equal(
+          planTenantCountLabel(count, (value) =>
+            dictionary["plans.tenants"].replace("{count}", String(value)),
+          ),
+          dictionary["plans.tenants"].replace("{count}", String(count)),
+        );
+      }
+    }
+  });
   it("keeps mock mode on the local catalog", () => {
     assert.equal(plansCatalogSource("mock"), "mock-catalog");
     assert.equal(plansCatalogSource("live"), "live-endpoint");

@@ -1,6 +1,7 @@
+import { Notifications } from "@/components/app/Notifications";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, BookOpen, Building2, Check, ChevronDown, ChevronRight, Languages, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { BookOpen, Building2, Check, ChevronDown, ChevronRight, Languages, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { findNavMatch, getNavigation } from "@/config/navigation";
 import { queries } from "@/lib/api/queries";
 import { eligibleTenantOptions, shouldClearTenantSelection } from "@/lib/api/tenant-options";
 import { TenantOptionsStatus } from "@/components/app/TenantOptionsStatus";
+import { humanName } from "@/lib/api/entity-names";
 import { useSession } from "@/lib/auth/session";
 import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { useI18n, type Locale } from "@/lib/i18n/i18n";
@@ -29,7 +31,7 @@ function Breadcrumbs() {
     if (match.group.labelKey) crumbs.push({ label: t(match.group.labelKey) });
     crumbs.push({ label: t(match.item.labelKey), to: match.item.to });
     const rest = pathname.slice(match.item.to.length).split("/").filter(Boolean);
-    rest.forEach((seg) => crumbs.push({ label: decodeURIComponent(seg) }));
+    rest.forEach(() => crumbs.push({ label: t("entity.details") }));
   }
   return (
     <nav aria-label="Breadcrumb" className="hidden min-w-0 md:block">
@@ -64,8 +66,14 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
     if (isPlatform && shouldClearTenantSelection(tenantId, tenantsQuery.data, catalogComplete)) setTenantId(undefined);
   }, [isPlatform, setTenantId, tenantId, tenantsQuery.data, tenantsQuery.isFetching, tenantsQuery.isSuccess]);
   if (!user) return null;
-  const initials = user.name.split(" ").map((p) => p[0]).slice(0, 2).join("");
-  const organizationName = user.tenantName ?? t("header.dolftech");
+  const accountName = humanName(user.name) ?? humanName(user.email) ?? t("entity.user");
+  const initials = accountName
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("");
+  const organizationName =
+    humanName(user.tenantName) ?? t(isPlatform ? "header.dolftech" : "entity.unavailable");
   const accountTarget = can("settings.view") ? "/settings" : can("platform.config") ? "/platform/config" : null;
   const handleSignOut = async () => {
     try {
@@ -98,7 +106,12 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="mx-1 h-8 min-w-0 max-w-40 gap-1.5 px-2 sm:max-w-56" aria-label={t("header.tenantContext")}>
                 <Building2 className="size-3.5 shrink-0" aria-hidden />
-                <span className="truncate text-xs font-medium">{selectedTenant?.name ?? (tenantId || t("header.allTenants"))}</span>
+                <span className="truncate text-xs font-medium">
+                  {humanName(selectedTenant?.name) ??
+                    (tenantId
+                      ? t(tenantsQuery.isFetching ? "entity.loading" : "entity.unavailable")
+                      : t("header.allTenants"))}
+                </span>
                 <ChevronDown className="size-3.5 shrink-0" aria-hidden />
               </Button>
             </PopoverTrigger>
@@ -152,35 +165,24 @@ export function AppHeader({ collapsed, onToggleCollapse, onOpenMobile }: { colla
           <Link to="/docs"><BookOpen className="size-4" /></Link>
         </Button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative size-8" aria-label={t("header.notifications")}>
-              <Bell className="size-4" />
-              <span className="absolute end-1.5 top-1.5 size-2 rounded-full bg-danger ring-2 ring-card" aria-hidden />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>{t("header.noNotifications")}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-[0.8125rem]">{t("header.notif1")}</DropdownMenuItem>
-            <DropdownMenuItem className="text-[0.8125rem]">{t("header.notif2")}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Notifications />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 gap-2 px-1.5" aria-label={t("header.account")}>
               <span className="flex size-7 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">{initials}</span>
               <span className="hidden text-start leading-tight lg:block">
-                <span className="block text-xs font-medium">{user.name}</span>
+                <span className="block text-xs font-medium">{accountName}</span>
                 <span className="block text-[0.6875rem] text-muted-foreground">{t(`role.${user.role}`)}</span>
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-64">
             <DropdownMenuLabel className="font-normal">
-              <div className="text-sm font-medium">{user.name}</div>
-              <div className="text-caption">{user.email || user.id}</div>
+              <div className="text-sm font-medium">{accountName}</div>
+              <div className="text-caption">
+                {user.email || humanName(user.name) || t("entity.user")}
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuLabel className="font-normal text-caption">{organizationName}</DropdownMenuLabel>
             {accountTarget && <DropdownMenuItem asChild><Link to={accountTarget as never}>{t("header.accountSettings")}</Link></DropdownMenuItem>}

@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
@@ -171,7 +172,7 @@ function ContentVersions({
           {list.isLoading ? (
             <TableSkeleton />
           ) : list.isError ? (
-            <ErrorState onRetry={() => void list.refetch()} />
+            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : (
             <>
               <DataTable columns={columns} rows={list.data?.items ?? []} rowKey={(row) => row.id} />
@@ -216,7 +217,7 @@ function ContentVersions({
           {detail.isLoading ? (
             <TableSkeleton rows={3} />
           ) : detail.isError ? (
-            <ErrorState onRetry={() => void detail.refetch()} />
+            <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
           ) : (
             detail.data && (
               <ContentVersionDetail
@@ -359,7 +360,7 @@ function CreateContentVersion({
           />
           <Label htmlFor="content-create-ack">{t("content.ack")}</Label>
         </div>
-        {mutation.isError && <p role="alert">{t("content.uncertain")}</p>}
+        {mutation.isError && <MessageAlert>{t("content.uncertain")}</MessageAlert>}
         <DialogFooter>
           <Button variant="outline" disabled={mutation.isPending} onClick={onClose}>
             {t("common.cancel")}
@@ -483,7 +484,7 @@ function ContentVersionDetail({
           </Button>
         </div>
       )}
-      {lifecycle.isError && <p role="alert">{t("content.failed")}</p>}
+      {lifecycle.isError && <MessageAlert>{t("content.failed")}</MessageAlert>}
       {row.registryStatus === "ready" && (
         <div className="space-y-3 border-t pt-3">
           <h3 className="font-medium">{t("content.preview")}</h3>
@@ -511,7 +512,7 @@ function ContentVersionDetail({
           >
             {t("content.render")}
           </Button>
-          {preview.isError && <p role="alert">{t("content.failed")}</p>}
+          {preview.isError && <MessageAlert>{t("content.failed")}</MessageAlert>}
           {preview.data && (
             <div role="status">
               <p>{preview.data.subject}</p>

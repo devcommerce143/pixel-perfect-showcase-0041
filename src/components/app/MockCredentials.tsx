@@ -1,3 +1,5 @@
+import { RecordReference } from "@/components/app/RecordReference";
+import { EntityName } from "@/components/app/EntityName";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Copy, KeyRound, Plus, ShieldAlert } from "lucide-react";
@@ -177,7 +179,7 @@ export function MockCredentials({
       ),
       cell: (c) => (
         <div>
-          <div className="font-mono text-xs font-medium">{c.clientId}</div>
+          <div className="font-mono text-xs font-medium">{c.applicationName}</div>
           <div className="text-caption">{c.applicationName}</div>
         </div>
       ),
@@ -188,7 +190,9 @@ export function MockCredentials({
             id: "tenant",
             header: t("common.tenant"),
             cell: (c: ApiCredential) => (
-              <span className="text-sm">{c.tenantName ?? c.tenantId}</span>
+              <span className="text-sm">
+                <EntityName kind="tenant" id={c.tenantId} name={c.tenantName} />
+              </span>
             ),
             className: "hidden xl:table-cell",
           },
@@ -208,7 +212,7 @@ export function MockCredentials({
       cell: (c) => (
         <div>
           <div>{c.applicationName}</div>
-          <div className="font-mono text-xs text-muted-foreground">{c.applicationId}</div>
+          <div className="font-mono text-xs text-muted-foreground">{c.applicationName}</div>
         </div>
       ),
       className: "hidden lg:table-cell",
@@ -375,7 +379,7 @@ export function MockCredentials({
               {t("cred.revokeTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {t("cred.revokeBody", { id: target?.clientId ?? "" })}
+              {t("cred.revokeBody", { id: target?.applicationName ?? t("entity.credential") })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -443,7 +447,13 @@ export function MockCredentials({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">{t("common.tenant")}</span>
-                  <span>{selectedApp.tenantName ?? selectedApp.tenantId}</span>
+                  <span>
+                    <EntityName
+                      kind="tenant"
+                      id={selectedApp.tenantId}
+                      name={selectedApp.tenantName}
+                    />
+                  </span>
                 </div>
               </div>
             )}
@@ -516,7 +526,9 @@ export function MockCredentials({
           <AlertDialogHeader>
             <AlertDialogTitle>{t("cred.rotateTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("cred.rotateBody", { id: rotateTarget?.clientId ?? "" })}
+              {t("cred.rotateBody", {
+                id: rotateTarget?.applicationName ?? t("entity.credential"),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -552,7 +564,10 @@ export function MockCredentials({
             <div className="space-y-4">
               <div className="rounded-md border bg-surface-subtle p-3">
                 <div className="mb-1 text-xs text-muted-foreground">
-                  {secretResult.credential.clientId}
+                  <RecordReference
+                    value={secretResult.credential.clientId}
+                    label={t("entity.credential")}
+                  />
                 </div>
                 <code dir="ltr" className="block break-all text-xs">
                   {secretResult.secret}

@@ -1,4 +1,4 @@
-import { AlertTriangle, OctagonAlert } from "lucide-react";
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { ChannelLabel } from "@/components/app/ChannelLabel";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { quotaWarningCopyKey } from "@/lib/api/dashboard-quota";
@@ -128,10 +128,9 @@ function UsageReading({ reading, policy }: { reading: QuotaUsageReading; policy:
         </div>
       </dl>
       {copyKey ? (
-        <div role="status" className={cn("flex items-start gap-2 rounded-md px-3 py-2 text-[0.8125rem]", tone === "danger" ? "bg-danger-soft text-danger" : "bg-warning-soft text-warning")}>
-          {tone === "danger" ? <OctagonAlert className="mt-0.5 size-4 shrink-0" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0" />}
-          <span>{t(copyKey)}</span>
-        </div>
+        <MessageAlert variant={tone === "danger" ? "error" : "warning"}>
+          {t(copyKey)}
+        </MessageAlert>
       ) : null}
     </div>
   );

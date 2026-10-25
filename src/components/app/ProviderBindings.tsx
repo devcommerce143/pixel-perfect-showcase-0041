@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queries, senderBindingMutations } from "@/lib/api/queries";
@@ -139,14 +141,18 @@ function ScopedBindings({
       header: t("senderBindings.id"),
       cell: (row) => (
         <button className="font-mono text-xs underline" onClick={() => setSelected(row.id)}>
-          {row.id}
+          {row.providerSenderName}
         </button>
       ),
     },
     {
       id: "sender",
       header: t("senderBindings.senderId"),
-      cell: (row) => <span className="font-mono text-xs">{row.senderIdentityId}</span>,
+      cell: (row) => (
+        <span className="font-mono text-xs">
+          <EntityName kind="sender" id={row.senderIdentityId} tenantId={tenantId} />
+        </span>
+      ),
     },
     { id: "name", header: t("senderBindings.providerName"), cell: (row) => row.providerSenderName },
     {
@@ -200,7 +206,9 @@ function ScopedBindings({
   }
   return (
     <div className="space-y-3 pt-3">
-      <p className="font-mono text-xs">{tenantId}</p>
+      <p className="font-mono text-xs">
+        <EntityName kind="tenant" id={tenantId} />
+      </p>
       <p className="text-subtle">{t("senderBindings.note")}</p>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={list.isFetching} onClick={() => void list.refetch()}>
@@ -229,7 +237,7 @@ function ScopedBindings({
       </div>
       {saved && <p role="status">{t("senderBindings.saved")}</p>}
       {list.isError ? (
-        <ErrorState onRetry={() => void list.refetch()} />
+        <ErrorState error={list.error} onRetry={() => void list.refetch()} />
       ) : list.isPending ? (
         <TableSkeleton />
       ) : list.data.items.length ? (
@@ -258,10 +266,10 @@ function ScopedBindings({
             <DialogDescription>{t("senderBindings.note")}</DialogDescription>
           </DialogHeader>
           <p className="font-mono text-xs">
-            {account.code} / {account.id} / {tenantId}
+            {account.code} / <EntityName kind="tenant" id={tenantId} />
           </p>
           {senders.isError ? (
-            <ErrorState onRetry={() => void senders.refetch()} />
+            <ErrorState error={senders.error} onRetry={() => void senders.refetch()} />
           ) : senders.isPending ? (
             <TableSkeleton rows={2} />
           ) : (
@@ -275,7 +283,7 @@ function ScopedBindings({
                 <SelectContent>
                   {senders.data.items.map((row) => (
                     <SelectItem key={row.id} value={row.id}>
-                      {senderLabel(row)} ({row.id})
+                      {senderLabel(row)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -289,7 +297,9 @@ function ScopedBindings({
               />
             </>
           )}
-          {senderDetail.isError && <ErrorState onRetry={() => void senderDetail.refetch()} />}
+          {senderDetail.isError && (
+            <ErrorState error={senderDetail.error} onRetry={() => void senderDetail.refetch()} />
+          )}
           {senderDetail.data && (
             <div className="flex flex-wrap gap-2">
               <StatusBadge status={senderDetail.data.verificationStatus} />
@@ -297,13 +307,13 @@ function ScopedBindings({
             </div>
           )}
           {sender && senderDetail.isSuccess && !ready && (
-            <p role="alert">
+            <MessageAlert>
               {t(
                 account.channel === "EMAIL"
                   ? "senderBindings.emailReadiness"
                   : "senderBindings.whatsappReadiness",
               )}
-            </p>
+            </MessageAlert>
           )}
           {account.channel === "SMS" ? (
             <>
@@ -319,7 +329,9 @@ function ScopedBindings({
           ) : (
             <p className="text-subtle">{t("senderBindings.derived")}</p>
           )}
-          {mutation.isError && <p role="alert">{t(senderBindingFailureKey(mutation.error))}</p>}
+          {mutation.isError && (
+            <MessageAlert>{t(senderBindingFailureKey(mutation.error))}</MessageAlert>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
@@ -346,10 +358,12 @@ function ScopedBindings({
             <DialogDescription>{t("senderBindings.removeNote")}</DialogDescription>
           </DialogHeader>
           <p className="font-mono text-xs">
-            {tenantId} / {account.id} / {removing?.id}
+            <EntityName kind="tenant" id={tenantId} /> / {account.code}
           </p>
           <p>{removing?.providerSenderName}</p>
-          {mutation.isError && <p role="alert">{t(senderBindingFailureKey(mutation.error))}</p>}
+          {mutation.isError && (
+            <MessageAlert>{t(senderBindingFailureKey(mutation.error))}</MessageAlert>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
@@ -385,17 +399,19 @@ function ScopedBindings({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("senderBindings.detail")}</DialogTitle>
-            <DialogDescription>{selected}</DialogDescription>
+            <DialogDescription>{t("entity.details")}</DialogDescription>
           </DialogHeader>
           {detail.isError ? (
-            <ErrorState onRetry={() => void detail.refetch()} />
+            <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
           ) : detail.isPending ? (
             <TableSkeleton rows={3} />
           ) : (
             <dl className="space-y-2">
               <div>
                 <dt>{t("senderBindings.senderId")}</dt>
-                <dd className="font-mono text-xs">{detail.data.senderIdentityId}</dd>
+                <dd className="font-mono text-xs">
+                  <EntityName kind="sender" id={detail.data.senderIdentityId} tenantId={tenantId} />
+                </dd>
               </div>
               <div>
                 <dt>{t("senderBindings.providerName")}</dt>

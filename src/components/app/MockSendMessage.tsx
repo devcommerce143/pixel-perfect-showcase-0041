@@ -135,7 +135,7 @@ export function MockSendMessage() {
     onSuccess: async (r) => {
       setConfirmOpen(false);
       setLastId(r.id);
-      toast.success(t("send.success", { id: r.id }));
+      toast.success(t("send.success", { id: t("entity.message") }));
       setRecipient("");
       setTouched(false);
       await Promise.all([
@@ -227,7 +227,7 @@ export function MockSendMessage() {
                     <SelectContent>
                       {channelApps.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.name} · {a.id}
+                          {a.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -418,7 +418,7 @@ export function MockSendMessage() {
                   })}
                   className="font-mono text-xs text-primary hover:underline"
                 >
-                  {lastId}
+                  {t("entity.message")}
                 </Link>
               </div>
             )}

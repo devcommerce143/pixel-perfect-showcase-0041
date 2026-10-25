@@ -1,5 +1,7 @@
 /** Mounted LIVE-mode UI checks against local, read-only contract fixtures. NOT real OIDC/DB acceptance. */
 import assert from "node:assert/strict";
+import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { spawn } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
@@ -10,8 +12,12 @@ import { createServer } from "vite";
 import { en } from "../../src/lib/i18n/en.ts";
 import { ar } from "../../src/lib/i18n/ar.ts";
 
-const tenant = "11111111-1111-4111-8111-111111111111";
-const actor = "22222222-2222-4222-8222-222222222222";
+const bulkOnly = process.argv.includes("--bulk-only");
+const notificationsOnly = process.argv.includes('--notifications-only');
+const messagesOnly = process.argv.includes("--messages-only");
+let messageScenario = "active";
+const tenant = notificationsOnly ? randomUUID() : "11111111-1111-4111-8111-111111111111";
+const actor = notificationsOnly ? randomUUID() : "22222222-2222-4222-8222-222222222222";
 const application = "33333333-3333-4333-8333-333333333333";
 const provider = "44444444-4444-4444-8444-444444444444";
 const taqnyatEmailProvider = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -104,8 +110,8 @@ function activeSubmissionPolicy() {
         features: ["API_ACCESS", "BULK_MESSAGING"],
         channels: ["SMS", "EMAIL", "WHATSAPP"].map((channel) => ({
           channel,
-          enabled: channel === "SMS",
-          monthlyQuota: channel === "SMS" ? 100 : null,
+          enabled: channel === "SMS" || bulkOnly,
+          monthlyQuota: channel === "SMS" || bulkOnly ? 100 : null,
         })),
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -128,11 +134,11 @@ function activeSubmissionPolicy() {
       features: ["API_ACCESS", "BULK_MESSAGING"],
       channels: ["SMS", "EMAIL", "WHATSAPP"].map((channel) => ({
         channel,
-        enabled: channel === "SMS",
-        monthlyQuota: channel === "SMS" ? 100 : null,
-        tpsLimit: channel === "SMS" ? 10 : null,
-        quotaSource: channel === "SMS" ? "plan" : "unavailable",
-        tpsSource: channel === "SMS" ? "plan" : "unavailable",
+        enabled: channel === "SMS" || bulkOnly,
+        monthlyQuota: channel === "SMS" || bulkOnly ? 100 : null,
+        tpsLimit: channel === "SMS" || bulkOnly ? 10 : null,
+        quotaSource: channel === "SMS" || bulkOnly ? "plan" : "unavailable",
+        tpsSource: channel === "SMS" || bulkOnly ? "plan" : "unavailable",
         ignoredOverride: false,
       })),
     },
@@ -144,11 +150,11 @@ const submissionApp = {
   name: "Fixture submission application",
   environment: "SANDBOX",
   status: "ACTIVE",
-  channels: ["SMS"],
+  channels: bulkOnly ? ["SMS", "EMAIL", "WHATSAPP"] : ["SMS"],
   scopes: ["MESSAGES_SEND"],
   senderAccess: "ALL_ELIGIBLE",
   allowListSenderIds: [],
-  channelAvailability: [{ channel: "SMS", granted: true, available: true }],
+  channelAvailability: (bulkOnly ? ["SMS", "EMAIL", "WHATSAPP"] : ["SMS"]).map((channel) => ({ channel, granted: true, available: true })),
   createdAt: timestamp,
   updatedAt: timestamp,
 };
@@ -170,6 +176,32 @@ const submissionSender = {
 };
 function fixture(url) {
   const route = url.pathname.replace("/fixture-api/api/v1", "");
+  if (route === '/notifications') return {items:[],page:Number(url.searchParams.get('page')??1),pageSize:20,total:0,unreadCount:0};
+  if (messagesOnly && route === "/provider-health" && messageScenario === "provider-empty") return {items:[],nextCursor:null};
+  if (messagesOnly && route === "/provider-health" && messageScenario === "provider-failed") return {items:[{...providerRow,state:"DEGRADED",lastCheckedAt:timestamp,lastFailureClass:"TIMEOUT",consecutiveFailures:1}],nextCursor:null};
+  if (messagesOnly && route.endsWith("/subscription")) {
+    const value = activeSubmissionPolicy();
+    const blockers = { missing: "SUBSCRIPTION_MISSING", expired: "SUBSCRIPTION_ENDED", suspended: "TENANT_SUSPENDED" };
+    if (blockers[messageScenario]) {
+      value.effective.operational = false;
+      value.effective.blockers = [blockers[messageScenario]];
+      if (messageScenario === "missing") {
+        value.subscription = null;
+        value.effective.subscriptionId = null;
+        value.effective.planId = null;
+        value.effective.configured = false;
+        value.effective.quotaPolicy = value.effective.quotaPolicySource = null;
+        value.effective.tpsLimit = value.effective.tpsSource = null;
+        value.effective.features = [];
+        value.effective.channels = value.effective.channels.map((item) => ({...item, enabled:false, monthlyQuota:null, tpsLimit:null, quotaSource:"unavailable", tpsSource:"unavailable"}));
+      }
+      if (messageScenario === "expired") value.subscription.endsAt = "2020-01-01T00:00:00.000Z";
+      if (messageScenario === "suspended") value.effective.tenantStatus = "SUSPENDED";
+    }
+    if (messageScenario === "channel") value.effective.channels[0].enabled = false;
+    return value;
+  }
+  if (messagesOnly && messageScenario === "sender" && route.endsWith("/senders")) return { items: [], page: 1, pageSize: 20, total: 0 };
   const page = Number(url.searchParams.get("page") ?? 1);
   const pageSize = Number(url.searchParams.get("pageSize") ?? 20);
   const contentRow = {
@@ -183,6 +215,8 @@ function fixture(url) {
     createdAt: timestamp,
     updatedAt: timestamp,
   };
+  if ((bulkOnly || messagesOnly) && (route === `/tenants/${tenant}/senders/${smsSender}` || route === `/senders/${smsSender}`)) return submissionSender;
+  if (bulkOnly && (route === `/tenants/${tenant}/senders` || route === "/senders") && url.searchParams.get("channel") === "EMAIL") return { items: [{ ...senderRow, operationalStatus: "ACTIVE", email: { ...senderRow.email, domainVerificationStatus: "VERIFIED", spfStatus: "VERIFIED", dkimStatus: "VERIFIED" } }], page, pageSize, total: 1 };
   if (route.endsWith("/content-templates"))
     return { items: [contentRow], total: 1, page, pageSize };
   if (route.endsWith(`/content-templates/${contentTemplate}`))
@@ -213,6 +247,8 @@ function fixture(url) {
   if (route === "/auth/me")
     return {
       userId: actor,
+      name: "Fixture operator",
+      tenantName: role === "PLATFORM_SUPER_ADMIN" ? null : tenantRow.name,
       role,
       status: "ACTIVE",
       tenantId: role === "PLATFORM_SUPER_ADMIN" ? null : tenant,
@@ -464,7 +500,12 @@ const artifacts = await mkdtemp(path.join(os.tmpdir(), "dolf-browser-artifacts-"
 const downloads = path.join(artifacts, "downloads");
 await mkdir(downloads);
 let vite, chrome, socket;
+let notificationBridge;
 try {
+  if (notificationsOnly) {
+    const backendRequire = createRequire(path.resolve(root,'../dolf-connect-engine/package.json'));
+    notificationBridge = await backendRequire('./test/integration/notifications-browser-fixtures.cjs').createNotificationBrowserFixtures({tenant,actor,approved:process.argv.includes('--approved-local-notifications')});
+  }
   vite = await createServer({
     root,
     clearScreen: false,
@@ -490,11 +531,22 @@ try {
               res.statusCode = 401;
               return res.end(JSON.stringify({ message: "Fixture authentication required" }));
             }
+            if (notificationsOnly && (/\/notifications(?:\/|$)/.test(url.pathname) || url.pathname.endsWith('/auth/me'))) {
+              void notificationBridge.handle(req,res,url).catch(()=>{res.statusCode=500;res.end(JSON.stringify({message:'Local validation failed'}));exceptions.push('Notification bridge failure');});
+              return;
+            }
             if (req.method !== "GET") {
+              if (messagesOnly && messageScenario === "success" && req.method === "POST" && url.pathname === `/fixture-api/api/v1/tenants/${tenant}/applications/${application}/messages`) {
+                // Synthetic receipt only: never forwarded to a backend or provider.
+                req.resume();
+                return res.end(JSON.stringify({id:message,channel:"SMS",status:"ACCEPTED",acceptedAt:timestamp,queuedAt:null,replay:false}));
+              }
               res.statusCode = 405;
               return res.end(JSON.stringify({ message: "Fixture harness forbids writes" }));
             }
             if (
+              (messagesOnly && messageScenario === "failure" && url.pathname.endsWith("/subscription")) ||
+              (messagesOnly && messageScenario === "provider-unavailable" && url.pathname.endsWith("/provider-health")) ||
               (credentialFailure && url.pathname.endsWith("/platform/api-credentials")) ||
               (providerAttemptFailure && url.pathname.endsWith("/provider-attempts"))
             ) {
@@ -680,6 +732,22 @@ try {
     console.log(`PASS ${name}`);
   }
 
+  if (notificationsOnly) {
+    const {runNotificationChecks}=await import('./notification-checks.mjs');
+    await runNotificationChecks({evaluate,click,navigate,contains,button,send,screenshot,passed,waitFor,en,ar,bridge:notificationBridge}).catch(async error=>{await screenshot('notification-failure');await writeFile(path.join(artifacts,'notification-failure-text.txt'),await text());throw error;});
+  } else if (messagesOnly) {
+    submissionFixture = true;
+    const { runMessageAcceptanceChecks } = await import("./message-acceptance-checks.mjs");
+    await runMessageAcceptanceChecks({ evaluate, click, navigate, contains, button, combo, option, send, screenshot, passed, waitFor, tenant, en, ar, setScenario: (value) => { messageScenario = value; }, setRole: (value) => { role = value; } }).catch(async (error) => {
+      await screenshot("message-failure");
+      await writeFile(path.join(artifacts, "message-failure-text.txt"), await text());
+      throw error;
+    });
+  } else if (bulkOnly) {
+    submissionFixture = true;
+    const { runBulkJobsChecks } = await import("./bulk-jobs-checks.mjs");
+    await runBulkJobsChecks({ evaluate, click, navigate, contains, button, combo, option, send, screenshot, passed, waitFor, artifacts, downloads, tenant, en, ar, setRole: (next) => { role = next; } }).catch(async (error) => { await screenshot("bulk-failure"); throw error; });
+  } else {
   await navigate("/platform/api-clients");
   await contains("fixture-public-client");
   await contains(tenantRow.name);
@@ -987,7 +1055,7 @@ try {
   submissionFixture = true;
   await navigate(`/messages/send?tenantId=${tenant}`);
   await contains(ar["humanSend.title"]);
-  await contains(ar["humanSend.note"]);
+  assert.ok(!(await text()).includes(ar["humanSend.note"]));
   await waitFor(
     () => evaluate("document.documentElement.dir==='rtl'"),
     "Arabic human acceptance direction",
@@ -1077,7 +1145,8 @@ try {
   await contains(en["common.errorTitle"]);
   assert.ok(!(await text()).includes("fixture-account"));
   passed("failed provider history remains an error without fake targets");
-  assert.ok(requests.every((row) => row.method === "GET" && row.authorized));
+  }
+  assert.ok(requests.every((row) => row.authorized && (row.method === "GET" || (notificationsOnly && row.method==='PATCH' && (/\/notifications\/[0-9a-f-]+\/read$/.test(row.path)||row.path.endsWith('/notifications/read-all'))) || (messagesOnly && row.method === "POST" && row.path === `/fixture-api/api/v1/tenants/${tenant}/applications/${application}/messages`))));
   assert.deepEqual(unknown, []);
   assert.deepEqual(exceptions, []);
   await writeFile(
@@ -1085,13 +1154,16 @@ try {
     JSON.stringify(
       {
         browser: version.Browser,
-        fixtureOnly: true,
+        fixtureOnly: !notificationsOnly,
+        syntheticAuthentication: true,
         realIssuerVerified: false,
-        realPersistenceVerified: false,
+        realPersistenceVerified: notificationsOnly,
         checks,
-        readRequests: requests.length,
+        readRequests: requests.filter(row=>row.method==='GET').length,
         externalOriginsBlocked: [...new Set(blocked)],
-        mutationRequests: 0,
+        mutationRequests: requests.filter((row) => row.method !== "GET").length,
+        mutationsAreSyntheticReceiptsOnly: messagesOnly,
+        notificationsUseRealLocalPostgres: notificationsOnly,
       },
       null,
       2,
@@ -1128,6 +1200,7 @@ try {
     await Promise.race([stopped, delay(3000)]);
   }
   await vite?.close();
+  await notificationBridge?.close();
   const resolved = path.resolve(profile);
   if (
     path.dirname(resolved).toLowerCase() !== path.resolve(os.tmpdir()).toLowerCase() ||

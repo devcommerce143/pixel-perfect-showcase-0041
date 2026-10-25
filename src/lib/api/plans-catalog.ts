@@ -4,12 +4,23 @@ import type { Paginated, PlanListQuery } from "./types.ts";
 export const PLAN_PAGE_SIZE_MAX = 100;
 const PLAN_PAGE_SIZE_DEFAULT = 20;
 
+/** Omit unsupported counts; a known zero remains meaningful. */
+export function planTenantCountLabel(
+  count: number | null,
+  format: (count: number) => string,
+): string | undefined {
+  return count !== null && Number.isSafeInteger(count) && count >= 0 ? format(count) : undefined;
+}
+
 /** Mock screens keep the local plan catalog. Live mode calls GET /plans. */
 export function plansCatalogSource(mode: "mock" | "live"): "mock-catalog" | "live-endpoint" {
   return mode === "live" ? "live-endpoint" : "mock-catalog";
 }
 
-export function normalizePlanListQuery(query: PlanListQuery = {}): { page: number; pageSize: number } {
+export function normalizePlanListQuery(query: PlanListQuery = {}): {
+  page: number;
+  pageSize: number;
+} {
   return {
     page: positiveInt(query.page, 1),
     pageSize: Math.min(PLAN_PAGE_SIZE_MAX, positiveInt(query.pageSize, PLAN_PAGE_SIZE_DEFAULT)),

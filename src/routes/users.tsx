@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -281,7 +283,11 @@ function Users() {
             </Button>
           </TableToolbar>
           {q.isError ? (
-            <ErrorState onRetry={() => { void q.refetch(); }} />
+            <ErrorState
+              onRetry={() => {
+                void q.refetch();
+              }}
+            />
           ) : q.data && !q.isPlaceholderData && q.data.total === 0 ? (
             <EmptyState title={t("users.noUsers")} />
           ) : (
@@ -310,7 +316,9 @@ function Users() {
             <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="department">{t("users.department")}</Label><Input id="department" maxLength={120} value={department} onChange={(e) => setDepartment(e.target.value)} /></div><div className="space-y-1.5"><Label>{t("common.role")}</Label><Select value={role} onValueChange={(v) => setRole(v as TenantUserRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(["client_admin", "operator", "viewer"] as const).map((r) => <SelectItem key={r} value={r}>{t(`role.${r}`)}</SelectItem>)}</SelectContent></Select></div></div>
             <div className="space-y-1.5"><Label>{t("users.preferredLanguage")}</Label><Select value={preferredLanguage} onValueChange={(v) => setPreferredLanguage(v as "en" | "ar")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="en">{t("users.languageEn")}</SelectItem><SelectItem value="ar">{t("users.languageAr")}</SelectItem></SelectContent></Select></div>
             {createTouched && !valid && <p role="alert" className="text-xs text-danger">{t("users.invalidDetails")}</p>}
-            {createError && <p role="alert" className="text-sm text-danger">{createError}</p>}
+            {createError && (
+              <MessageAlert className="text-sm text-danger">{createError}</MessageAlert>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={invite.isPending}>{t("common.cancel")}</Button>
@@ -322,7 +330,7 @@ function Users() {
         <SheetContent className="w-full sm:max-w-md">
           <SheetHeader>
             <SheetTitle>{selected?.name}</SheetTitle>
-            <SheetDescription>{selected?.id} · {selected?.email}</SheetDescription>
+            <SheetDescription>{selected?.email}</SheetDescription>
           </SheetHeader>
           {selected && <div className="space-y-4 px-4">
             <div className="grid gap-2 text-sm">
@@ -339,7 +347,18 @@ function Users() {
               <div><div className="text-label">{t("users.jobTitle")}</div><div>{selected.jobTitle ?? t("users.unavailable")}</div></div>
               <div><div className="text-label">{t("users.department")}</div><div>{selected.department ?? t("users.unavailable")}</div></div>
               <div><div className="text-label">{t("users.preferredLanguage")}</div><div>{selected.preferredLanguage === "ar" ? t("users.languageAr") : selected.preferredLanguage === "en" ? t("users.languageEn") : t("users.unavailable")}</div></div>
-              {selected.tenantId && <div><div className="text-label">{t("common.tenant")}</div><div>{selected.tenantName ?? tenantNames.get(selected.tenantId) ?? selected.tenantId}</div></div>}
+                {selected.tenantId && (
+                  <div>
+                    <div className="text-label">{t("common.tenant")}</div>
+                    <div>
+                      <EntityName
+                        kind="tenant"
+                        id={selected.tenantId}
+                        name={selected.tenantName ?? tenantNames.get(selected.tenantId)}
+                      />
+                    </div>
+                  </div>
+                )}
             </div>
             <div><div className="text-label">{t("users.lastLogin")}</div><div className="text-sm">{selected.lastLoginAt === undefined ? t("users.unavailable") : selected.lastLoginAt ? formatDateTime(selected.lastLoginAt, locale) : t("common.never")}</div></div>
             {apiMode === "mock" && <div><div className="text-label">{t("users.mfa")}</div><div>{selected.mfa ? t("users.on") : t("users.off")}</div></div>}
@@ -379,7 +398,7 @@ function Users() {
             <div className="space-y-1.5"><Label htmlFor="edit-department">{t("users.department")}</Label><Input id="edit-department" maxLength={120} value={editDepartment} onChange={(event) => setEditDepartment(event.target.value)} /></div>
             <div className="space-y-1.5"><Label>{t("users.preferredLanguage")}</Label><Select value={editPreferredLanguage} onValueChange={(value) => setEditPreferredLanguage(value as "en" | "ar")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="en">{t("users.languageEn")}</SelectItem><SelectItem value="ar">{t("users.languageAr")}</SelectItem></SelectContent></Select></div>
             {editTouched && !editValid && <p className="text-xs text-danger">{t("users.invalidDetails")}</p>}
-            {editError && <p role="alert" className="text-sm text-danger">{editError}</p>}
+            {editError && <MessageAlert className="text-sm text-danger">{editError}</MessageAlert>}
             <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" onClick={() => setEditOpen(false)} disabled={update.isPending}>{t("common.cancel")}</Button><Button type="submit" disabled={!editValid || update.isPending}>{update.isPending ? t("common.saving") : t("common.save")}</Button></div>
           </form>
         </SheetContent>
@@ -390,7 +409,7 @@ function Users() {
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">{t("users.roleChangeBody", { role: t(`role.${editRole}`) })}</p>
             <div className="space-y-1.5"><Label>{t("common.role")}</Label><Select value={editRole} onValueChange={(value) => setEditRole(value as TenantUserRole)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(["client_admin", "operator", "viewer"] as const).map((item) => <SelectItem key={item} value={item}>{t(`role.${item}`)}</SelectItem>)}</SelectContent></Select></div>
-            {roleError && <p role="alert" className="text-sm text-danger">{roleError}</p>}
+            {roleError && <MessageAlert className="text-sm text-danger">{roleError}</MessageAlert>}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setRoleOpen(false)} disabled={changeRole.isPending}>{t("common.cancel")}</Button><Button onClick={() => changeRole.mutate()} disabled={!selected || selected.role === editRole || changeRole.isPending}>{changeRole.isPending ? t("common.saving") : t("users.changeRole")}</Button></DialogFooter>
         </DialogContent>
@@ -401,7 +420,9 @@ function Users() {
             <AlertDialogTitle>{t(statusTarget?.status === "active" ? "users.activateTitle" : statusTarget?.status === "suspended" ? "users.suspendTitle" : "users.disableTitle")}</AlertDialogTitle>
             <AlertDialogDescription>{t(statusTarget?.status === "active" ? "users.activateBody" : statusTarget?.status === "suspended" ? "users.suspendBody" : "users.disableBody", { name: statusTarget?.user.name ?? "" })}</AlertDialogDescription>
           </AlertDialogHeader>
-          {statusError && <p role="alert" className="text-sm text-danger">{statusError}</p>}
+          {statusError && (
+            <MessageAlert className="text-sm text-danger">{statusError}</MessageAlert>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={changeStatus.isPending}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={(event) => { event.preventDefault(); if (statusTarget) changeStatus.mutate(statusTarget); }} disabled={!statusTarget || changeStatus.isPending}>

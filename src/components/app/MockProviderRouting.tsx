@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, ShieldAlert } from "lucide-react";
@@ -260,7 +261,7 @@ export function MockProviderRouting() {
       cell: (r) => (
         <div>
           <div className="font-medium">{r.name}</div>
-          <div className="font-mono text-xs text-muted-foreground">{r.id}</div>
+          <div className="font-mono text-xs text-muted-foreground">{r.name}</div>
         </div>
       ),
     },
@@ -348,7 +349,7 @@ export function MockProviderRouting() {
               <SheetHeader>
                 <SheetTitle>{selected.name}</SheetTitle>
                 <SheetDescription>
-                  {selected.id} · {t(`channel.${selected.channel}`)}
+                  {selected.name} · {t(`channel.${selected.channel}`)}
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-4">
@@ -697,9 +698,9 @@ export function MockProviderRouting() {
                   </p>
                 )}
                 {error && (
-                  <p role="alert" className="text-sm text-danger">
+                  <MessageAlert className="text-sm text-danger">
                     {t(error as MessageKey)}
-                  </p>
+                  </MessageAlert>
                 )}
                 <div className="flex justify-end gap-2 border-t pt-4">
                   <Button type="button" variant="outline" onClick={() => setActiveSheet(null)}>

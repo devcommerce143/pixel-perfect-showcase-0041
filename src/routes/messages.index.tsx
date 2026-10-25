@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { MonitoringCsvButton } from "@/components/app/MonitoringCsvButton";
 import { MessageHistoryApplicationFilter } from "@/components/app/MessageHistoryApplicationFilter";
@@ -136,8 +137,9 @@ function MessageHistory() {
             </TableToolbar>
           ) : (
             <div className="flex flex-col gap-3 border-b px-4 py-3">
-              <p id="message-history-export-note" className="text-caption text-muted-foreground">{t("msg.exportCurrentPageNote")}</p>
-              <p className="text-caption text-muted-foreground">{t("monitoringExport.limit")}</p>
+              <MessageAlert variant="info" title={t("msg.exportGuidanceTitle")}>
+                <p id="message-history-export-note">{t("msg.exportGuidance")}</p>
+              </MessageAlert>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
                 <div className="grid gap-1.5">
                   <Label htmlFor="message-history-from">{t("msg.dateFrom")}</Label>
@@ -163,11 +165,15 @@ function MessageHistory() {
                   }}
                 />
               </div>
-              {!rangeValid && <p role="alert" className="text-sm text-danger">{t("msg.dateRangeInvalid")}</p>}
+              {!rangeValid && (
+                <MessageAlert className="text-sm text-danger">
+                  {t("msg.dateRangeInvalid")}
+                </MessageAlert>
+              )}
             </div>
           )}
           {q.isError ? (
-            <ErrorState onRetry={() => void q.refetch()} />
+            <ErrorState error={q.error} onRetry={() => void q.refetch()} />
           ) : mode === "live" ? (
             rangeValid ? <>
               <MessageHistoryTable

@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -66,9 +67,9 @@ export function MockUsage({ requestedTenantId }: { requestedTenantId: string | u
     return (
       <PageBody>
         <Section>
-          <p role="alert" className="p-4 text-sm text-danger">
+          <MessageAlert className="p-4 text-sm text-danger">
             {t("usage.loadError")}
-          </p>
+          </MessageAlert>
         </Section>
       </PageBody>
     );
@@ -98,7 +99,7 @@ export function MockUsage({ requestedTenantId }: { requestedTenantId: string | u
       <>
         <PageHeader
           title={selectedTenant.tenantName}
-          description={selectedTenant.tenantId}
+          description={selectedTenant.tenantName}
           actions={
             <div className="flex flex-wrap gap-2">
               {isPlatform && (
@@ -196,7 +197,7 @@ export function MockUsage({ requestedTenantId }: { requestedTenantId: string | u
                   <div>
                     <div className="font-medium">{application.applicationName}</div>
                     <div className="font-mono text-xs text-muted-foreground">
-                      {application.applicationId}
+                      {application.applicationName}
                     </div>
                   </div>
                   <ul className="flex flex-wrap gap-x-5 gap-y-2">
@@ -525,7 +526,7 @@ export function MockUsage({ requestedTenantId }: { requestedTenantId: string | u
                         {tenant.tenantName}
                       </Link>
                       <div className="font-mono text-xs text-muted-foreground">
-                        {tenant.tenantId}
+                        {tenant.tenantName}
                       </div>
                     </td>
                     <td className="px-4 py-3">{tenant.plan}</td>

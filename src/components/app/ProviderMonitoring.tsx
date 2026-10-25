@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ProviderBalanceObservation } from "./ProviderBalanceObservation";
 import { ProviderAccountActions } from "./ProviderAccountActions";
 import { ProviderBindings } from "./ProviderBindings";
 import { SmsPilotControlState } from "./SmsPilotControlState";
@@ -56,7 +57,6 @@ export function ProviderMonitoring({
       cell: (row) => (
         <button className="text-start underline" onClick={() => setSelected(row.providerAccountId)}>
           {row.code}
-          <p className="font-mono text-xs">{row.providerAccountId}</p>
         </button>
       ),
     },
@@ -165,7 +165,7 @@ export function ProviderMonitoring({
             </Select>
           </div>
           {list.isError ? (
-            <ErrorState onRetry={() => void list.refetch()} />
+            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : list.isPending ? (
             <TableSkeleton />
           ) : (
@@ -282,7 +282,9 @@ function ProviderDetails({
   return (
     <Section title={t("liveProviders.detail")}>
       <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-        <p className="font-mono text-xs">{id}</p>
+        <p className="text-sm">
+          <EntityName kind="provider" id={id} name={detail.data?.code} />
+        </p>
         <Button
           variant="outline"
           disabled={health.isFetching || checks.isFetching || detail.isFetching}
@@ -299,7 +301,7 @@ function ProviderDetails({
         </Button>
       </div>
       {detail.isError ? (
-        <ErrorState onRetry={() => void detail.refetch()} />
+        <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
       ) : detail.isPending ? (
         <TableSkeleton rows={2} />
       ) : (
@@ -329,7 +331,7 @@ function ProviderDetails({
         </dl>
       )}
       {health.isError ? (
-        <ErrorState onRetry={() => void health.refetch()} />
+        <ErrorState error={health.error} onRetry={() => void health.refetch()} />
       ) : health.isPending ? (
         <TableSkeleton rows={2} />
       ) : (
@@ -338,6 +340,7 @@ function ProviderDetails({
           <p>{t("liveProviders.successes", { value: health.data.consecutiveSuccesses })}</p>
           <p>{t("liveProviders.failures", { value: health.data.consecutiveFailures })}</p>
           <p>
+            {t("liveProviders.lastChecked")}:{" "}
             {health.data.lastCheckedAt
               ? formatDateTime(health.data.lastCheckedAt, locale)
               : t("liveProviders.noObservation")}
@@ -350,9 +353,15 @@ function ProviderDetails({
           <ProviderBindings actor={actor} account={detail.data} />
         </div>
       )}
+      {configurable && health.data && (
+        <ProviderBalanceObservation
+          observation={health.data.balanceObservation}
+          readFailed={health.isError}
+        />
+      )}
       <h3 className="p-4 text-sm font-semibold">{t("liveProviders.checkHistory")}</h3>
       {checks.isError ? (
-        <ErrorState onRetry={() => void checks.refetch()} />
+        <ErrorState error={checks.error} onRetry={() => void checks.refetch()} />
       ) : checks.isPending ? (
         <TableSkeleton />
       ) : (
@@ -402,3 +411,4 @@ function CursorButtons({
     </nav>
   );
 }
+import { EntityName } from "./EntityName";

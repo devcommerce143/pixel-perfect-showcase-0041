@@ -1,4 +1,5 @@
 import { webhookScopeKey, webhookHistoryKey } from "./webhook-registry";
+import { canResolveEntity, entityNameKey, humanName, type NamedEntity } from "./entity-names";
 import { contentTemplateKey } from "./content-template";
 import type { ContentTemplateQuery } from "./content-template";
 import { tenantPolicyKey } from "./tenant-policy";
@@ -7,6 +8,7 @@ import { emailEvidenceKey } from "./email-evidence";
 import { providerAttemptsKey } from "./provider-attempts";
 import { roleHas } from "../auth/permissions";
 import { humanMessageKey } from "./human-message";
+import { notificationKey } from './notifications';
 import type { CredentialMonitorQuery } from "./credential-monitor";
 import { providerMonitorKey } from "./provider-monitoring";
 import { providerRouteKey } from "./provider-routes";
@@ -84,6 +86,50 @@ import {
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
+  notifications: (actor: SenderIdentityActor, page: number) => queryOptions({
+    queryKey: notificationKey(actor, page),
+    queryFn: () => api.listNotifications(page),
+    enabled: !!actor.userId,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  }),
+  entityName: (
+    actor: SenderIdentityActor,
+    kind: NamedEntity,
+    id: string,
+    tenantId?: string,
+    enabled = true,
+  ) =>
+    queryOptions({
+      queryKey: entityNameKey(actor, kind, id, tenantId),
+      enabled: enabled && canResolveEntity(actor, kind, id, tenantId),
+      staleTime: 60_000,
+      retry: false,
+      queryFn: async (): Promise<string | null> => {
+        // Enforce scope even when refetch is invoked on a disabled query.
+        if (!canResolveEntity(actor, kind, id, tenantId)) return null;
+        const target = actor.role === "super_admin" ? tenantId : undefined;
+        if (kind === "tenant") return humanName((await api.getTenant(id)).name);
+        if (kind === "provider") return humanName((await api.getProviderMetadata(actor, id)).code);
+        if (kind === "route") return humanName((await api.getProviderRoute(actor, id)).code);
+        if (kind === "application")
+          return humanName((await api.getApplication(actor, id, target))?.name);
+        if (kind === "template")
+          return humanName((await api.getTemplateRegistry(actor, id, target)).templateKey);
+        const sender = await api.getSenderIdentityRead(actor, id, target);
+        if (!sender) return null;
+        return (
+          humanName(sender.displayName) ??
+          humanName(
+            sender.channel === "sms"
+              ? sender.sms.senderId
+              : sender.channel === "email"
+                ? sender.email.emailAddress
+                : sender.whatsapp.businessDisplayName,
+          )
+        );
+      },
+    }),
   humanMessageApplications: (actor: SenderIdentityActor, page: number, tenantId?: string) =>
     queryOptions({
       queryKey: [...humanMessageKey(actor, tenantId), "applications", page],
@@ -793,6 +839,10 @@ export const bulkCancellationMutations = {
 };
 export const humanBulkMutations = {
   create: (...args: Parameters<typeof api.createHumanBulkJob>) => api.createHumanBulkJob(...args),
+};
+export const notificationMutations = {
+  markRead: (id: string) => api.markNotificationRead(id),
+  markAllRead: () => api.markAllNotificationsRead(),
 };
 export const contentTemplateMutations = {
   apply: (...args: Parameters<typeof api.applyContentTemplateMutation>) =>

@@ -182,7 +182,7 @@ export function MockProviderHealth() {
               <SheetHeader>
                 <SheetTitle>{selected.name}</SheetTitle>
                 <SheetDescription>
-                  {selected.id} · {t(`channel.${selected.channel}`)}
+                  {selected.name} · {t(`channel.${selected.channel}`)}
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-4 pb-5">

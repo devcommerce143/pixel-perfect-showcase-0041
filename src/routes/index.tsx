@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -198,7 +199,7 @@ function Dashboard() {
               {liveQuota ? (
                 <LiveQuotaWarnings data={quotaWarnings.data} isError={quotaWarnings.isError} onRetry={() => void quotaWarnings.refetch()} />
               ) : isPlatform && !selectedTenantId ? (
-                usage.isLoading ? <div className="m-4 h-20 animate-pulse bg-muted" /> : usage.isError ? <p role="alert" className="p-4 text-sm text-danger">{t("usage.loadError")}</p> : (
+                usage.isLoading ? <div className="m-4 h-20 animate-pulse bg-muted" /> : usage.isError ? <MessageAlert className="p-4 text-sm text-danger">{t("usage.loadError")}</MessageAlert> : (
                   <dl className="grid grid-cols-3 divide-x rtl:divide-x-reverse">
                     {[["usage.at80", tenantsAt80], ["usage.at90", tenantsAt90], ["usage.at100", tenantsAt100]].map(([key, count]) => (
                       <div key={key as string} className="px-3 py-4 text-center">
@@ -209,7 +210,7 @@ function Dashboard() {
                     ))}
                   </dl>
                 )
-              ) : usage.isLoading ? <div className="m-4 h-28 animate-pulse bg-muted" /> : usage.isError ? <p role="alert" className="p-4 text-sm text-danger">{t("usage.loadError")}</p> : dashboardData.quota ? (
+              ) : usage.isLoading ? <div className="m-4 h-28 animate-pulse bg-muted" /> : usage.isError ? <MessageAlert className="p-4 text-sm text-danger">{t("usage.loadError")}</MessageAlert> : dashboardData.quota ? (
                 <QuotaMeter used={dashboardData.quota.used} limit={dashboardData.quota.limit} />
               ) : <EmptyState title={t("dash.quotaUnavailableTitle")} body={t("dash.quotaUnavailableBody")} />}
             </Section>

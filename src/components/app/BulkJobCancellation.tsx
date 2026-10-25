@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { bulkCancellationMutations } from "@/lib/api/queries";
@@ -93,7 +94,7 @@ function ScopedCancellation({ actor, job }: { actor: SenderIdentityActor; job: B
             <DialogTitle>{t("bulkCancel.title")}</DialogTitle>
             <DialogDescription>{t("bulkCancel.description")}</DialogDescription>
           </DialogHeader>
-          <p className="font-mono text-xs">{job.id}</p>
+          <p className="font-mono text-xs">{job.applicationName}</p>
           <div className="flex items-start gap-2">
             <Checkbox
               id="bulk-cancel-ack"
@@ -103,7 +104,9 @@ function ScopedCancellation({ actor, job }: { actor: SenderIdentityActor; job: B
             />
             <Label htmlFor="bulk-cancel-ack">{t("bulkCancel.ack")}</Label>
           </div>
-          {mutation.isError && <p role="alert">{t(bulkCancellationFailure(mutation.error))}</p>}
+          {mutation.isError && (
+            <MessageAlert>{t(bulkCancellationFailure(mutation.error))}</MessageAlert>
+          )}
           <DialogFooter>
             <Button variant="outline" disabled={mutation.isPending} onClick={() => setOpen(false)}>
               {t("common.cancel")}

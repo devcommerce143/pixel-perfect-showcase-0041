@@ -1,4 +1,7 @@
-﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
+import { downloadSampleWorkbook } from "@/lib/api/sample-workbook";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Download, FileUp, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -415,7 +418,7 @@ export function MockBulkSend() {
         idempotencyKey: crypto.randomUUID(),
       }),
     onSuccess: async (created) => {
-      toast.success(t("bulk.submitted", { id: created.id }));
+      toast.success(t("bulk.submitted", { id: created.name }));
       setLastJobId(created.id);
       setStep(5);
       await qc.invalidateQueries({ queryKey: ["bulkJobs"] });
@@ -478,17 +481,23 @@ export function MockBulkSend() {
     </div>
   );
   const downloadSample = () => {
-    if (!selectedTemplate) return;
-    const rows = [
-      ["recipient", ...variableNames],
-      [
-        channel === "email" ? "customer@example.test" : "+966500000001",
-        ...variableNames.map((variable) =>
-          variable === "code" ? "123456" : `example_${variable}`,
-        ),
-      ],
-    ];
-    downloadCsv(`${selectedTemplate.name}-sample.csv`, rows);
+    const rows = selectedTemplate
+      ? [
+          ["recipient", ...variableNames],
+          [
+            channel === "email" ? "customer@example.test" : "+966500000001",
+            ...variableNames.map((variable) =>
+              variable === "code" ? "123456" : `example_${variable}`,
+            ),
+          ],
+        ]
+      : [
+          ["Recipient", "FirstName", "LastName"],
+          [channel === "email" ? "customer@example.test" : "+966500000001", "Ahmed", "Alzahrani"],
+        ];
+    if (channel === "sms")
+      downloadSampleWorkbook(`${selectedTemplate?.name ?? "bulk-send"}-sample.xlsx`, rows);
+    else downloadCsv(`${selectedTemplate?.name ?? "bulk-send"}-sample.csv`, rows);
   };
 
   const columns: Column<BulkJob>[] = [
@@ -501,13 +510,13 @@ export function MockBulkSend() {
           <button
             type="button"
             className="font-mono text-xs text-primary underline underline-offset-2"
-            aria-label={t("bulk.openJobDetails", { id: j.id })}
+            aria-label={t("bulk.openJobDetails", { id: j.name })}
             onClick={(event) => {
               event.stopPropagation();
               setDetailJobId(j.id);
             }}
           >
-            {j.id}
+            {j.name}
           </button>
         </div>
       ),
@@ -518,7 +527,7 @@ export function MockBulkSend() {
           {
             id: "tenant",
             header: t("common.tenant"),
-            cell: (j: BulkJob) => j.tenantName ?? j.tenantId ?? t("common.notFound"),
+            cell: (j: BulkJob) => <EntityName kind="tenant" id={j.tenantId} name={j.tenantName} />,
             className: "hidden lg:table-cell",
           },
         ]
@@ -745,25 +754,12 @@ export function MockBulkSend() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <Label htmlFor="bf">{t("bulk.file")}</Label>
-                    <Button asChild variant="outline" size="sm">
-                      <a
-                        href={selectedTemplate ? "#" : "/bulk-send-sample.csv"}
-                        onClick={
-                          selectedTemplate
-                            ? (event) => {
-                                event.preventDefault();
-                                downloadSample();
-                              }
-                            : undefined
-                        }
-                        download
-                        className="inline-flex items-center gap-2"
-                      >
-                        <Download className="size-4" />
-                        {t("bulk.downloadSample")}
-                      </a>
+                    <Button type="button" variant="outline" size="sm" onClick={downloadSample}>
+                      <Download className="size-4" />
+                      {t(`humanBulk.sample.${channel}`)}
                     </Button>
                   </div>
+                  {channel === "sms" && <p className="text-caption">{t("humanBulk.excelHelp")}</p>}
                   <label
                     htmlFor="bf"
                     className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed px-4 py-4 hover:bg-accent/40"
@@ -980,11 +976,7 @@ export function MockBulkSend() {
                     {selectedTemplate.body}
                   </div>
                 )}
-                {error && (
-                  <p role="alert" className="text-sm text-danger">
-                    {error}
-                  </p>
-                )}
+                {error && <MessageAlert className="text-sm text-danger">{error}</MessageAlert>}
                 <div className="flex justify-between border-t pt-3">
                   <Button variant="outline" onClick={() => setStep(3)}>
                     {t("bulk.back")}
@@ -1116,7 +1108,7 @@ export function MockBulkSend() {
           <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t("bulk.jobDetails")}</DialogTitle>
-              <DialogDescription className="font-mono">{detailJob?.id}</DialogDescription>
+              <DialogDescription>{detailJob?.name}</DialogDescription>
             </DialogHeader>
             {detailJob && (
               <div className="space-y-5">
@@ -1128,7 +1120,13 @@ export function MockBulkSend() {
                   {isPlatform && !selectedTenantId && (
                     <div>
                       <dt className="text-label">{t("bulk.tenant")}</dt>
-                      <dd>{detailJob.tenantName ?? detailJob.tenantId}</dd>
+                      <dd>
+                        <EntityName
+                          kind="tenant"
+                          id={detailJob.tenantId}
+                          name={detailJob.tenantName}
+                        />
+                      </dd>
                     </div>
                   )}
                   <div>

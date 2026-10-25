@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Download } from "lucide-react";
@@ -63,9 +64,9 @@ function ScopedDownload({ actor, request, tenantId, disabled }: Props) {
         {t(download.isPending ? "monitoringExport.loading" : "monitoringExport.download")}
       </Button>
       {download.isError && (
-        <p className="max-w-sm text-sm text-danger" role="alert">
+        <MessageAlert className="max-w-sm text-sm text-danger">
           {t(monitoringExportFailureKey(download.error))}
-        </p>
+        </MessageAlert>
       )}
     </div>
   );

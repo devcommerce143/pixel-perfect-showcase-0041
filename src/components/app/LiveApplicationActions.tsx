@@ -1,4 +1,6 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useEffect, useRef, useState } from "react";
+import { EntityName } from "./EntityName";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -337,7 +339,9 @@ export function LiveApplicationActions({
                 <>
                   {senderIds.map((id) => (
                     <div key={id} className="flex items-center justify-between gap-2 text-xs">
-                      <code className="break-all">{id}</code>
+                      <span className="break-words">
+                        <EntityName kind="sender" id={id} tenantId={tenantId} />
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -353,7 +357,10 @@ export function LiveApplicationActions({
                   {senderQuery.isPending ? (
                     <TableSkeleton rows={3} />
                   ) : senderQuery.isError ? (
-                    <ErrorState onRetry={() => void senderQuery.refetch()} />
+                    <ErrorState
+                      error={senderQuery.error}
+                      onRetry={() => void senderQuery.refetch()}
+                    />
                   ) : senderQuery.data?.items.length === 0 ? (
                     <EmptyState title={t("liveApplications.noSenders")} />
                   ) : (
@@ -418,9 +425,7 @@ export function LiveApplicationActions({
             </label>
           )}
           {failure && (
-            <p role="alert" className="text-sm text-destructive">
-              {t(failure)}
-            </p>
+            <MessageAlert className="text-sm text-destructive">{t(failure)}</MessageAlert>
           )}
           <DialogFooter>
             <Button variant="outline" disabled={mutation.isPending} onClick={() => setAction(null)}>

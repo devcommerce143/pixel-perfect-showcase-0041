@@ -1,3 +1,4 @@
+import { EntityName } from "@/components/app/EntityName";
 import { useNavigate } from "@tanstack/react-router";
 import { ChannelLabel } from "@/components/app/ChannelLabel";
 import { DataTable, type Column } from "@/components/app/DataTable";
@@ -25,16 +26,13 @@ export function MessageHistoryTable({
       "tenantId" in message ? (
         <div className="min-w-32">
           <div className="font-medium">{message.tenantName}</div>
-          <div className="break-all font-mono text-xs text-muted-foreground">
-            {message.tenantId}
-          </div>
         </div>
       ) : null,
   };
   const columns: Column<MessageHistoryItem | PlatformMessageHistoryItem>[] = [
     {
       id: "id",
-      header: t("common.messageId"),
+      header: t("entity.message"),
       cell: (message) => (
         <button
           type="button"
@@ -44,7 +42,7 @@ export function MessageHistoryTable({
             openMessage(message);
           }}
         >
-          {message.id}
+          {t(`channel.${message.channel}`)} / {formatDateTime(message.acceptedAt, locale)}
         </button>
       ),
     },
@@ -55,8 +53,16 @@ export function MessageHistoryTable({
     },
     {
       id: "application",
-      header: t("msg.applicationId"),
-      cell: (message) => <span className="font-mono text-xs">{message.applicationId}</span>,
+      header: t("common.application"),
+      cell: (message) => (
+        <span className="font-mono text-xs">
+          <EntityName
+            kind="application"
+            id={message.applicationId}
+            tenantId={"tenantId" in message ? message.tenantId : undefined}
+          />
+        </span>
+      ),
     },
     ...(showTenant ? [tenantColumn] : []),
     {

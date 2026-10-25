@@ -18,6 +18,7 @@ const id = "11111111-1111-4111-8111-111111111111",
   other = "22222222-2222-4222-8222-222222222222";
 const actor = { userId: other, role: "super_admin", tenantId: null, name: "Platform" } as const;
 const row = {
+  balanceObservation: null,
   providerAccountId: id,
   code: "sms-account",
   channel: "SMS",
@@ -269,10 +270,7 @@ describe("platform provider metadata and recorded health", () => {
       new URL("../../../components/app/ProviderMonitoring.tsx", import.meta.url),
       "utf8",
     );
-    assert.doesNotMatch(
-      ui,
-      /testProviderConnection|useMutation|successRate|uptime|billing|balance|api\./,
-    );
+    assert.doesNotMatch(ui, /testProviderConnection|useMutation|successRate|uptime|billing|api\./);
     for (const page of ["platform.providers", "platform.health"]) {
       const route = readFileSync(new URL(`../../../routes/${page}.tsx`, import.meta.url), "utf8");
       assert.match(route, /apiMode === "mock"/);

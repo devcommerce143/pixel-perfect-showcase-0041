@@ -326,6 +326,15 @@ export function createMockApi(): DolfConnectApi {
   };
 
   return {
+    async listNotifications(page) {
+      return {items:[],page,pageSize:20,total:0,unreadCount:0};
+    },
+    async markNotificationRead() {
+      throw new Error('Notification not found');
+    },
+    async markAllNotificationsRead() {
+      return {updatedCount:0};
+    },
     async getDashboard() {
       await delay();
       const sum = (k: "delivered" | "failed" | "pending") => TREND.reduce((a, d) => a + d[k], 0);

@@ -1,12 +1,24 @@
 import type { LucideIcon } from "lucide-react";
-import { AlertOctagon, CalendarClock, Inbox, Lock } from "lucide-react";
+import { CalendarClock, Inbox, Lock } from "lucide-react";
+import { MessageAlert } from "./MessageAlert";
+import { userErrorKey, supportReference } from "@/lib/api/user-message";
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useI18n } from "@/lib/i18n/i18n";
 
-export function EmptyState({ icon: Icon = Inbox, title, body, action }: { icon?: LucideIcon; title: string; body?: string; action?: ReactNode }) {
+export function EmptyState({
+  icon: Icon = Inbox,
+  title,
+  body,
+  action,
+}: {
+  icon?: LucideIcon;
+  title: string;
+  body?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
       <div className="flex size-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -19,15 +31,24 @@ export function EmptyState({ icon: Icon = Inbox, title, body, action }: { icon?:
   );
 }
 
-export function ErrorState({ onRetry }: { onRetry?: () => void }) {
+export function ErrorState({ onRetry, error }: { onRetry?: () => void; error?: unknown }) {
   const { t } = useI18n();
   return (
-    <EmptyState
-      icon={AlertOctagon}
-      title={t("common.errorTitle")}
-      body={t("common.errorBody")}
-      action={onRetry && <Button variant="outline" size="sm" onClick={onRetry}>{t("common.retry")}</Button>}
-    />
+    <div className="p-4">
+      <MessageAlert>
+        <p>{t(userErrorKey(error))}</p>
+        {supportReference(error) && (
+          <p className="mt-2 break-all">
+            {t("notice.reference")}: <bdi dir="ltr">{supportReference(error)}</bdi>
+          </p>
+        )}
+        {onRetry && (
+          <Button className="mt-3" variant="outline" size="sm" onClick={onRetry}>
+            {t("common.retry")}
+          </Button>
+        )}
+      </MessageAlert>
+    </div>
   );
 }
 
@@ -36,7 +57,9 @@ export function TableSkeleton({ rows = 8 }: { rows?: number }) {
     <div className="divide-y">
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex gap-4 px-4 py-3">
-          <Skeleton className="h-4 w-40" /><Skeleton className="h-4 w-24" /><Skeleton className="h-4 flex-1" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 flex-1" />
         </div>
       ))}
     </div>
@@ -48,8 +71,16 @@ export function ForbiddenState() {
   return (
     <div className="p-6">
       <div className="panel">
-        <EmptyState icon={Lock} title={t("common.forbiddenTitle")} body={t("common.forbiddenBody")}
-          action={<Button asChild variant="outline" size="sm"><Link to="/">{t("common.backToDashboard")}</Link></Button>} />
+        <EmptyState
+          icon={Lock}
+          title={t("common.forbiddenTitle")}
+          body={t("common.forbiddenBody")}
+          action={
+            <Button asChild variant="outline" size="sm">
+              <Link to="/">{t("common.backToDashboard")}</Link>
+            </Button>
+          }
+        />
       </div>
     </div>
   );
@@ -59,7 +90,11 @@ export function ScheduledState() {
   const { t } = useI18n();
   return (
     <div className="panel">
-      <EmptyState icon={CalendarClock} title={t("common.scheduledTitle")} body={t("common.scheduledBody")} />
+      <EmptyState
+        icon={CalendarClock}
+        title={t("common.scheduledTitle")}
+        body={t("common.scheduledBody")}
+      />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { EntityName } from "@/components/app/EntityName";
 import { createFileRoute } from "@tanstack/react-router";
 import { LiveSenderActions } from "@/components/app/LiveSenderActions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -187,8 +188,32 @@ function MockSenderIdentities() {
   };
 
   const columns: Column<SenderIdentity>[] = [
-    { id: "id", header: t("si.identityId"), cell: (identity) => <span className="font-mono text-xs">{identity.id}</span> },
-    ...(isPlatform && !selectedTenantId ? [{ id: "tenant", header: <SortableHeader label={t("si.tenant")} field="tenantName" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("tenantName")} />, cell: (identity: SenderIdentity) => tenantNames.get(identity.tenantId) ?? identity.tenantId, className: "hidden lg:table-cell" }] : []),
+    {
+      id: "id",
+      header: t("si.identityId"),
+      cell: (identity) => (
+        <span className="font-mono text-xs">{identity.displayName ?? t("entity.unavailable")}</span>
+      ),
+    },
+    ...(isPlatform && !selectedTenantId
+      ? [
+          {
+            id: "tenant",
+            header: (
+              <SortableHeader
+                label={t("si.tenant")}
+                field="tenantName"
+                sortBy={sortBy}
+                sortDirection={sortDirection}
+                onSort={() => toggleSort("tenantName")}
+              />
+            ),
+            cell: (identity: SenderIdentity) =>
+              tenantNames.get(identity.tenantId) ?? t("entity.unavailable"),
+            className: "hidden lg:table-cell",
+          },
+        ]
+      : []),
     { id: "channel", header: <SortableHeader label={t("common.channel")} field="channel" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("channel")} />, cell: (identity) => <ChannelLabel channel={identity.channel} /> },
     { id: "identity", header: t("si.identity"), cell: (identity) => <div><div className="font-medium">{identity.identityValue}</div>{identity.displayName && <div className="text-caption text-muted-foreground">{identity.displayName}</div>}</div> },
     { id: "verification", header: <SortableHeader label={t("si.verification")} field="verificationStatus" sortBy={sortBy} sortDirection={sortDirection} onSort={() => toggleSort("verificationStatus")} />, cell: (identity) => <StatusBadge status={identity.verificationStatus} /> },
@@ -217,7 +242,33 @@ function MockSenderIdentities() {
         {activeSheet === "form" && <>
           <SheetHeader><SheetTitle>{t(editingId ? "si.edit" : "si.add")}</SheetTitle><SheetDescription>{t("si.formDescription")}</SheetDescription></SheetHeader>
           <form className="space-y-4 px-4 pb-6" onSubmit={(event) => { event.preventDefault(); setTouched(true); if (valid) save.mutate(); }} noValidate>
-            {isPlatform && !selectedTenantId && <div className="space-y-1.5"><Label>{t("si.tenant")}</Label><TenantOptionsStatus query={tenantQuery} /><Select value={tenantId} onValueChange={setTenantId} disabled={!!editingId || !tenantQuery.isSuccess || tenantQuery.isFetching}><SelectTrigger><SelectValue placeholder={t("si.selectTenant")} /></SelectTrigger><SelectContent>{tenants.map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.id}</SelectItem>)}</SelectContent></Select>{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}</div>}
+                {isPlatform && !selectedTenantId && (
+                  <div className="space-y-1.5">
+                    <Label>{t("si.tenant")}</Label>
+                    <TenantOptionsStatus query={tenantQuery} />
+                    <Select
+                      value={tenantId}
+                      onValueChange={setTenantId}
+                      disabled={!!editingId || !tenantQuery.isSuccess || tenantQuery.isFetching}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("si.selectTenant")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tenants.map((tenant) => (
+                          <SelectItem key={tenant.id} value={tenant.id}>
+                            {tenant.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {showActiveTenantRequired && (
+                      <p role="alert" className="text-xs text-danger">
+                        {t("ten.activeRequired")}
+                      </p>
+                    )}
+                  </div>
+                )}
             {isPlatform && selectedTenantId && <div className="space-y-1.5"><TenantOptionsStatus query={tenantQuery} />{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}</div>}
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5"><Label>{t("common.channel")}</Label><Select value={channel} onValueChange={(value) => { setChannel(value as Channel); setIdentityValue(""); setPhoneNumber(""); setEmailAddress(""); setDomain(""); }} disabled={!!editingId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{(["sms", "whatsapp", "email"] as const).map((item) => <SelectItem key={item} value={item}>{t(`channel.${item}`)}</SelectItem>)}</SelectContent></Select></div>
@@ -243,11 +294,26 @@ function MockSenderIdentities() {
         </>}
 
         {activeSheet === "detail" && selected && <>
-          <SheetHeader><SheetTitle>{selected.displayName ?? selected.identityValue}</SheetTitle><SheetDescription>{selected.id} · {t(`channel.${selected.channel}`)}</SheetDescription></SheetHeader>
+              <SheetHeader>
+                <SheetTitle>{selected.displayName ?? selected.identityValue}</SheetTitle>
+                <SheetDescription>
+                  {selected.displayName ?? selected.identityValue} ·{" "}
+                  {t(`channel.${selected.channel}`)}
+                </SheetDescription>
+              </SheetHeader>
           <div className="space-y-4 px-4 pb-6">
             <div className="flex flex-wrap gap-2"><StatusBadge status={selected.verificationStatus} /><StatusBadge status={selected.operationalStatus} /></div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-label">{t("si.tenant")}</dt><dd>{tenantNames.get(selected.tenantId) ?? user?.tenantName ?? selected.tenantId}</dd></div>
+                  <div>
+                    <dt className="text-label">{t("si.tenant")}</dt>
+                    <dd>
+                      <EntityName
+                        kind="tenant"
+                        id={selected.tenantId}
+                        name={tenantNames.get(selected.tenantId)}
+                      />
+                    </dd>
+                  </div>
               <div><dt className="text-label">{t("si.identity")}</dt><dd dir="ltr" className="break-all">{selected.identityValue}</dd></div>
               {selected.displayName && selected.channel !== "whatsapp" && <div><dt className="text-label">{t("si.displayName")}</dt><dd>{selected.displayName}</dd></div>}
               <div><dt className="text-label">{t("si.reference")}</dt><dd>{selected.providerReference ?? "—"}</dd></div>
@@ -384,7 +450,7 @@ function LiveSenderIdentities() {
       id: "id",
       header: t("si.identityId"),
       cell: (identity) => (
-        <span className="font-mono text-xs">{identity.id}</span>
+        <span className="font-mono text-xs">{identity.displayName ?? t("entity.unavailable")}</span>
       ),
     },
     ...(platformAllTenants
@@ -397,7 +463,7 @@ function LiveSenderIdentities() {
                 <div>
                   <div>{identity.tenantName}</div>
                   <div className="font-mono text-xs text-muted-foreground">
-                    {identity.tenantId}
+                    <EntityName kind="tenant" id={identity.tenantId} />
                   </div>
                 </div>
               ) : (

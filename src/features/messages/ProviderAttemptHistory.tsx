@@ -1,3 +1,4 @@
+import { EntityName } from "@/components/app/EntityName";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { queries } from "@/lib/api/queries";
@@ -25,7 +26,9 @@ export function ProviderAttemptHistory({
       <div className="space-y-3 p-4">
         <p className="text-sm text-muted-foreground">{t("providerAttempts.note")}</p>
         {history.isLoading && <TableSkeleton rows={3} />}
-        {history.isError && <ErrorState onRetry={() => void history.refetch()} />}
+        {history.isError && (
+          <ErrorState error={history.error} onRetry={() => void history.refetch()} />
+        )}
         {!history.isError && history.data && (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -68,7 +71,7 @@ export function ProviderAttemptHistory({
                               to="/platform/providers"
                               search={{ providerId: attempt.providerAccountId }}
                             >
-                              {attempt.providerAccountId}
+                              <EntityName kind="provider" id={attempt.providerAccountId} />
                             </Link>
                           ) : (
                             t("ten.unavailable")

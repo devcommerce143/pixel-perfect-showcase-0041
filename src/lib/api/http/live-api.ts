@@ -1,4 +1,5 @@
 import { senderMutationRequest, mapSenderMutation } from "./sender-mutation-mapper.ts";
+import { mapNotificationPage, mapNotificationRead, mapNotificationsReadAll, notificationId, notificationPageNumber } from '../notifications.ts';
 import {
   contentTemplateScope,
   contentTemplatePath,
@@ -232,6 +233,9 @@ export function createLiveApi(options: {
 
   return new Proxy(unavailable, {
     get(target, property, receiver) {
+      if (property === 'listNotifications') return async (page: number) => mapNotificationPage(await http.get(`/notifications?page=${notificationPageNumber(page)}`), page);
+      if (property === 'markNotificationRead') return async (id: string) => mapNotificationRead(await http.patch(`/notifications/${notificationId(id)}/read`, {}), id);
+      if (property === 'markAllNotificationsRead') return async () => mapNotificationsReadAll(await http.patch('/notifications/read-all', {}));
       if (property === "listContentTemplates")
         return async (
           ...[actor, query, tenant]: Parameters<DolfConnectApi["listContentTemplates"]>

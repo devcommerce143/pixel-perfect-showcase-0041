@@ -336,7 +336,7 @@ export function MockWebhooks() {
               <SheetHeader>
                 <SheetTitle>{selected.url}</SheetTitle>
                 <SheetDescription>
-                  {selected.id} · {selected.applicationName}
+                  {selected.applicationName}
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-4">

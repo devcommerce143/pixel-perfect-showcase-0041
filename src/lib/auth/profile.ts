@@ -2,6 +2,7 @@ import type { HumanHttpClient } from "../api/http/client.ts";
 import { ApiError } from "../api/http/errors.ts";
 import type { Role } from "./permissions.ts";
 import type { SessionUser } from "./session-user.ts";
+import { humanName } from "../api/entity-names.ts";
 
 const ROLE_MAP: Record<string, Role> = {
   PLATFORM_SUPER_ADMIN: "super_admin",
@@ -48,11 +49,14 @@ export function mapBackendProfile(body: unknown): SessionUser {
 
   return {
     id: userId.trim(),
-    name: userId.trim(),
-    email: "",
+    name: humanName(typeof body["name"] === "string" ? body["name"] : null) ?? "",
+    email: typeof body["email"] === "string" ? body["email"].trim() : "",
     role: portalRole,
     tenantId: portalRole === "super_admin" ? null : (tenantId as string).trim(),
-    tenantName: null,
+    tenantName:
+      portalRole === "super_admin"
+        ? null
+        : humanName(typeof body["tenantName"] === "string" ? body["tenantName"] : null),
   };
 }
 

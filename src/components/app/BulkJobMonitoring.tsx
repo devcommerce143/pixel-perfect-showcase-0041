@@ -1,6 +1,11 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { RecordReference } from "@/components/app/RecordReference";
+import { EntityName } from "@/components/app/EntityName";
+import { MessageHistoryApplicationFilter } from "./MessageHistoryApplicationFilter";
+import type { HistoryApplicationSelection } from "@/lib/api/history-application-options";
 import { useQuery } from "@tanstack/react-query";
 import { BulkJobCancellation } from "./BulkJobCancellation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { DataTable, ListPagination, type Column } from "./DataTable";
 import { PageBody, PageHeader, Section } from "./PageHeader";
 import { ErrorState, TableSkeleton } from "./States";
@@ -30,7 +35,7 @@ import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { useI18n, type MessageKey } from "@/lib/i18n/i18n";
 import { formatDateTime, formatNumber } from "@/lib/format";
 
-export function BulkJobMonitoring() {
+export function BulkJobMonitoring({ headerActions }: { headerActions?: ReactNode } = {}) {
   const { user } = useSession();
   const { tenantId } = useGlobalTenantContext();
   const { t, locale } = useI18n();
@@ -54,7 +59,8 @@ export function BulkJobMonitoring() {
   const [pageSize, setPageSize] = useState<10 | 20 | 50>(20);
   const [status, setStatus] = useState("all");
   const [channel, setChannel] = useState("all");
-  const [applicationId, setApplicationId] = useState("");
+  const [selectedApplication, setSelectedApplication] = useState<HistoryApplicationSelection>();
+  const applicationId = selectedApplication?.id ?? "";
   const [jobId, setJobId] = useState("");
   const [selected, setSelected] = useState<BulkHistoryJob | null>(null);
   let query: BulkHistoryQuery | null = null;
@@ -81,7 +87,7 @@ export function BulkJobMonitoring() {
       header: t("bulk.job"),
       cell: (j) => (
         <button className="font-mono text-primary underline" onClick={() => setSelected(j)}>
-          {j.id}
+          {j.applicationName} / {formatDateTime(j.createdAt, locale)}
         </button>
       ),
     },
@@ -90,12 +96,7 @@ export function BulkJobMonitoring() {
           {
             id: "tenant",
             header: t("common.tenant"),
-            cell: (j: BulkHistoryJob) => (
-              <div>
-                {j.tenantName}
-                <div className="font-mono text-xs">{j.tenantId}</div>
-              </div>
-            ),
+            cell: (j: BulkHistoryJob) => <div>{j.tenantName}</div>,
           },
         ]
       : []),
@@ -120,7 +121,11 @@ export function BulkJobMonitoring() {
   ];
   return (
     <>
-      <PageHeader title={t("bulkHistory.title")} description={t("bulkHistory.description")} />
+      <PageHeader
+        title={t("bulkHistory.title")}
+        description={t("bulkHistory.description")}
+        actions={headerActions}
+      />
       <PageBody>
         <Section
           title={t("bulk.jobs")}
@@ -157,17 +162,16 @@ export function BulkJobMonitoring() {
                 }}
               />
             </label>
-            <label className="text-sm">
-              {t("bulkHistory.applicationId")}
-              <Input
-                dir="ltr"
-                value={applicationId}
-                onChange={(e) => {
-                  setApplicationId(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </label>
+            <MessageHistoryApplicationFilter
+              actor={actor}
+              tenantId={tenantId}
+              allTenants={allTenants}
+              selected={selectedApplication}
+              onChange={(selection) => {
+                setSelectedApplication(selection);
+                setPage(1);
+              }}
+            />
             <label className="text-sm">
               {t("bulkHistory.jobId")}
               <Input
@@ -211,11 +215,11 @@ export function BulkJobMonitoring() {
             />
           </div>
           {!query ? (
-            <p role="alert" className="p-4 text-danger">
+            <MessageAlert className="p-4 text-danger">
               {t("bulkHistory.invalidFilters")}
-            </p>
+            </MessageAlert>
           ) : jobs.isError ? (
-            <ErrorState onRetry={() => void jobs.refetch()} />
+            <ErrorState error={jobs.error} onRetry={() => void jobs.refetch()} />
           ) : (
             <>
               <DataTable
@@ -248,7 +252,7 @@ export function BulkJobMonitoring() {
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
             <DialogHeader>
               <DialogTitle>{t("bulk.jobDetails")}</DialogTitle>
-              <DialogDescription className="font-mono">{selected?.id}</DialogDescription>
+              <DialogDescription>{selected?.applicationName ?? t("entity.job")}</DialogDescription>
             </DialogHeader>
             {selected && (
               <BulkDetails
@@ -289,14 +293,18 @@ function BulkDetails({ actor, job }: { actor: SenderIdentityActor; job: BulkHist
     },
     {
       id: "message",
-      header: t("bulkHistory.messageId"),
-      cell: (i) => <span className="font-mono text-xs">{i.messageId ?? "—"}</span>,
+      header: t("entity.message"),
+      cell: (i) => (
+        <span className="font-mono text-xs">
+          <RecordReference value={i.messageId} label={t("entity.message")} />
+        </span>
+      ),
     },
   ];
   return (
     <>
       {detail.isError ? (
-        <ErrorState onRetry={() => void detail.refetch()} />
+        <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />
       ) : !detail.data ? (
         <TableSkeleton />
       ) : (
@@ -306,7 +314,8 @@ function BulkDetails({ actor, job }: { actor: SenderIdentityActor; job: BulkHist
             <span>{t(`bulkHistory.result.${detail.data.result}` as MessageKey)}</span>
           </div>
           <p className="text-sm">
-            {detail.data.applicationName} · {job.tenantName ?? job.tenantId}
+            {detail.data.applicationName} ·{" "}
+            <EntityName kind="tenant" id={job.tenantId} name={job.tenantName} />
           </p>
           <dl className="grid grid-cols-2 gap-3">
             <div>
@@ -369,7 +378,7 @@ function BulkDetails({ actor, job }: { actor: SenderIdentityActor; job: BulkHist
         ]}
       />
       {items.isError ? (
-        <ErrorState onRetry={() => void items.refetch()} />
+        <ErrorState error={items.error} onRetry={() => void items.refetch()} />
       ) : (
         <>
           <DataTable

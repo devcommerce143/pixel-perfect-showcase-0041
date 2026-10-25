@@ -1,4 +1,6 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useEffect, useRef, useState } from "react";
+import { useEntityName } from "@/components/app/EntityName";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { providerAccountMutations } from "@/lib/api/queries";
 import { providerMonitorKey } from "@/lib/api/provider-monitoring";
@@ -53,6 +55,7 @@ export function ProviderAccountActions({
   const [verifyTokenInput, setVerifyTokenInput] = useState("");
   const [version, setVersion] = useState("");
   const [savedId, setSavedId] = useState<string | null>(null);
+  const savedName = useEntityName("provider", savedId);
   const active = useRef(false);
   useEffect(() => {
     active.current = true;
@@ -204,7 +207,7 @@ export function ProviderAccountActions({
           </Button>
         )}
       </div>
-      {savedId && <p role="status">{t("providerAccounts.saved", { id: savedId })}</p>}
+      {savedId && <p role="status">{t("providerAccounts.saved", { id: savedName })}</p>}
       {taqnyatChannel && (
         <p className="text-sm text-muted-foreground">{t("providerAccounts.taqnyatSetup")}</p>
       )}
@@ -232,7 +235,7 @@ export function ProviderAccountActions({
           </DialogHeader>
           {account && (
             <p className="font-mono text-xs">
-              {account.code} / {account.id}
+              {account.code}
             </p>
           )}
           <fieldset disabled={mutation.isPending} className="space-y-3">
@@ -398,7 +401,7 @@ export function ProviderAccountActions({
               </>
             )}
           </fieldset>
-          {mutation.isError && <p role="alert">{t(providerAccountFailureKey(mutation.error))}</p>}
+          {mutation.isError && <MessageAlert>{t(providerAccountFailureKey(mutation.error))}</MessageAlert>}
           <DialogFooter>
             <Button
               variant="outline"

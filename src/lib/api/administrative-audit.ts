@@ -15,6 +15,7 @@ export interface AdministrativeAuditEvent {
   tenantId: string | null;
   actorKind: "HUMAN" | "MACHINE" | "SYSTEM";
   actorUserId: string | null;
+  actorName?: string | null;
   actorCredentialId: string | null;
   action: string;
   resourceType: string;

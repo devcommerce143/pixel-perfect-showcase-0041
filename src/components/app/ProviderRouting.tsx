@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queries, providerRouteMutations } from "@/lib/api/queries";
@@ -115,7 +117,7 @@ export function ProviderRouting() {
       cell: (row) => (
         <button className="text-start underline" onClick={() => setSelected(row.id)}>
           {row.code}
-          <p className="font-mono text-xs">{row.id}</p>
+          <p className="font-mono text-xs">{row.code}</p>
         </button>
       ),
     },
@@ -207,7 +209,7 @@ export function ProviderRouting() {
             </Button>
           </div>
           {list.isError ? (
-            <ErrorState onRetry={() => void list.refetch()} />
+            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : list.isPending ? (
             <TableSkeleton />
           ) : list.data.items.length ? (
@@ -265,7 +267,9 @@ export function ProviderRouting() {
               ))}
             </SelectContent>
           </Select>
-          {mutation.isError && <p role="alert">{t(providerRouteFailureKey(mutation.error))}</p>}
+          {mutation.isError && (
+            <MessageAlert>{t(providerRouteFailureKey(mutation.error))}</MessageAlert>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
@@ -345,7 +349,9 @@ function RouteDetail({
       cell: (row) => (
         <>
           {row.providerCode}
-          <p className="font-mono text-xs">{row.providerAccountId}</p>
+          <p className="font-mono text-xs">
+            <EntityName kind="provider" id={row.providerAccountId} />
+          </p>
         </>
       ),
     },
@@ -408,13 +414,15 @@ function RouteDetail({
         </p>
       )}
       <div className="flex flex-wrap justify-between gap-3 p-4">
-        <p className="font-mono text-xs">{id}</p>
+        <p className="text-sm">
+          <EntityName kind="route" id={id} name={route.data?.code} />
+        </p>
         <Button variant="outline" onClick={onClose}>
           {t("liveProviders.close")}
         </Button>
       </div>
       {route.isError ? (
-        <ErrorState onRetry={() => void route.refetch()} />
+        <ErrorState error={route.error} onRetry={() => void route.refetch()} />
       ) : route.isPending ? (
         <TableSkeleton />
       ) : (
@@ -504,14 +512,20 @@ function RouteDetail({
           {operation &&
             (operation.kind === "assignTenant" || operation.kind === "assignSender") && (
               <p className="font-mono text-xs">
-                {operation.tenantId}
-                {operation.kind === "assignSender" ? ` / ${operation.senderIdentityId}` : ""}
+                <EntityName kind="tenant" id={operation.tenantId} />
+                {operation.kind === "assignSender" && (
+                  <EntityName
+                    kind="sender"
+                    id={operation.senderIdentityId}
+                    tenantId={operation.tenantId}
+                  />
+                )}
               </p>
             )}
           {operation?.kind === "addMember" && (
             <>
               {accounts.isError ? (
-                <ErrorState onRetry={() => void accounts.refetch()} />
+                <ErrorState error={accounts.error} onRetry={() => void accounts.refetch()} />
               ) : accounts.isPending ? (
                 <TableSkeleton rows={2} />
               ) : (
@@ -552,7 +566,9 @@ function RouteDetail({
                   />
                 </>
               )}
-              {account.isError && <ErrorState onRetry={() => void account.refetch()} />}
+              {account.isError && (
+                <ErrorState error={account.error} onRetry={() => void account.refetch()} />
+              )}
             </>
           )}
           {memberForm && (
@@ -576,7 +592,9 @@ function RouteDetail({
               </label>
             </>
           )}
-          {mutation.isError && <p role="alert">{t(providerRouteFailureKey(mutation.error))}</p>}
+          {mutation.isError && (
+            <MessageAlert>{t(providerRouteFailureKey(mutation.error))}</MessageAlert>
+          )}
           <DialogFooter>
             <Button
               variant="outline"
@@ -620,11 +638,13 @@ function RouteAssignments({
   return (
     <div className="space-y-4 border-t p-4">
       <h3 className="font-semibold">{t("liveRouting.assignments")}</h3>
-      <p className="font-mono text-xs">{tenantId}</p>
+      <p className="font-mono text-xs">
+        <EntityName kind="tenant" id={tenantId} />
+      </p>
       <div>
         <h4>{t("liveRouting.tenantDefault")}</h4>
         {tenant.isError ? (
-          <ErrorState onRetry={() => void tenant.refetch()} />
+          <ErrorState error={tenant.error} onRetry={() => void tenant.refetch()} />
         ) : tenant.isPending ? (
           <TableSkeleton rows={1} />
         ) : tenant.data ? (
@@ -654,7 +674,7 @@ function RouteAssignments({
       <div className="space-y-2">
         <h4>{t("liveRouting.senderOverride")}</h4>
         {senders.isError ? (
-          <ErrorState onRetry={() => void senders.refetch()} />
+          <ErrorState error={senders.error} onRetry={() => void senders.refetch()} />
         ) : senders.isPending ? (
           <TableSkeleton rows={2} />
         ) : (
@@ -668,7 +688,7 @@ function RouteAssignments({
               <SelectContent>
                 {senders.data.items.map((row) => (
                   <SelectItem key={row.id} value={row.id}>
-                    {senderLabel(row)} ({row.id})
+                    {senderLabel(row)}
                   </SelectItem>
                 ))}
               </SelectContent>

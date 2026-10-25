@@ -18,7 +18,7 @@ export function DashboardRecordedHealth({ actor }: { actor: SenderIdentityActor 
     <div>
       <p className="px-4 pt-3 text-caption">{t("dashOps.healthHint")}</p>
       {health.isError ? (
-        <ErrorState onRetry={() => void health.refetch()} />
+        <ErrorState error={health.error} onRetry={() => void health.refetch()} />
       ) : health.isPending ? (
         <TableSkeleton rows={3} />
       ) : health.data.items.length === 0 ? (

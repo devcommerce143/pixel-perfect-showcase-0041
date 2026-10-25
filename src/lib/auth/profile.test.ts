@@ -82,6 +82,27 @@ describe("backend profile", () => {
     assert.equal(user.role, "viewer");
     assert.equal(user.tenantId, "TEN-1");
     assert.equal(user.email, "");
-    assert.equal(user.name, "user-1");
+    assert.equal(user.name, "");
+  });
+
+  it("uses server-resolved display names without changing identity or role", () => {
+    const user = mapBackendProfile({
+      ...viewer,
+      name: "Sara Ahmed",
+      email: "sara@example.test",
+      tenantName: "Dolftech",
+    });
+    assert.equal(user.name, "Sara Ahmed");
+    assert.equal(user.email, "sara@example.test");
+    assert.equal(user.tenantName, "Dolftech");
+    assert.equal(user.id, viewer.userId);
+    assert.equal(user.role, "viewer");
+  });
+  it("never uses UUID display-name fields as visible identity fallbacks", () => {
+    const id = "593d3b12-613e-49c9-90ac-45941a827edf";
+    const user = mapBackendProfile({ ...viewer, userId: id, name: id, tenantName: id });
+    assert.equal(user.id, id);
+    assert.equal(user.name, "");
+    assert.equal(user.tenantName, null);
   });
 });

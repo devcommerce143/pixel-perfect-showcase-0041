@@ -37,7 +37,7 @@ export function MessageHistoryApplicationFilter({
     <div className="grid min-w-64 gap-1.5">
       <Label>{t("historyApps.label")}</Label>
       {applications.isError ? (
-        <ErrorState onRetry={() => void applications.refetch()} />
+        <ErrorState error={applications.error} onRetry={() => void applications.refetch()} />
       ) : applications.isPending ? (
         <TableSkeleton rows={1} />
       ) : (
@@ -53,7 +53,7 @@ export function MessageHistoryApplicationFilter({
               if (!row) return;
               onChange({
                 id: row.id,
-                label: `${row.name}${allTenants && row.tenantName ? ` / ${row.tenantName}` : ""} (${row.id})`,
+                label: `${row.name}${allTenants && row.tenantName ? ` / ${row.tenantName}` : ""}`,
                 scope: historyApplicationScope(actor, tenantId, allTenants),
               });
             }}
@@ -66,7 +66,7 @@ export function MessageHistoryApplicationFilter({
               {applications.data.items.map((row) => (
                 <SelectItem key={row.id} value={row.id}>
                   {row.name}
-                  {allTenants && row.tenantName ? ` / ${row.tenantName}` : ""} ({row.id})
+                  {allTenants && row.tenantName ? ` / ${row.tenantName}` : ""}
                 </SelectItem>
               ))}
             </SelectContent>

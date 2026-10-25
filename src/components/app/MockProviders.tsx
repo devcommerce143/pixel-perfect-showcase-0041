@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Lock, Plus, PlugZap } from "lucide-react";
@@ -227,7 +228,7 @@ export function MockProviders({ providerId }: { providerId?: string | undefined 
       cell: (p) => (
         <div>
           <div className="font-medium">{p.name}</div>
-          <div className="font-mono text-xs text-muted-foreground">{p.id}</div>
+          <div className="font-mono text-xs text-muted-foreground">{p.name}</div>
         </div>
       ),
     },
@@ -239,7 +240,7 @@ export function MockProviders({ providerId }: { providerId?: string | undefined 
     {
       id: "provider",
       header: t("prov.provider"),
-      cell: (p) => getProviderAdapter(p.adapterId)?.name ?? p.adapterId,
+      cell: (p) => getProviderAdapter(p.adapterId)?.name ?? t("entity.unavailable"),
     },
     {
       id: "environment",
@@ -326,7 +327,7 @@ export function MockProviders({ providerId }: { providerId?: string | undefined 
               <SheetHeader>
                 <SheetTitle>{selected.name}</SheetTitle>
                 <SheetDescription>
-                  {selected.id} · {getProviderAdapter(selected.adapterId)?.name} ·{" "}
+                  {selected.name} · {getProviderAdapter(selected.adapterId)?.name} ·{" "}
                   {t(`channel.${selected.channel}`)}
                 </SheetDescription>
               </SheetHeader>
@@ -650,11 +651,7 @@ export function MockProviders({ providerId }: { providerId?: string | undefined 
                   <p className="text-xs text-muted-foreground">{t("prov.secretMasked")}</p>
                 </section>
                 {touched && !valid && <p className="text-xs text-danger">{t("prov.required")}</p>}
-                {error && (
-                  <p role="alert" className="text-sm text-danger">
-                    {error}
-                  </p>
-                )}
+                {error && <MessageAlert className="text-sm text-danger">{error}</MessageAlert>}
                 <div className="flex justify-end gap-2 border-t pt-4">
                   <Button
                     type="button"
@@ -734,9 +731,7 @@ function ProviderUsageBillingPanel({
     );
   if (error)
     return (
-      <p role="alert" className="py-6 text-sm text-danger">
-        {t("prov.usage.loadError")}
-      </p>
+      <MessageAlert className="py-6 text-sm text-danger">{t("prov.usage.loadError")}</MessageAlert>
     );
   if (!data)
     return (

@@ -5,26 +5,32 @@ import { Button } from "@/components/ui/button";
 import { BulkJobMonitoring } from "./BulkJobMonitoring";
 import { LiveMessageSend } from "./LiveMessageSend";
 import { RequirePermission } from "./RequirePermission";
+import { BulkCsvSamples } from "./BulkCsvSamples";
+import { Plus } from "lucide-react";
 
 export function LiveBulkWorkspace() {
   const { can } = useSession();
   const { t } = useI18n();
   const [creating, setCreating] = useState(false);
+  const actions = (
+    <>
+      <BulkCsvSamples />
+      {can("messages.bulk.create") && (
+        <Button variant={creating ? "outline" : "default"} onClick={() => setCreating(!creating)}>
+          {!creating && <Plus className="size-4" aria-hidden="true" />}
+          {t(creating ? "humanBulk.monitor" : "humanBulk.title")}
+        </Button>
+      )}
+    </>
+  );
   return (
     <>
-      {can("messages.bulk.create") && (
-        <div className="px-6 pt-4">
-          <Button variant="outline" onClick={() => setCreating(!creating)}>
-            {t(creating ? "humanBulk.monitor" : "humanBulk.title")}
-          </Button>
-        </div>
-      )}
       {creating ? (
         <RequirePermission permission="messages.bulk.create">
-          <LiveMessageSend bulk />
+          <LiveMessageSend bulk headerActions={actions} />
         </RequirePermission>
       ) : (
-        <BulkJobMonitoring />
+        <BulkJobMonitoring headerActions={actions} />
       )}
     </>
   );

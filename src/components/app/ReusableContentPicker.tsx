@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queries, contentTemplateMutations } from "@/lib/api/queries";
@@ -47,7 +48,7 @@ export function ReusableContentPicker({
       {list.isLoading ? (
         <TableSkeleton rows={2} />
       ) : list.isError ? (
-        <ErrorState onRetry={() => void list.refetch()} />
+        <ErrorState error={list.error} onRetry={() => void list.refetch()} />
       ) : (
         <>
           <Select value={selected} disabled={locked} onValueChange={setSelected}>
@@ -125,10 +126,11 @@ function PickedVersion({
     mutationFn: () => contentTemplateMutations.render(actor, id, values, tenantId),
   });
   if (detail.isLoading) return <TableSkeleton rows={2} />;
-  if (detail.isError) return <ErrorState onRetry={() => void detail.refetch()} />;
+  if (detail.isError)
+    return <ErrorState error={detail.error} onRetry={() => void detail.refetch()} />;
   const row = detail.data;
   if (!row || row.channel !== channel || row.registryStatus !== "ready")
-    return <p role="alert">{t("content.failed")}</p>;
+    return <MessageAlert>{t("content.failed")}</MessageAlert>;
   const eligible = row.parameters.every((name) => Object.hasOwn(values, name));
   const receipt =
     render.data?.channel === channel && render.data.version === row.version ? render.data : null;
@@ -157,7 +159,7 @@ function PickedVersion({
       >
         {t("content.render")}
       </Button>
-      {render.isError && <p role="alert">{t("content.failed")}</p>}
+      {render.isError && <MessageAlert>{t("content.failed")}</MessageAlert>}
       {receipt && (
         <>
           <p className="whitespace-pre-wrap" dir="auto">

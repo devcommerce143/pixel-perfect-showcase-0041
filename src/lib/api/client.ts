@@ -113,6 +113,9 @@ import { createMockApi } from "./mock/mock-api";
  * without changing any screen.
  */
 export interface DolfConnectApi {
+  listNotifications(page: number): Promise<import('./notifications.ts').NotificationPage>;
+  markNotificationRead(id: string): Promise<{ id: string; readAt: string }>;
+  markAllNotificationsRead(): Promise<{updatedCount:number}>;
   listSenderBindings(
     actor: SenderIdentityActor,
     query: import("./sender-bindings.ts").SenderBindingQuery,

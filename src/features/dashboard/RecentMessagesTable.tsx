@@ -27,7 +27,15 @@ export function LiveRecentMessages({
 function RecentMessagesTable({ items, showTenant }: { items: DashboardRecentMessage[]; showTenant: boolean }) {
   const { t, locale } = useI18n();
   const columns: Column<DashboardRecentMessage>[] = [
-    { id: "id", header: t("common.messageId"), cell: (message) => <span className="whitespace-nowrap font-mono text-xs font-medium text-primary">{message.id}</span> },
+    {
+      id: "id",
+      header: t("entity.message"),
+      cell: (message) => (
+        <span className="whitespace-nowrap font-mono text-xs font-medium text-primary">
+          {message.applicationName}
+        </span>
+      ),
+    },
     { id: "channel", header: t("common.channel"), cell: (message) => <ChannelLabel channel={message.channel} /> },
     {
       id: "recipient",

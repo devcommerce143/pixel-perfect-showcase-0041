@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -199,11 +201,30 @@ function Applications() {
       cell: (a) => (
         <div>
           <div className="font-medium">{a.name}</div>
-          <div className="font-mono text-xs text-muted-foreground">{a.id}</div>
+          <div className="font-mono text-xs text-muted-foreground">{a.environment}</div>
         </div>
       ),
     },
-    ...(isPlatform && platformAllTenants ? [{ id: "tenant", header: t("common.tenant"), cell: (a: Application) => <div><div>{a.tenantName ?? tenantNames.get(a.tenantId) ?? a.tenantId}</div><div className="font-mono text-xs text-muted-foreground">{a.tenantId}</div></div>, className: "hidden lg:table-cell" }] : []),
+    ...(isPlatform && platformAllTenants
+      ? [
+          {
+            id: "tenant",
+            header: t("common.tenant"),
+            cell: (a: Application) => (
+              <div>
+                <div>
+                  <EntityName
+                    kind="tenant"
+                    id={a.tenantId}
+                    name={a.tenantName ?? tenantNames.get(a.tenantId)}
+                  />
+                </div>
+              </div>
+            ),
+            className: "hidden lg:table-cell",
+          },
+        ]
+      : []),
     { id: "env", header: t("common.environment"), cell: (a) => (
       <span className={cn("rounded-sm border px-1.5 py-0.5 text-xs font-medium", a.environment === "production" ? "border-primary/30 text-primary" : "text-muted-foreground")}>
         {t(a.environment === "production" ? "common.production" : "common.sandbox")}
@@ -315,7 +336,7 @@ function Applications() {
                   <FilterSelect label={t("common.status")} value={status} onChange={(value) => { setStatus(value as Application["status"] | "all"); setPage(1); }} options={[{ value: "all", label: t("common.allStatuses") }, ...(["active", "disabled"] as const).map((item) => ({ value: item, label: t(`status.${item}`) }))]} />
                 </TableToolbar>}
             {activeApplicationsQuery.isError
-              ? <ErrorState onRetry={() => void activeApplicationsQuery.refetch()} />
+              ? <ErrorState error={activeApplicationsQuery.error} onRetry={() => void activeApplicationsQuery.refetch()} />
               : <DataTable columns={columns} rows={activeApplicationsQuery.data?.items} loading={activeApplicationsQuery.isFetching} rowKey={(a) => a.id} onRowClick={(application) => { setSelected(application); setSelectedScopeKey(currentApplicationScopeKey); }} />}
             {activeApplicationsQuery.data && !activeApplicationsQuery.isError && <ListPagination page={activeApplicationsQuery.data.page} pageSize={activeApplicationsQuery.data.pageSize} total={activeApplicationsQuery.data.total} onPage={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />}
           </>
@@ -325,13 +346,40 @@ function Applications() {
         <SheetContent side={dir === "rtl" ? "left" : "right"} className="w-full overflow-y-auto sm:max-w-xl">
           <SheetHeader><SheetTitle>{t(editingId ? "apps.edit" : "apps.new")}</SheetTitle><SheetDescription>{t("apps.createDescription")}</SheetDescription></SheetHeader>
           <form className="space-y-5 px-4 pb-6" onSubmit={submitApplication} noValidate>
-            {isPlatform && !selectedTenantId && <div className="space-y-1.5"><Label>{t("common.tenant")} *</Label><TenantOptionsStatus query={tenantsQuery} /><Select value={tenantId} onValueChange={setTenantId} disabled={!!editingId || !tenantsQuery.isSuccess || tenantsQuery.isFetching}><SelectTrigger aria-invalid={touched && !tenantId}><SelectValue placeholder={t("ten.selectTenant")} /></SelectTrigger><SelectContent>{tenants.map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name} · {tenant.id}</SelectItem>)}</SelectContent></Select>{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}{editingId && <p className="text-caption">{t("apps.tenantImmutable")}</p>}</div>}
+              {isPlatform && !selectedTenantId && (
+                <div className="space-y-1.5">
+                  <Label>{t("common.tenant")} *</Label>
+                  <TenantOptionsStatus query={tenantsQuery} />
+                  <Select
+                    value={tenantId}
+                    onValueChange={setTenantId}
+                    disabled={!!editingId || !tenantsQuery.isSuccess || tenantsQuery.isFetching}
+                  >
+                    <SelectTrigger aria-invalid={touched && !tenantId}>
+                      <SelectValue placeholder={t("ten.selectTenant")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tenants.map((tenant) => (
+                        <SelectItem key={tenant.id} value={tenant.id}>
+                          {tenant.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {showActiveTenantRequired && (
+                    <p role="alert" className="text-xs text-danger">
+                      {t("ten.activeRequired")}
+                    </p>
+                  )}
+                  {editingId && <p className="text-caption">{t("apps.tenantImmutable")}</p>}
+                </div>
+              )}
             {isPlatform && selectedTenantId && <div className="space-y-1.5"><TenantOptionsStatus query={tenantsQuery} />{showActiveTenantRequired && <p role="alert" className="text-xs text-danger">{t("ten.activeRequired")}</p>}</div>}
             <div className="space-y-1.5"><Label htmlFor="application-name">{t("common.name")} *</Label><Input id="application-name" value={name} onChange={(event) => setName(event.target.value)} aria-invalid={touched && name.trim().length <= 1} />{touched && name.trim().length <= 1 && <p className="text-xs text-danger">{t("apps.nameRequired")}</p>}</div>
             <div className="space-y-1.5"><Label>{t("common.environment")}</Label><Select value={environment} onValueChange={(value) => setEnvironment(value as Application["environment"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="production">{t("common.production")}</SelectItem><SelectItem value="sandbox">{t("common.sandbox")}</SelectItem></SelectContent></Select></div>
             <section className="space-y-2"><h3 className="text-sm font-semibold">{t("apps.channels")}</h3><div className="grid gap-3 sm:grid-cols-3">{channelOptions.map((channel) => <label key={channel} className="flex items-center gap-2 text-sm"><Checkbox checked={channels.includes(channel)} onCheckedChange={(checked) => setChannels((current) => toggle(current, channel, checked === true))} />{t(`channel.${channel}`)}</label>)}</div>{touched && !channels.length && <p className="text-xs text-danger">{t("apps.selectChannel")}</p>}</section>
             <section className="space-y-2"><h3 className="text-sm font-semibold">{t("common.scopes")}</h3><div className="grid gap-3 sm:grid-cols-2">{scopeOptions.map((scope) => <label key={scope} className="flex items-center gap-2 font-mono text-xs"><Checkbox checked={scopes.includes(scope)} onCheckedChange={(checked) => setScopes((current) => toggle(current, scope, checked === true))} />{scope}</label>)}</div>{touched && !scopes.length && <p className="text-xs text-danger">{t("apps.selectScope")}</p>}</section>
-            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+            {error && <MessageAlert className="text-sm text-danger">{error}</MessageAlert>}
             <div className="flex justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={save.isPending} onClick={() => setOpen(false)}>{t("common.cancel")}</Button><Button type="submit" disabled={save.isPending}>{save.isPending ? t(editingId ? "common.saving" : "common.creating") : t(editingId ? "common.save" : "common.create")}</Button></div>
           </form>
         </SheetContent>
@@ -344,7 +392,10 @@ function Applications() {
       }}>
         <SheetContent side={dir === "rtl" ? "left" : "right"} className="w-full sm:max-w-md">
           {isLive && applicationDetailQuery.isError ? (
-            <ErrorState onRetry={() => void applicationDetailQuery.refetch()} />
+            <ErrorState
+              error={applicationDetailQuery.error}
+              onRetry={() => void applicationDetailQuery.refetch()}
+            />
           ) : isLive && applicationDetailQuery.isLoading ? (
             <p role="status" className="p-4 text-caption">
               {t("apps.detailLoading")}
@@ -357,7 +408,7 @@ function Applications() {
                 <SheetHeader>
                   <SheetTitle>{displayedApplication.name}</SheetTitle>
                   <SheetDescription>
-                    {displayedApplication.id} ·{" "}
+                    {displayedApplication.name} ·{" "}
                     {t(
                       displayedApplication.environment === "production"
                         ? "common.production"
@@ -372,16 +423,15 @@ function Applications() {
                       <dd>
                         {displayedApplication.tenantName ??
                           tenantNames.get(displayedApplication.tenantId) ??
-                          user?.tenantName ??
-                          displayedApplication.tenantId}
+                          t("entity.unavailable")}
                       </dd>
                       <dd className="font-mono text-xs text-muted-foreground">
-                        {displayedApplication.tenantId}
+                        <EntityName kind="tenant" id={displayedApplication.tenantId} />
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-label">{t("common.applicationId")}</dt>
-                      <dd className="font-mono text-xs">{displayedApplication.id}</dd>
+                      <dt className="text-label">{t("common.application")}</dt>
+                      <dd className="font-mono text-xs">{displayedApplication.name}</dd>
                     </div>
                     <div>
                       <dt className="text-label">{t("common.environment")}</dt>

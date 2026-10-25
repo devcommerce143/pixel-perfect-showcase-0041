@@ -1,3 +1,4 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
@@ -249,7 +250,8 @@ export function MockTemplates() {
           {
             id: "tenant",
             header: t("common.tenant"),
-            cell: (r: Template) => tenantNames.get(r.tenantId ?? "") ?? r.tenantName ?? r.tenantId,
+            cell: (r: Template) =>
+              tenantNames.get(r.tenantId ?? "") ?? r.tenantName ?? t("entity.unavailable"),
             className: "hidden lg:table-cell",
           },
         ]
@@ -394,7 +396,7 @@ export function MockTemplates() {
               <SheetHeader>
                 <SheetTitle className="font-mono text-base">{selected.name}</SheetTitle>
                 <SheetDescription>
-                  {selected.id} · v{selected.version} · {selected.category}
+                  {selected.name} · v{selected.version} · {selected.category}
                 </SheetDescription>
               </SheetHeader>
               <div className="flex flex-col gap-4 px-4">
@@ -734,11 +736,7 @@ export function MockTemplates() {
                 {t("tpl.versionUpdateNotice")}
               </p>
             )}
-            {error && (
-              <p role="alert" className="text-sm text-danger">
-                {error}
-              </p>
-            )}
+            {error && <MessageAlert className="text-sm text-danger">{error}</MessageAlert>}
             <div className="flex justify-end gap-2 border-t pt-4">
               <Button
                 type="button"

@@ -1,3 +1,4 @@
+import { EntityName } from "@/components/app/EntityName";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { queries } from "@/lib/api/queries";
@@ -94,12 +95,14 @@ export function TenantPolicyLive({ view }: { view: "settings" | "channels" }) {
             {!isTenantUuid(target ?? "") ? (
               <EmptyState title={t("livePolicy.selectTenant")} />
             ) : policy.isError ? (
-              <ErrorState onRetry={() => void policy.refetch()} />
+              <ErrorState error={policy.error} onRetry={() => void policy.refetch()} />
             ) : policy.isPending ? (
               <TableSkeleton />
             ) : (
               <>
-                <p className="font-mono text-xs">{policy.data.effective.tenantId}</p>
+                <p className="font-mono text-xs">
+                  <EntityName kind="tenant" id={policy.data.effective.tenantId} />
+                </p>
                 {policy.data.subscription ? (
                   <p>
                     {policy.data.subscription.plan.name}{" "}

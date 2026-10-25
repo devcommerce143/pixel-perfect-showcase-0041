@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queries, webhookRegistryMutations } from "@/lib/api/queries";
@@ -62,7 +64,7 @@ export function WebhookRegistry() {
           <Section className="space-y-4 p-4 sm:p-6">
             <Label>{t("liveWebhooks.application")}</Label>
             {apps.isError ? (
-              <ErrorState onRetry={() => void apps.refetch()} />
+              <ErrorState error={apps.error} onRetry={() => void apps.refetch()} />
             ) : apps.isPending ? (
               <TableSkeleton rows={2} />
             ) : (
@@ -157,7 +159,8 @@ function ApplicationWebhooks({
     onSuccess: async (result) => {
       if (!active.current) return;
       setOperation(null);
-      if (result.kind === "queued") setNotice(t("liveWebhooks.queued", { id: result.eventId }));
+      if (result.kind === "queued")
+        setNotice(t("liveWebhooks.queued", { id: t("liveWebhooks.event.endpoint.ping") }));
       else setNotice(t("liveWebhooks.saved"));
       if (result.kind === "deleted") setSelected("");
       await qc.invalidateQueries({ queryKey: webhookScopeKey(actor, app, tenantId) });
@@ -240,7 +243,7 @@ function ApplicationWebhooks({
       cell: (row) => (
         <>
           {t(`liveWebhooks.event.${row.eventType}`)}
-          <p className="font-mono text-xs">{row.eventId}</p>
+          <p className="font-mono text-xs">{t(`liveWebhooks.event.${row.eventType}`)}</p>
         </>
       ),
     },
@@ -269,7 +272,9 @@ function ApplicationWebhooks({
   const form = operation?.kind === "create" || operation?.kind === "update";
   return (
     <div className="space-y-4 pt-4">
-      <p className="text-subtle">{t("liveWebhooks.scope", { id: app })}</p>
+      <p className="text-subtle">
+        <EntityName kind="application" id={app} tenantId={tenantId} />
+      </p>
       {manage && (
         <Button
           disabled={
@@ -282,7 +287,7 @@ function ApplicationWebhooks({
       )}
       {notice && <p role="status">{notice}</p>}
       {list.isError ? (
-        <ErrorState onRetry={() => void list.refetch()} />
+        <ErrorState error={list.error} onRetry={() => void list.refetch()} />
       ) : list.isPending ? (
         <TableSkeleton />
       ) : !list.data.length ? (
@@ -292,12 +297,14 @@ function ApplicationWebhooks({
       )}
       {selected && (
         <Section title={t("liveWebhooks.history")}>
-          <p className="font-mono text-xs">{selected}</p>
+          <p className="font-mono text-xs">
+            {list.data?.find((row) => row.id === selected)?.url ?? t("entity.unavailable")}
+          </p>
           <Button variant="outline" onClick={() => void history.refetch()}>
             {t("common.refresh")}
           </Button>
           {history.isError ? (
-            <ErrorState onRetry={() => void history.refetch()} />
+            <ErrorState error={history.error} onRetry={() => void history.refetch()} />
           ) : history.isPending ? (
             <TableSkeleton />
           ) : (
@@ -336,7 +343,11 @@ function ApplicationWebhooks({
             <DialogTitle>{operation && t(`liveWebhooks.action.${operation.kind}`)}</DialogTitle>
             <DialogDescription>{t("liveWebhooks.confirm")}</DialogDescription>
           </DialogHeader>
-          {operation && "id" in operation && <p className="font-mono text-xs">{operation.id}</p>}
+          {operation && "id" in operation && (
+            <p className="font-mono text-xs">
+              {list.data?.find((row) => row.id === operation.id)?.url ?? t("entity.unavailable")}
+            </p>
+          )}
           {form && (
             <div className="space-y-3">
               <Label htmlFor="webhook-url">{t("liveWebhooks.url")}</Label>
@@ -372,7 +383,7 @@ function ApplicationWebhooks({
               ))}
             </div>
           )}
-          {mutation.isError && <p role="alert">{t(webhookFailureKey(mutation.error))}</p>}
+          {mutation.isError && <MessageAlert>{t(webhookFailureKey(mutation.error))}</MessageAlert>}
           <DialogFooter>
             <Button
               variant="outline"

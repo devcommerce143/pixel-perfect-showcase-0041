@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { EntityName } from "@/components/app/EntityName";
 import { useState } from "react";
 import { MonitoringCsvButton } from "./MonitoringCsvButton";
 import { useQuery } from "@tanstack/react-query";
@@ -91,10 +93,10 @@ export function UsageReportLive({ view }: { view: "usage" | "reports" }) {
   const applicationColumns: Column<LiveUsageReport["messageCounts"]["byApplication"][number]>[] = [
     {
       id: "app",
-      header: t("common.applicationId"),
+      header: t("common.application"),
       cell: (row) => (
         <span className="font-mono text-xs" dir="ltr">
-          {row.applicationId}
+          <EntityName kind="application" id={row.applicationId} tenantId={tenantId} />
         </span>
       ),
     },
@@ -211,12 +213,12 @@ export function UsageReportLive({ view }: { view: "usage" | "reports" }) {
           </div>
         </Section>
         {!range ? (
-          <p role="alert" className="text-danger">
+          <MessageAlert className="text-danger">
             {t("liveUsage.invalidRange")}
-          </p>
+          </MessageAlert>
         ) : report.isError ? (
           <Section>
-            <ErrorState onRetry={() => void report.refetch()} />
+            <ErrorState error={report.error} onRetry={() => void report.refetch()} />
           </Section>
         ) : (
           <>

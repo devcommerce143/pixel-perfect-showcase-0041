@@ -12,7 +12,15 @@ export function MessageTable({ rows, loading, compact, showTenant }: { rows: Mes
   const { isPlatform } = useSession();
   const navigate = useNavigate();
   const columns: Column<Message>[] = [
-    { id: "id", header: t("common.messageId"), cell: (m) => <span className="font-mono text-xs font-medium text-primary whitespace-nowrap">{m.id}</span> },
+    {
+      id: "id",
+      header: t("entity.message"),
+      cell: (m) => (
+        <span className="font-mono text-xs font-medium text-primary whitespace-nowrap">
+          {m.applicationName}
+        </span>
+      ),
+    },
     { id: "channel", header: t("common.channel"), cell: (m) => <ChannelLabel channel={m.channel} /> },
     { id: "recipient", header: t("common.recipient"), cell: (m) => <span dir="ltr" className="font-mono text-xs">{m.recipient}</span> },
     { id: "app", header: t("common.application"), cell: (m) => m.applicationName, className: compact ? "hidden xl:table-cell" : "" },

@@ -10,6 +10,7 @@ import type {
   ProviderRecordedCheck,
   ProviderAccountMetadata,
   ProviderCursorPage,
+  ProviderBalanceObservation,
 } from "../provider-monitoring.ts";
 function fail(): never {
   throw new Error("Invalid provider monitoring contract");
@@ -96,6 +97,10 @@ export function providerChecksPath(
 export function mapProviderHealth(value: unknown): ProviderHealthRecord {
   const row = object(value);
   return {
+    balanceObservation:
+      row["balanceObservation"] == null
+        ? null
+        : mapProviderBalance(row["balanceObservation"], row["transport"]),
     providerAccountId: uuid(row["providerAccountId"]),
     code: text(row["code"]),
     channel: choice(row["channel"], ["SMS", "EMAIL", "WHATSAPP"]),
@@ -112,6 +117,42 @@ export function mapProviderHealth(value: unknown): ProviderHealthRecord {
       choice(value, PROVIDER_FAILURE_CLASSES),
     ),
   };
+}
+export function mapProviderBalance(value: unknown, transport: unknown): ProviderBalanceObservation {
+  choice(transport, PROVIDER_TRANSPORTS);
+  const row = object(value);
+  const status = choice(row["status"], [
+    "NOT_RETRIEVED",
+    "UNSUPPORTED",
+    "SUCCESS",
+    "FAILED",
+  ] as const);
+  const amount = nullable(row["amount"], text),
+    unit = nullable(row["unit"], text);
+  const lastAttemptAt = nullable(row["lastAttemptAt"], instant),
+    lastSuccessAt = nullable(row["lastSuccessAt"], instant);
+  const failureClass = nullable(row["failureClass"], (value) =>
+    choice(value, PROVIDER_FAILURE_CLASSES),
+  );
+  const staleAfterMs = count(row["staleAfterMs"], 300_000);
+  const hasValue = amount !== null && unit !== null && lastSuccessAt !== null;
+  if (amount !== null && !/^(0|[1-9][0-9]{0,19})(\.[0-9]{1,8})?(?![\s\S])/.test(amount)) fail();
+  if (unit !== null && !/^[A-Za-z][A-Za-z0-9_-]{0,7}(?![\s\S])/.test(unit)) fail();
+  if (!hasValue && (amount !== null || unit !== null || lastSuccessAt !== null)) fail();
+  if (lastSuccessAt && !lastAttemptAt) fail();
+  if (
+    status === "SUCCESS" &&
+    (!hasValue || lastSuccessAt !== lastAttemptAt || failureClass !== null)
+  )
+    fail();
+  if (status === "FAILED" && (!lastAttemptAt || !failureClass)) fail();
+  if (
+    (status === "NOT_RETRIEVED" || status === "UNSUPPORTED") &&
+    (hasValue || lastAttemptAt || failureClass)
+  )
+    fail();
+  if ((status === "UNSUPPORTED") !== (transport !== "TAQNYAT_SMS")) fail();
+  return { status, amount, unit, lastAttemptAt, lastSuccessAt, failureClass, staleAfterMs };
 }
 export function mapProviderMetadata(value: unknown, id: string): ProviderAccountMetadata {
   const row = object(value);

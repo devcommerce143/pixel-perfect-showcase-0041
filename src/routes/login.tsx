@@ -1,3 +1,5 @@
+import { MessageAlert } from "@/components/app/MessageAlert";
+import { RecordReference } from "@/components/app/RecordReference";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { Activity, AppWindow, ArrowRight, BadgeCheck, Boxes, Eye, EyeOff, Globe2, LockKeyhole, Mail, MessageCircle, MessageSquareText, PanelsTopLeft, ShieldCheck, Zap, LoaderCircle } from "lucide-react";
@@ -8,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/auth/session";
 import { useI18n, type Locale } from "@/lib/i18n/i18n";
 import { pageHead } from "@/lib/seo";
+import { ConnectLanding } from "@/components/auth/ConnectLanding";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -92,6 +95,29 @@ function LoginPage() {
       setBusy(false);
     }
   };
+
+  if (mode === "live") {
+    return (
+      <ConnectLanding busy={busy} disabled={disabled || status === "configuration"} onSignIn={() => {
+        setBusy(true);
+        setError("");
+        const requested = search.returnTo;
+        const returnTo = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
+        void beginOrganizationSignIn(returnTo).catch(() => {
+          setBusy(false);
+          setError("auth.unavailable");
+        });
+      }}>
+        {status === "configuration" && <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger">
+          <p>{t("auth.configurationTitle")}</p>
+          <p className="mt-2">{t("auth.configurationBody")}</p>
+          <ul className="mt-2 list-disc ps-5">{configurationIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+        </div>}
+        {error && <MessageAlert className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm text-danger">{t(error)}</MessageAlert>}
+        {correlationId && <p className="mt-2 text-caption"><RecordReference value={correlationId} /></p>}
+      </ConnectLanding>
+    );
+  }
 
   return (
     <main className="relative grid min-h-svh place-items-center overflow-hidden bg-[radial-gradient(ellipse_at_18%_0%,oklch(0.93_0.035_238),transparent_48%),linear-gradient(135deg,oklch(0.96_0.018_240),var(--background)_58%)] p-3 sm:p-5 lg:p-6">
@@ -222,26 +248,6 @@ function LoginPage() {
                     {configurationIssues.map((issue) => <li key={issue}>{issue}</li>)}
                   </ul>
                 </div>
-              ) : mode === "live" ? (
-                <div className="space-y-4">
-                  <p className="text-sm leading-5 text-muted-foreground">{t("auth.organizationSignInDescription")}</p>
-                  {correlationId && <p className="text-caption text-muted-foreground">{t("auth.correlation", { id: correlationId })}</p>}
-                  <Button type="button" className="h-11 w-full shadow-panel" disabled={status === "loading" || busy} onClick={() => {
-                    setBusy(true);
-                    setError("");
-                    const requested = search.returnTo;
-                    const returnTo = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/";
-                    void beginOrganizationSignIn(returnTo).catch(() => {
-                      setBusy(false);
-                      setError("auth.unavailable");
-                    });
-                  }}>
-                    {(busy || status === "loading") && <LoaderCircle className="size-4 animate-spin" />}
-                    {busy ? t("auth.signingIn") : t("auth.organizationSignIn")}
-                    {!busy && status !== "loading" && <ArrowRight className="size-4 rtl:rotate-180" aria-hidden="true" />}
-                  </Button>
-                  {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{t(error)}</p>}
-                </div>
               ) : (
               <form className="space-y-4" onSubmit={submit} noValidate>
                 <div className="space-y-1.5">
@@ -275,7 +281,7 @@ function LoginPage() {
                   </button>
                 </div>
                 {forgotOpen && <p role="status" className="rounded-md border bg-surface-subtle px-3 py-2 text-xs text-muted-foreground">{t("auth.forgotPasswordInfo")}</p>}
-                {error && <p role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{t(error)}</p>}
+                {error && <MessageAlert className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">{t(error)}</MessageAlert>}
 
                 <Button type="submit" className="h-11 w-full shadow-panel" disabled={disabled}>
                   {disabled && <LoaderCircle className="size-4 animate-spin" />}

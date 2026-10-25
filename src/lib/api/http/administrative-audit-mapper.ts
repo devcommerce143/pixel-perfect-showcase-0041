@@ -6,6 +6,7 @@ import type {
 } from "../administrative-audit.ts";
 import type { SenderIdentityActor } from "../types.ts";
 import { usageRangeQuery } from "./usage-report-mapper.ts";
+import { humanName } from "../entity-names.ts";
 
 export const AUDIT_ACTIONS = [
   "application.create",
@@ -303,6 +304,12 @@ export function mapAdministrativeAudit(
     tenantId,
     actorKind,
     actorUserId,
+    actorName:
+      actorKind === "HUMAN" &&
+      typeof row["actorName"] === "string" &&
+      row["actorName"].length <= 201
+        ? humanName(row["actorName"])
+        : null,
     actorCredentialId,
     action: choice(row["action"], AUDIT_ACTIONS),
     resourceType: choice(row["resourceType"], RESOURCES),

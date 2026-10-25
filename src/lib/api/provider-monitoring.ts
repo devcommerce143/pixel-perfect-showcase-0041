@@ -25,6 +25,7 @@ export interface SmsPilotControlState {
   submissionsEnabled: boolean;
 }
 export interface ProviderHealthRecord {
+  balanceObservation?: ProviderBalanceObservation | null;
   providerAccountId: string;
   code: string;
   channel: "SMS" | "EMAIL" | "WHATSAPP";
@@ -38,6 +39,20 @@ export interface ProviderHealthRecord {
   lastHttpStatus: number | null;
   lastLatencyMs: number | null;
   lastFailureClass: (typeof PROVIDER_FAILURE_CLASSES)[number] | null;
+}
+export interface ProviderBalanceObservation {
+  status: "NOT_RETRIEVED" | "UNSUPPORTED" | "SUCCESS" | "FAILED";
+  lastAttemptAt: string | null;
+  lastSuccessAt: string | null;
+  amount: string | null;
+  unit: string | null;
+  failureClass: (typeof PROVIDER_FAILURE_CLASSES)[number] | null;
+  staleAfterMs: number;
+}
+export function providerBalanceIsStale(observation: ProviderBalanceObservation, now = Date.now()) {
+  if (!observation.lastSuccessAt) return false;
+  const age = now - Date.parse(observation.lastSuccessAt);
+  return age < 0 || age >= observation.staleAfterMs;
 }
 export interface ProviderRecordedCheck {
   id: string;

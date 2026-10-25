@@ -15,7 +15,7 @@ export function SmsPilotControlState({ actor }: { actor: SenderIdentityActor }) 
       <div className="space-y-3 p-4">
         <p className="text-subtle">{t("pilotState.description")}</p>
         {state.isError ? (
-          <ErrorState onRetry={() => void state.refetch()} />
+          <ErrorState error={state.error} onRetry={() => void state.refetch()} />
         ) : state.isPending ? (
           <TableSkeleton rows={1} />
         ) : (
