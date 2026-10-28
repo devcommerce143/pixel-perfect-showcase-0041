@@ -113,9 +113,9 @@ import { createMockApi } from "./mock/mock-api";
  * without changing any screen.
  */
 export interface DolfConnectApi {
-  listNotifications(page: number): Promise<import('./notifications.ts').NotificationPage>;
+  listNotifications(page: number): Promise<import("./notifications.ts").NotificationPage>;
   markNotificationRead(id: string): Promise<{ id: string; readAt: string }>;
-  markAllNotificationsRead(): Promise<{updatedCount:number}>;
+  markAllNotificationsRead(): Promise<{ updatedCount: number }>;
   listSenderBindings(
     actor: SenderIdentityActor,
     query: import("./sender-bindings.ts").SenderBindingQuery,
@@ -194,6 +194,35 @@ export interface DolfConnectApi {
   getSmsPilotControl(
     actor: SenderIdentityActor,
   ): Promise<import("./provider-monitoring.ts").SmsPilotControlState>;
+  getSmsAutomation(
+    actor: SenderIdentityActor,
+    tenantId: string,
+  ): Promise<import("./sms-automation.ts").SmsAutomationPolicy | null>;
+  updateSmsAutomation(
+    actor: SenderIdentityActor,
+    tenantId: string,
+    input: import("./sms-automation.ts").SmsAutomationInput,
+  ): Promise<{ revision: number }>;
+  getDeliveryDispatchControl(
+    actor: SenderIdentityActor,
+    channel: import("./delivery-dispatch-control.ts").DeliveryChannel,
+  ): Promise<import("./delivery-dispatch-control.ts").DeliveryDispatchControl>;
+  updateDeliveryDispatchControl(
+    actor: SenderIdentityActor,
+    channel: import("./delivery-dispatch-control.ts").DeliveryChannel,
+    enabled: boolean,
+    revision: number,
+    confirmed: boolean,
+  ): Promise<{ enabled: boolean; revision: number }>;
+  getSmsDispatchControl(
+    actor: SenderIdentityActor,
+  ): Promise<import("./sms-dispatch-control.ts").SmsDispatchControl>;
+  updateSmsDispatchControl(
+    actor: SenderIdentityActor,
+    enabled: boolean,
+    revision: number,
+    confirmed: boolean,
+  ): Promise<{ enabled: boolean; revision: number }>;
   getProviderObservedHealth(
     actor: SenderIdentityActor,
     id: string,
@@ -338,7 +367,7 @@ export interface DolfConnectApi {
   /** Live mode reads `GET /api/v1/dashboard/messages`. Mock screens keep using `listMessages`. */
   getDashboardMessages(): Promise<DashboardRecentMessages>;
   /** Live mode reads `GET /api/v1/dashboard/quota`. Mock screens keep using `getUsage`. */
-  getDashboardQuota(): Promise<DashboardQuotaWarning>;
+  getDashboardQuota(tenantId?: string): Promise<DashboardQuotaWarning>;
   listMessages(params: ListParams, actor: SenderIdentityActor): Promise<Paginated<Message>>;
   getMessage(id: string, actor: SenderIdentityActor, tenantId?: string): Promise<Message | null>;
   listMessageHistory(
@@ -524,20 +553,56 @@ export interface DolfConnectApi {
   ): Promise<BulkHistoryPage<BulkHistoryItem>>;
   listBulkJobs(actor: SenderIdentityActor, query: BulkJobListQuery): Promise<Paginated<BulkJob>>;
   getBulkJob(actor: SenderIdentityActor, id: string, tenantId?: string): Promise<BulkJob | null>;
-  listBulkTemplates(actor: SenderIdentityActor, applicationId: string, channel: SendMessageInput["channel"]): Promise<Template[]>;
-  checkBulkSuppression(actor: SenderIdentityActor, applicationId: string, candidates: BulkSuppressionCandidate[]): Promise<number[]>;
+  listBulkTemplates(
+    actor: SenderIdentityActor,
+    applicationId: string,
+    channel: SendMessageInput["channel"],
+  ): Promise<Template[]>;
+  checkBulkSuppression(
+    actor: SenderIdentityActor,
+    applicationId: string,
+    candidates: BulkSuppressionCandidate[],
+  ): Promise<number[]>;
   createBulkJob(actor: SenderIdentityActor, input: CreateBulkJobInput): Promise<BulkJob>;
   listWebhooks(): Promise<Webhook[]>;
-  createWebhook(input: Pick<Webhook, "url" | "events" | "applicationName">): Promise<{ webhook: Webhook; signingSecret: string }>;
-  updateWebhook(id: string, input: Pick<Webhook, "url" | "events" | "applicationName"> & { signingSecret?: string }): Promise<Webhook>;
+  createWebhook(
+    input: Pick<Webhook, "url" | "events" | "applicationName">,
+  ): Promise<{ webhook: Webhook; signingSecret: string }>;
+  updateWebhook(
+    id: string,
+    input: Pick<Webhook, "url" | "events" | "applicationName"> & { signingSecret?: string },
+  ): Promise<Webhook>;
   setWebhookStatus(id: string, status: Webhook["status"]): Promise<void>;
   deleteWebhook(id: string): Promise<void>;
   testWebhook(id: string): Promise<WebhookDelivery>;
-  listUsers(actor: SenderIdentityActor, query: UserListQuery, targetTenantId?: string): Promise<Paginated<PortalUser>>;
-  inviteUser(actor: SenderIdentityActor, input: CreatePortalUserInput, targetTenantId?: string): Promise<PortalUser>;
-  updateUser(actor: SenderIdentityActor, id: string, input: UpdatePortalUserProfileInput, targetTenantId?: string): Promise<PortalUser>;
-  setUserRole(actor: SenderIdentityActor, id: string, role: TenantUserRole, targetTenantId?: string): Promise<PortalUser>;
-  setUserStatus(actor: SenderIdentityActor, id: string, status: UserStatus, targetTenantId?: string): Promise<PortalUser>;
+  listUsers(
+    actor: SenderIdentityActor,
+    query: UserListQuery,
+    targetTenantId?: string,
+  ): Promise<Paginated<PortalUser>>;
+  inviteUser(
+    actor: SenderIdentityActor,
+    input: CreatePortalUserInput,
+    targetTenantId?: string,
+  ): Promise<PortalUser>;
+  updateUser(
+    actor: SenderIdentityActor,
+    id: string,
+    input: UpdatePortalUserProfileInput,
+    targetTenantId?: string,
+  ): Promise<PortalUser>;
+  setUserRole(
+    actor: SenderIdentityActor,
+    id: string,
+    role: TenantUserRole,
+    targetTenantId?: string,
+  ): Promise<PortalUser>;
+  setUserStatus(
+    actor: SenderIdentityActor,
+    id: string,
+    status: UserStatus,
+    targetTenantId?: string,
+  ): Promise<PortalUser>;
   getSettings(): Promise<TenantSettings>;
   updateSettings(input: TenantSettings): Promise<TenantSettings>;
   getReport(actor: SenderIdentityActor, tenantId?: string): Promise<ReportSummary>;
@@ -552,22 +617,70 @@ export interface DolfConnectApi {
   createRoutingRule(input: Omit<RoutingRule, "id">): Promise<RoutingRule>;
   updateRoutingRule(id: string, input: Omit<RoutingRule, "id">): Promise<RoutingRule>;
   setRoutingRuleStatus(id: string, status: RoutingRule["status"]): Promise<void>;
-  listPlatformClients(params: PlatformApiClientListQuery, actor: SenderIdentityActor): Promise<Paginated<PlatformApiClient>>;
-  updatePlatformClient(actor: SenderIdentityActor, id: string, rateLimit: number): Promise<PlatformApiClient>;
-  setPlatformClientStatus(actor: SenderIdentityActor, id: string, status: "active" | "revoked"): Promise<void>;
-  listSenderIdentities(actor: SenderIdentityActor, query: SenderIdentityListQuery): Promise<Paginated<SenderIdentity>>;
-  listSenderIdentityReadPage(actor: SenderIdentityActor, query: SenderIdentityListQuery, tenantId?: string): Promise<Paginated<SenderIdentityRead>>;
-  listAllTenantSenderIdentityReadPage(actor: SenderIdentityActor, query: SenderIdentityListQuery): Promise<Paginated<PlatformSenderIdentityRead>>;
-    /** Actor context is mock-only; HTTP implementations must derive tenant and role claims from authentication. */
+  listPlatformClients(
+    params: PlatformApiClientListQuery,
+    actor: SenderIdentityActor,
+  ): Promise<Paginated<PlatformApiClient>>;
+  updatePlatformClient(
+    actor: SenderIdentityActor,
+    id: string,
+    rateLimit: number,
+  ): Promise<PlatformApiClient>;
+  setPlatformClientStatus(
+    actor: SenderIdentityActor,
+    id: string,
+    status: "active" | "revoked",
+  ): Promise<void>;
+  listSenderIdentities(
+    actor: SenderIdentityActor,
+    query: SenderIdentityListQuery,
+  ): Promise<Paginated<SenderIdentity>>;
+  listSenderIdentityReadPage(
+    actor: SenderIdentityActor,
+    query: SenderIdentityListQuery,
+    tenantId?: string,
+  ): Promise<Paginated<SenderIdentityRead>>;
+  listAllTenantSenderIdentityReadPage(
+    actor: SenderIdentityActor,
+    query: SenderIdentityListQuery,
+  ): Promise<Paginated<PlatformSenderIdentityRead>>;
+  /** Actor context is mock-only; HTTP implementations must derive tenant and role claims from authentication. */
   getSenderIdentity(actor: SenderIdentityActor, id: string): Promise<SenderIdentity | null>;
-  getSenderIdentityRead(actor: SenderIdentityActor, id: string, tenantId?: string): Promise<SenderIdentityRead | null>;
-  listSendableSenderIdentities(actor: SenderIdentityActor, applicationId: string, channel: SendMessageInput["channel"]): Promise<SenderIdentity[]>;
-  createSenderIdentity(actor: SenderIdentityActor, input: SenderIdentityInput): Promise<SenderIdentity>;
-  updateSenderIdentity(actor: SenderIdentityActor, id: string, input: SenderIdentityInput): Promise<SenderIdentity>;
+  getSenderIdentityRead(
+    actor: SenderIdentityActor,
+    id: string,
+    tenantId?: string,
+  ): Promise<SenderIdentityRead | null>;
+  listSendableSenderIdentities(
+    actor: SenderIdentityActor,
+    applicationId: string,
+    channel: SendMessageInput["channel"],
+  ): Promise<SenderIdentity[]>;
+  createSenderIdentity(
+    actor: SenderIdentityActor,
+    input: SenderIdentityInput,
+  ): Promise<SenderIdentity>;
+  updateSenderIdentity(
+    actor: SenderIdentityActor,
+    id: string,
+    input: SenderIdentityInput,
+  ): Promise<SenderIdentity>;
   submitSenderIdentity(actor: SenderIdentityActor, id: string): Promise<SenderIdentity>;
   startSenderIdentityVerification(actor: SenderIdentityActor, id: string): Promise<SenderIdentity>;
-  setSenderIdentityVerification(actor: SenderIdentityActor, id: string, result: { status: Extract<SenderIdentityVerificationStatus, "verified" | "rejected">; reason?: string }): Promise<SenderIdentity>;
-  setSenderIdentityOperationalStatus(actor: SenderIdentityActor, id: string, action: "activate" | "suspend" | "reactivate", reason?: string): Promise<SenderIdentity>;
+  setSenderIdentityVerification(
+    actor: SenderIdentityActor,
+    id: string,
+    result: {
+      status: Extract<SenderIdentityVerificationStatus, "verified" | "rejected">;
+      reason?: string;
+    },
+  ): Promise<SenderIdentity>;
+  setSenderIdentityOperationalStatus(
+    actor: SenderIdentityActor,
+    id: string,
+    action: "activate" | "suspend" | "reactivate",
+    reason?: string,
+  ): Promise<SenderIdentity>;
   listConfig(): Promise<ConfigParam[]>;
   updateConfig(key: string, value: string): Promise<ConfigParam>;
 }

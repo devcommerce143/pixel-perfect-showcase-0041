@@ -1,0 +1,33 @@
+name: dolf-connect-frontend
+services:
+  frontend:
+    image: ${DOLF_FRONTEND_IMAGE:?Supply a reviewed frontend image tag or digest}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE: ${DOLF_FRONTEND_NODE_IMAGE:?Supply an approved Node 22 image pinned by digest}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:?Supply the approved public HTTPS API URL}
+        VITE_OIDC_ISSUER: ${VITE_OIDC_ISSUER:?Supply the approved HTTPS realm issuer}
+        VITE_OIDC_CLIENT_ID: ${VITE_OIDC_CLIENT_ID:?Supply the public OIDC client ID}
+        VITE_OIDC_REDIRECT_URI: ${VITE_OIDC_REDIRECT_URI:?Supply the approved HTTPS /auth/callback URL}
+        VITE_OIDC_POST_LOGOUT_REDIRECT_URI: ${VITE_OIDC_POST_LOGOUT_REDIRECT_URI:?Supply the approved HTTPS logout destination}
+        VITE_OIDC_SILENT_REDIRECT_URI: ${VITE_OIDC_SILENT_REDIRECT_URI:-}
+    init: true
+    read_only: true
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    networks: [frontend-edge]
+    # Intentionally no host port publication and no backend runtime env_file.
+networks:
+  frontend-edge:
+    external: true
+    name: ${DOLF_FRONTEND_EDGE_NETWORK:?Supply the existing APISIX-reachable Docker network}

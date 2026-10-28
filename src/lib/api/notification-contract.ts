@@ -9,6 +9,8 @@ export const NOTIFICATION_KINDS = [
   "CHANNEL_ACCESS_CHANGED",
   "SENDER_APPROVED",
   "SENDER_REJECTED",
+  "SENDER_VERIFICATION_REQUESTED",
+  "SENDER_SUSPENDED",
   "TEMPLATE_APPROVAL_CHANGED",
   "MESSAGE_FAILED",
   "MESSAGE_UNCERTAIN",
@@ -24,6 +26,7 @@ export type NotificationContext = {
   threshold?: 80 | 90 | 100;
   /** Target resource scope, never the recipient inbox scope. Not display text. */
   targetTenantId?: string;
+  senderId?: string;
 };
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}(?![\s\S])/i;
 export function validateNotification(
@@ -42,7 +45,9 @@ export function validateNotification(
     throw new Error("Invalid notification event");
   const context = value as Record<string, unknown>;
   if (
-    Object.keys(context).some((key) => !["channel", "threshold", "targetTenantId"].includes(key)) ||
+    Object.keys(context).some(
+      (key) => !["channel", "threshold", "targetTenantId", "senderId"].includes(key),
+    ) ||
     (kind === "ACCESS_CHANGED" && Object.keys(context).length > 0) ||
     ("channel" in context &&
       !["SMS", "EMAIL", "WHATSAPP"].includes(context["channel"] as string)) ||
@@ -53,5 +58,22 @@ export function validateNotification(
       : "threshold" in context)
   )
     throw new Error("Invalid notification context");
+  const senderKinds = [
+    "SENDER_APPROVED",
+    "SENDER_REJECTED",
+    "SENDER_VERIFICATION_REQUESTED",
+    "SENDER_SUSPENDED",
+  ];
+  if (
+    ("senderId" in context &&
+      (!senderKinds.includes(kind as string) ||
+        typeof context["senderId"] !== "string" ||
+        !uuid.test(context["senderId"]) ||
+        !context["targetTenantId"] ||
+        !context["channel"])) ||
+    (["SENDER_VERIFICATION_REQUESTED", "SENDER_SUSPENDED"].includes(kind as string) &&
+      !("senderId" in context))
+  )
+    throw new Error("Invalid sender notification context");
   return { kind: kind as NotificationKind, context: { ...context } as NotificationContext };
 }

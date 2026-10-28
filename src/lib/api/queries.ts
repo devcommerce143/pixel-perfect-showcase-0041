@@ -1,4 +1,7 @@
+import { deliveryDispatchControlKey, type DeliveryChannel } from "./delivery-dispatch-control";
 import { webhookScopeKey, webhookHistoryKey } from "./webhook-registry";
+import { smsDispatchControlKey } from "./sms-dispatch-control";
+import { smsAutomationKey, type SmsAutomationInput } from "./sms-automation";
 import { canResolveEntity, entityNameKey, humanName, type NamedEntity } from "./entity-names";
 import { contentTemplateKey } from "./content-template";
 import type { ContentTemplateQuery } from "./content-template";
@@ -86,13 +89,14 @@ import {
 
 /** Query layer: screens consume these factories, never the API client directly. */
 export const queries = {
-  notifications: (actor: SenderIdentityActor, page: number) => queryOptions({
-    queryKey: notificationKey(actor, page),
-    queryFn: () => api.listNotifications(page),
-    enabled: !!actor.userId,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
-  }),
+  notifications: (actor: SenderIdentityActor, page: number) =>
+    queryOptions({
+      queryKey: notificationKey(actor, page),
+      queryFn: () => api.listNotifications(page),
+      enabled: !!actor.userId,
+      staleTime: 30000,
+      refetchOnWindowFocus: false,
+    }),
   entityName: (
     actor: SenderIdentityActor,
     kind: NamedEntity,
@@ -309,6 +313,28 @@ export const queries = {
       enabled: !!actor.userId && actor.role === "super_admin",
       queryFn: () => api.getSmsPilotControl(actor),
     }),
+  smsAutomation: (actor: SenderIdentityActor, tenantId: string) =>
+    queryOptions({
+      queryKey: smsAutomationKey(actor, tenantId),
+      enabled:
+        !!actor.userId && actor.role === "super_admin" && actor.tenantId === null && !!tenantId,
+      queryFn: () => api.getSmsAutomation(actor, tenantId),
+      staleTime: 0,
+    }),
+  deliveryDispatchControl: (actor: SenderIdentityActor, channel: DeliveryChannel) =>
+    queryOptions({
+      queryKey: deliveryDispatchControlKey(actor, channel),
+      enabled: !!actor.userId && actor.role === "super_admin" && actor.tenantId === null,
+      queryFn: () => api.getDeliveryDispatchControl(actor, channel),
+      staleTime: 0,
+    }),
+  smsDispatchControl: (actor: SenderIdentityActor) =>
+    queryOptions({
+      queryKey: smsDispatchControlKey(actor),
+      enabled: !!actor.userId && actor.role === "super_admin" && actor.tenantId === null,
+      queryFn: () => api.getSmsDispatchControl(actor),
+      staleTime: 0,
+    }),
   providerMonitoring: (actor: SenderIdentityActor, query: ProviderMonitorQuery) =>
     queryOptions({
       queryKey: [...providerMonitorKey(actor), "accounts", query],
@@ -500,15 +526,31 @@ export const queries = {
       queryFn: () => api.listBulkJobHistoryItems(actor, id, query, tenantId),
     }),
   dashboard: () => queryOptions({ queryKey: ["dashboard"], queryFn: () => api.getDashboard() }),
-  dashboardMessages: () => queryOptions({ queryKey: ["dashboard", "messages"], queryFn: () => api.getDashboardMessages() }),
-  dashboardQuota: () => queryOptions({ queryKey: ["dashboard", "quota"], queryFn: () => api.getDashboardQuota() }),
+  dashboardMessages: () =>
+    queryOptions({
+      queryKey: ["dashboard", "messages"],
+      queryFn: () => api.getDashboardMessages(),
+    }),
+  dashboardQuota: () =>
+    queryOptions({ queryKey: ["dashboard", "quota"], queryFn: () => api.getDashboardQuota() }),
+  usageQuota: (actor: SenderIdentityActor, tenantId?: string | null) =>
+    queryOptions({
+      queryKey: ["usage", "quota", actor.userId, actor.role, actor.tenantId, tenantId],
+      queryFn: () => api.getDashboardQuota(actor.role === "super_admin" ? tenantId ?? undefined : undefined),
+      enabled: Boolean(actor.userId) && (actor.role !== "super_admin" || Boolean(tenantId)),
+    }),
   messages: (p: ListParams, actor: SenderIdentityActor) =>
     queryOptions({
       queryKey: ["messages", actor.role, actor.tenantId, p],
       queryFn: () => api.listMessages(p, actor),
       placeholderData: keepPreviousData,
     }),
-  messageHistory: (query: MessageHistoryQuery | null, actor: SenderIdentityActor, tenantId?: string, enabled = true) =>
+  messageHistory: (
+    query: MessageHistoryQuery | null,
+    actor: SenderIdentityActor,
+    tenantId?: string,
+    enabled = true,
+  ) =>
     queryOptions({
       queryKey: tenantMessageHistoryQueryKey(query, actor, tenantId),
       queryFn: () => {
@@ -517,7 +559,11 @@ export const queries = {
       },
       enabled: enabled && query !== null,
     }),
-  allTenantMessageHistory: (query: MessageHistoryQuery | null, actor: SenderIdentityActor, enabled = true) =>
+  allTenantMessageHistory: (
+    query: MessageHistoryQuery | null,
+    actor: SenderIdentityActor,
+    enabled = true,
+  ) =>
     queryOptions({
       queryKey: allTenantMessageHistoryQueryKey(query, actor),
       queryFn: () => {
@@ -526,20 +572,33 @@ export const queries = {
       },
       enabled: enabled && actor.role === "super_admin" && query !== null,
     }),
-  messageHistoryDetail: (id: string, actor: SenderIdentityActor, tenantId?: string, enabled = true) =>
+  messageHistoryDetail: (
+    id: string,
+    actor: SenderIdentityActor,
+    tenantId?: string,
+    enabled = true,
+  ) =>
     queryOptions({
       queryKey: messageHistoryDetailQueryKey(id, actor, tenantId),
       queryFn: () => api.getMessageHistory(id, actor, tenantId),
       enabled: enabled && !!id,
     }),
-  message: (id: string, actor: SenderIdentityActor, tenantId?: string) => queryOptions({ queryKey: ["message", actor.role, actor.tenantId, tenantId, id], queryFn: () => api.getMessage(id, actor, tenantId) }),
+  message: (id: string, actor: SenderIdentityActor, tenantId?: string) =>
+    queryOptions({
+      queryKey: ["message", actor.role, actor.tenantId, tenantId, id],
+      queryFn: () => api.getMessage(id, actor, tenantId),
+    }),
   templates: (p: TemplateListQuery, actor: SenderIdentityActor) =>
     queryOptions({
       queryKey: ["templates", actor.role, actor.tenantId, p],
       queryFn: () => api.listTemplates(p, actor),
       placeholderData: keepPreviousData,
     }),
-  applications: (actor: SenderIdentityActor, tenantId?: string) => queryOptions({ queryKey: ["applications", actor.role, actor.tenantId, tenantId], queryFn: () => api.listApplications(actor, tenantId) }),
+  applications: (actor: SenderIdentityActor, tenantId?: string) =>
+    queryOptions({
+      queryKey: ["applications", actor.role, actor.tenantId, tenantId],
+      queryFn: () => api.listApplications(actor, tenantId),
+    }),
   applicationsPage: (
     actor: SenderIdentityActor,
     query: ApplicationListQuery,
@@ -547,33 +606,49 @@ export const queries = {
     enabled = true,
     isLive = false,
   ) =>
-    queryOptions(applicationReadQueryOptions(
-      applicationPageQueryKey(actor, query, tenantId),
-      () => api.listApplicationsPage(actor, query, actor.role === "super_admin" ? tenantId : undefined),
-      enabled && (!isLive || actor.role !== "super_admin" || !!tenantId),
-    )),
+    queryOptions(
+      applicationReadQueryOptions(
+        applicationPageQueryKey(actor, query, tenantId),
+        () =>
+          api.listApplicationsPage(
+            actor,
+            query,
+            actor.role === "super_admin" ? tenantId : undefined,
+          ),
+        enabled && (!isLive || actor.role !== "super_admin" || !!tenantId),
+      ),
+    ),
   allTenantApplicationsPage: (
     actor: SenderIdentityActor,
     query: ApplicationListQuery,
     enabled = true,
   ) =>
-    queryOptions(applicationReadQueryOptions(
-      allTenantApplicationPageQueryKey(actor, query),
-      () => {
-        if (actor.role !== "super_admin") {
-          throw new Error("Platform applications require a platform administrator.");
-        }
-        return api.listAllTenantApplications(actor, query);
-      },
-      enabled && actor.role === "super_admin",
-    )),
+    queryOptions(
+      applicationReadQueryOptions(
+        allTenantApplicationPageQueryKey(actor, query),
+        () => {
+          if (actor.role !== "super_admin") {
+            throw new Error("Platform applications require a platform administrator.");
+          }
+          return api.listAllTenantApplications(actor, query);
+        },
+        enabled && actor.role === "super_admin",
+      ),
+    ),
   application: (actor: SenderIdentityActor, id: string, tenantId?: string, enabled = true) =>
-    queryOptions(applicationReadQueryOptions(
-      applicationDetailQueryKey(actor, id, tenantId),
-      () => api.getApplication(actor, id, actor.role === "super_admin" ? tenantId : undefined),
-      enabled && !!id && (actor.role !== "super_admin" || !!tenantId),
-    )),
-  credentials: (actor: SenderIdentityActor, query: ApiCredentialListQuery) => queryOptions({ queryKey: ["credentials", actor.role, actor.tenantId, query], queryFn: () => api.listCredentials(actor, query), placeholderData: keepPreviousData }),
+    queryOptions(
+      applicationReadQueryOptions(
+        applicationDetailQueryKey(actor, id, tenantId),
+        () => api.getApplication(actor, id, actor.role === "super_admin" ? tenantId : undefined),
+        enabled && !!id && (actor.role !== "super_admin" || !!tenantId),
+      ),
+    ),
+  credentials: (actor: SenderIdentityActor, query: ApiCredentialListQuery) =>
+    queryOptions({
+      queryKey: ["credentials", actor.role, actor.tenantId, query],
+      queryFn: () => api.listCredentials(actor, query),
+      placeholderData: keepPreviousData,
+    }),
   audit: (p: ListParams, actor: SenderIdentityActor) =>
     queryOptions({
       queryKey: ["audit", actor.role, actor.tenantId, p],
@@ -581,7 +656,10 @@ export const queries = {
       placeholderData: keepPreviousData,
     }),
   usage: (actor: SenderIdentityActor, tenantId?: string, tableQuery?: TenantUsageTableQuery) =>
-    queryOptions({ queryKey: ["usage", actor.role, actor.tenantId, tenantId, tableQuery], queryFn: () => api.getUsage(actor, tenantId, tableQuery) }),
+    queryOptions({
+      queryKey: ["usage", actor.role, actor.tenantId, tenantId, tableQuery],
+      queryFn: () => api.getUsage(actor, tenantId, tableQuery),
+    }),
   tenants: (p: TenantListQuery) =>
     queryOptions({
       queryKey: ["tenants", p],
@@ -618,13 +696,19 @@ export const queries = {
       enabled,
     }),
   providers: () => queryOptions({ queryKey: ["providers"], queryFn: () => api.listProviders() }),
-  providerUsageBilling: (actor: SenderIdentityActor, providerId?: string) => queryOptions({
-    queryKey: ["providerUsageBilling", actor.role, providerId],
-    queryFn: () => providerId ? api.getProviderUsageBilling(actor, providerId) : Promise.resolve(null),
-    enabled: actor.role === "super_admin" && !!providerId,
-  }),
+  providerUsageBilling: (actor: SenderIdentityActor, providerId?: string) =>
+    queryOptions({
+      queryKey: ["providerUsageBilling", actor.role, providerId],
+      queryFn: () =>
+        providerId ? api.getProviderUsageBilling(actor, providerId) : Promise.resolve(null),
+      enabled: actor.role === "super_admin" && !!providerId,
+    }),
   senderIdentities: (actor: SenderIdentityActor, query: SenderIdentityListQuery) =>
-    queryOptions({ queryKey: ["senderIdentities", actor.role, actor.tenantId, query], queryFn: () => api.listSenderIdentities(actor, query), placeholderData: keepPreviousData }),
+    queryOptions({
+      queryKey: ["senderIdentities", actor.role, actor.tenantId, query],
+      queryFn: () => api.listSenderIdentities(actor, query),
+      placeholderData: keepPreviousData,
+    }),
   senderIdentityReadPage: (
     actor: SenderIdentityActor,
     query: SenderIdentityListQuery,
@@ -634,9 +718,7 @@ export const queries = {
     queryOptions({
       queryKey: senderIdentityPageQueryKey(actor, query, tenantId),
       queryFn: () => api.listSenderIdentityReadPage(actor, query, tenantId),
-      enabled:
-        enabled &&
-        senderIdentityScopeIsAvailable(actor.role, tenantId),
+      enabled: enabled && senderIdentityScopeIsAvailable(actor.role, tenantId),
     }),
   allTenantSenderIdentityReadPage: (
     actor: SenderIdentityActor,
@@ -647,38 +729,61 @@ export const queries = {
       queryKey: allTenantSenderIdentityPageQueryKey(actor, query),
       queryFn: () => {
         if (actor.role !== "super_admin") {
-          throw new Error(
-            "Platform sender identities require a platform administrator.",
-          );
+          throw new Error("Platform sender identities require a platform administrator.");
         }
         return api.listAllTenantSenderIdentityReadPage(actor, query);
       },
       enabled: enabled && actor.role === "super_admin",
     }),
-  senderIdentityRead: (
-    actor: SenderIdentityActor,
-    id: string,
-    tenantId?: string,
-    enabled = true,
-  ) =>
+  senderIdentityRead: (actor: SenderIdentityActor, id: string, tenantId?: string, enabled = true) =>
     queryOptions({
       queryKey: senderIdentityDetailQueryKey(actor, id, tenantId),
       queryFn: () => api.getSenderIdentityRead(actor, id, tenantId),
-      enabled:
-        enabled &&
-        !!id &&
-        senderIdentityScopeIsAvailable(actor.role, tenantId),
+      enabled: enabled && !!id && senderIdentityScopeIsAvailable(actor.role, tenantId),
     }),
   sendableSenderIdentities: (actor: SenderIdentityActor, applicationId: string, channel: Channel) =>
-    queryOptions({ queryKey: ["sendableSenderIdentities", actor.role, actor.tenantId, applicationId, channel], enabled: !!applicationId, queryFn: () => api.listSendableSenderIdentities(actor, applicationId, channel) }),
-  bulkJobs: (actor: SenderIdentityActor, query: BulkJobListQuery) => queryOptions({ queryKey: ["bulkJobs", actor.role, actor.tenantId, query], queryFn: () => api.listBulkJobs(actor, query), placeholderData: keepPreviousData }),
-  bulkJob: (actor: SenderIdentityActor, id: string, tenantId?: string) => queryOptions({ queryKey: ["bulkJob", actor.role, actor.tenantId, tenantId, id], enabled: !!id, queryFn: () => api.getBulkJob(actor, id, tenantId) }),
-  bulkTemplates: (actor: SenderIdentityActor, applicationId: string, channel: Channel) => queryOptions({ queryKey: ["bulkTemplates", actor.role, actor.tenantId, applicationId, channel], enabled: !!applicationId, queryFn: () => api.listBulkTemplates(actor, applicationId, channel) }),
+    queryOptions({
+      queryKey: ["sendableSenderIdentities", actor.role, actor.tenantId, applicationId, channel],
+      enabled: !!applicationId,
+      queryFn: () => api.listSendableSenderIdentities(actor, applicationId, channel),
+    }),
+  bulkJobs: (actor: SenderIdentityActor, query: BulkJobListQuery) =>
+    queryOptions({
+      queryKey: ["bulkJobs", actor.role, actor.tenantId, query],
+      queryFn: () => api.listBulkJobs(actor, query),
+      placeholderData: keepPreviousData,
+    }),
+  bulkJob: (actor: SenderIdentityActor, id: string, tenantId?: string) =>
+    queryOptions({
+      queryKey: ["bulkJob", actor.role, actor.tenantId, tenantId, id],
+      enabled: !!id,
+      queryFn: () => api.getBulkJob(actor, id, tenantId),
+    }),
+  bulkTemplates: (actor: SenderIdentityActor, applicationId: string, channel: Channel) =>
+    queryOptions({
+      queryKey: ["bulkTemplates", actor.role, actor.tenantId, applicationId, channel],
+      enabled: !!applicationId,
+      queryFn: () => api.listBulkTemplates(actor, applicationId, channel),
+    }),
   webhooks: () => queryOptions({ queryKey: ["webhooks"], queryFn: () => api.listWebhooks() }),
-  users: (actor: SenderIdentityActor, query: UserListQuery, targetTenantId?: string) => queryOptions({ queryKey: ["users", actor.role, actor.tenantId, targetTenantId, query], queryFn: () => api.listUsers(actor, query, targetTenantId), placeholderData: keepPreviousData }),
+  users: (actor: SenderIdentityActor, query: UserListQuery, targetTenantId?: string) =>
+    queryOptions({
+      queryKey: ["users", actor.role, actor.tenantId, targetTenantId, query],
+      queryFn: () => api.listUsers(actor, query, targetTenantId),
+      placeholderData: keepPreviousData,
+    }),
   settings: () => queryOptions({ queryKey: ["settings"], queryFn: () => api.getSettings() }),
-  report: (actor: SenderIdentityActor, tenantId?: string) => queryOptions({ queryKey: ["report", actor.role, actor.tenantId, tenantId], queryFn: () => api.getReport(actor, tenantId) }),
-  plans: (query: PlanListQuery = {}) => queryOptions({ queryKey: ["plans", query], queryFn: () => api.listPlans(query), placeholderData: keepPreviousData }),
+  report: (actor: SenderIdentityActor, tenantId?: string) =>
+    queryOptions({
+      queryKey: ["report", actor.role, actor.tenantId, tenantId],
+      queryFn: () => api.getReport(actor, tenantId),
+    }),
+  plans: (query: PlanListQuery = {}) =>
+    queryOptions({
+      queryKey: ["plans", query],
+      queryFn: () => api.listPlans(query),
+      placeholderData: keepPreviousData,
+    }),
   channels: () => queryOptions({ queryKey: ["channels"], queryFn: () => api.listChannels() }),
   routing: () => queryOptions({ queryKey: ["routing"], queryFn: () => api.listRoutingRules() }),
   platformClients: (p: PlatformApiClientListQuery, actor: SenderIdentityActor) =>
@@ -849,4 +954,23 @@ export const contentTemplateMutations = {
     api.applyContentTemplateMutation(...args),
   render: (...args: Parameters<typeof api.renderContentTemplate>) =>
     api.renderContentTemplate(...args),
+};
+
+export const smsAutomationMutations = {
+  update: (actor: SenderIdentityActor, tenantId: string, input: SmsAutomationInput) =>
+    api.updateSmsAutomation(actor, tenantId, input),
+};
+export const smsDispatchMutations = {
+  update: (actor: SenderIdentityActor, enabled: boolean, revision: number, confirmed: boolean) =>
+    api.updateSmsDispatchControl(actor, enabled, revision, confirmed),
+};
+
+export const deliveryDispatchMutations = {
+  update: (
+    actor: SenderIdentityActor,
+    channel: DeliveryChannel,
+    enabled: boolean,
+    revision: number,
+    confirmed: boolean,
+  ) => api.updateDeliveryDispatchControl(actor, channel, enabled, revision, confirmed),
 };

@@ -1,4 +1,73 @@
 export const en = {
+  "deliveryControl.email": "Email",
+  "deliveryControl.whatsapp": "WhatsApp",
+  "deliveryControl.title": "{channel} dispatch",
+  "deliveryControl.description":
+    "Controls new {channel} provider submissions across the platform. Worker startup and channel readiness are managed separately.",
+  "deliveryControl.enabled": "{channel} dispatch enabled",
+  "deliveryControl.disabled": "{channel} dispatch disabled",
+  "deliveryControl.enabledHint":
+    "Eligible queued messages may be submitted when a delivery worker is available. Authorization, sender readiness, subscription and sending limits still apply. Submission does not confirm delivery.",
+  "deliveryControl.disabledHint":
+    "Queued messages are held. No new {channel} provider submissions are admitted.",
+  "deliveryControl.changed": "Last changed: {time} · {name}",
+  "deliveryControl.initial": "Initial disabled state",
+  "deliveryControl.enable": "Enable {channel} dispatch",
+  "deliveryControl.disable": "Disable {channel} dispatch",
+  "deliveryControl.enableWarning":
+    "Enable real {channel} submissions? Eligible queued messages may proceed and consume provider credits when workers and channel configuration are ready. Existing authorization and limits still apply.",
+  "deliveryControl.disableWarning":
+    "Disable new {channel} submissions? Queued messages will be held. Requests already admitted may finish and cannot be recalled.",
+  "deliveryControl.saved": "{channel} dispatch setting saved.",
+  "deliveryControl.saving": "Saving…",
+  "smsAuto.title": "Tenant SMS automation",
+  "smsAuto.enabled": "Enabled",
+  "smsAuto.paused": "Paused",
+  "smsAuto.disabled": "Disabled",
+  "smsAuto.missing": "Not initialized",
+  "smsAuto.missingHint":
+    "SMS processing is held until a platform administrator initializes this tenant's policy.",
+  "smsAuto.guidance":
+    "The platform SMS switch, sender approval, subscription, quota and sending limits still apply. Provider availability is separate. Bulk authorization is preserved separately.",
+  "smsAuto.continuous": "Continuous single-SMS processing",
+  "smsAuto.noExpiry": "No operational expiry",
+  "smsAuto.capValue": "Submission ceiling per application and sender: {count}",
+  "smsAuto.bulkOff": "Bulk not authorized",
+  "smsAuto.bulkOn": "Bulk separately authorized",
+  "smsAuto.cap": "Submission ceiling (1–20); leave empty for continuous processing",
+  "smsAuto.expiry": "Expiry in ISO format; leave empty for no operational expiry",
+  "smsAuto.invalid":
+    "Enter a ceiling from 1 to 20 and a future ISO expiry within one year, or leave them empty.",
+  "smsAuto.confirm":
+    "Enable SMS processing for this tenant? Eligible pending messages may proceed when platform dispatch is enabled. This does not reset previous submission counts or bypass provider restrictions, sender approval, quotas or other checks.",
+  "smsAuto.hold":
+    "Hold new SMS admissions for this tenant? Already-admitted requests may finish. Pending messages are preserved.",
+  "smsAuto.saved": "SMS automation policy saved.",
+  "smsControl.title": "SMS dispatch",
+  "smsControl.description":
+    "Control real SMS provider submissions across the platform. Workers stay running; tenant policies, sender approval and sending limits still apply.",
+  "smsControl.enabled": "SMS dispatch enabled",
+  "smsControl.disabled": "SMS dispatch disabled",
+  "smsControl.enabledHint":
+    "Authorized messages may be submitted to providers. Provider acceptance does not confirm delivery.",
+  "smsControl.disabledHint": "Queued messages are held. No new SMS submissions are admitted.",
+  "smsControl.changed": "Last changed: {time} · {name}",
+  "smsControl.initial": "Initial disabled state",
+  "smsControl.enable": "Enable SMS dispatch",
+  "smsControl.disable": "Disable SMS dispatch",
+  "smsControl.enableWarning":
+    "Enable real SMS provider submissions? Eligible queued messages may be processed and provider credits may be consumed. Existing tenant policies and limits remain in force.",
+  "smsControl.disableWarning":
+    "Disable new SMS submissions? Queued messages will be held. Requests already admitted may finish; they cannot be recalled.",
+  "smsControl.saved": "SMS dispatch setting saved.",
+  "smsControl.saving": "Saving…",
+  "notifications.senderRequestedTitle": "Sender verification requested",
+  "notifications.senderRequestedBody":
+    "A tenant administrator submitted a sender for verification. Open the sender to review the request.",
+  "notifications.senderSuspendedTitle": "Sender suspended",
+  "notifications.senderSuspendedBody":
+    "This sender is suspended and cannot be used to send messages. Review its status and contact your administrator.",
+  "notifications.viewSender": "View sender",
   "notifications.quotaTitle": "Usage limit alert",
   "notifications.quotaBody": "Review your usage and sending limits with your administrator.",
   "notifications.restrictedTitle": "Sending is restricted",
@@ -16,9 +85,9 @@ export const en = {
   "notifications.channelBody": "Review the channels available to your organization before sending.",
   "notifications.senderApprovedTitle": "Sender approved",
   "notifications.senderApprovedBody": "Review the sender status and configuration before sending.",
-  "notifications.senderRejectedTitle": "Sender needs attention",
+  "notifications.senderRejectedTitle": "Sender verification rejected",
   "notifications.senderRejectedBody":
-    "Review the sender approval status and contact your administrator.",
+    "This sender was not approved. Review its status and contact your administrator before reopening and resubmitting.",
   "notifications.templateTitle": "Template approval has changed",
   "notifications.templateBody":
     "Review the template’s current approval and readiness before using it.",
@@ -49,39 +118,56 @@ export const en = {
   "notifications.empty": "No notifications",
   "notifications.emptyBody": "Updates about your account will appear here.",
   "notifications.accessTitle": "Your access role has changed",
-  "notifications.accessBody": "An administrator updated your role. Your available actions may have changed. Contact your administrator if you have questions.",
+  "notifications.accessBody":
+    "An administrator updated your role. Your available actions may have changed. Contact your administrator if you have questions.",
   "notifications.markRead": "Mark as read",
   "notifications.read": "Read",
   "notice.close": "Close",
-  "notice.senderSetup": "No eligible sender is listed on this page. Check another page, or ask your administrator to verify and enable a sender for this application.",
-  "notice.templateSetup": "No approved WhatsApp template is listed on this page. Check another page, or ask your administrator to complete template approval.",
+  "notice.senderSetup":
+    "No eligible sender is listed on this page. Check another page, or ask your administrator to verify and enable a sender for this application.",
+  "notice.templateSetup":
+    "No approved WhatsApp template is listed on this page. Check another page, or ask your administrator to complete template approval.",
   "notice.pageMissing": "Page not found",
-  "notice.pageMissingBody": "This page may have moved or is no longer available. Return to the dashboard to continue.",
+  "notice.pageMissingBody":
+    "This page may have moved or is no longer available. Return to the dashboard to continue.",
 
   "notice.title.error": "Action needed",
   "notice.title.warning": "Check before continuing",
   "notice.title.info": "Please note",
   "notice.title.success": "Completed",
   "notice.reference": "Support reference",
-  "notice.unavailable": "This feature is not available yet. Contact your administrator if you need access.",
+  "notice.unavailable":
+    "This feature is not available yet. Contact your administrator if you need access.",
   "notice.session": "Your session has ended. Sign in again to continue.",
-  "notice.permission": "You do not have permission for this action. Contact your organization's administrator.",
+  "notice.permission":
+    "You do not have permission for this action. Contact your organization's administrator.",
   "notice.missing": "This item is unavailable. Refresh the list or check your selection.",
-  "notice.conflict": "This item has changed or the action is no longer available. Refresh it before trying again.",
+  "notice.conflict":
+    "This item has changed or the action is no longer available. Refresh it before trying again.",
   "notice.validation": "Some details could not be accepted. Check your entries and try again.",
   "notice.limit": "Too many requests were made in a short time. Wait a moment before trying again.",
-  "notice.timeout": "The request took too long. Check the latest status before repeating an action.",
+  "notice.timeout":
+    "The request took too long. Check the latest status before repeating an action.",
   "notice.connection": "We could not connect. Check your connection and try again.",
   "notice.sendingUnavailable": "Sending unavailable",
-  "notice.tenantSuspended": "Your organization is suspended. Contact your administrator to restore access.",
-  "notice.tenantInactive": "Your organization is inactive. Contact your administrator before sending messages.",
-  "notice.subscriptionMissing": "No subscription is assigned. Ask your administrator to assign a plan before sending.",
-  "notice.subscriptionPending": "Your subscription is pending. Contact your administrator to complete activation.",
-  "notice.subscriptionCancelled": "Your subscription is cancelled. Contact your administrator to arrange an active subscription.",
-  "notice.subscriptionFuture": "Your subscription has not started yet. Check its start date with your administrator.",
-  "notice.subscriptionEnded": "Your subscription has ended. Contact your administrator to renew it before sending.",
-  "notice.bulkUnavailable": "Bulk messaging is not included in your current plan. Contact your administrator to review your plan.",
-  "notice.channelUnavailable": "{channel} is not available under your current subscription. Contact your administrator to review channel access.",
+  "notice.tenantSuspended":
+    "Your organization is suspended. Contact your administrator to restore access.",
+  "notice.tenantInactive":
+    "Your organization is inactive. Contact your administrator before sending messages.",
+  "notice.subscriptionMissing":
+    "No subscription is assigned. Ask your administrator to assign a plan before sending.",
+  "notice.subscriptionPending":
+    "Your subscription is pending. Contact your administrator to complete activation.",
+  "notice.subscriptionCancelled":
+    "Your subscription is cancelled. Contact your administrator to arrange an active subscription.",
+  "notice.subscriptionFuture":
+    "Your subscription has not started yet. Check its start date with your administrator.",
+  "notice.subscriptionEnded":
+    "Your subscription has ended. Contact your administrator to renew it before sending.",
+  "notice.bulkUnavailable":
+    "Bulk messaging is not included in your current plan. Contact your administrator to review your plan.",
+  "notice.channelUnavailable":
+    "{channel} is not available under your current subscription. Contact your administrator to review channel access.",
   "unknownResolve.replayed": "This decision was already recorded. No further change was made.",
 
   "providerBalance.title": "Provider-reported account balance",
@@ -96,7 +182,8 @@ export const en = {
   "providerBalance.readFailed":
     "The latest portal read failed. Previously loaded observation is shown; its current state is unconfirmed.",
   "providerBalance.status.NOT_RETRIEVED": "Balance not retrieved",
-  "providerBalance.status.UNSUPPORTED": "Balance information is not available for this provider connection.",
+  "providerBalance.status.UNSUPPORTED":
+    "Balance information is not available for this provider connection.",
   "providerBalance.status.SUCCESS": "Latest stored balance retrieval succeeded",
   "providerBalance.status.FAILED": "Latest stored balance retrieval failed",
   "content.title": "SMS / Email content templates",
@@ -137,7 +224,8 @@ export const en = {
   "humanBulk.note":
     "Recipients are saved in a bulk job for processing. Your subscription, sender and available quota still apply. Creating a job does not confirm delivery.",
   "humanBulk.recipients": "Recipients (up to 1,000)",
-  "humanBulk.csvOnly": "SMS accepts CSV or Excel (.xlsx). Email and WhatsApp accept CSV only. Legacy .xls and macro-enabled files are not supported.",
+  "humanBulk.csvOnly":
+    "SMS accepts CSV or Excel (.xlsx). Email and WhatsApp accept CSV only. Legacy .xls and macro-enabled files are not supported.",
   "humanBulk.confirmNote":
     "Review the recipients and message content. If the result is unclear, check Bulk Jobs before trying again. Closing this form does not cancel a created job.",
   "humanBulk.create": "Create reviewed job",
@@ -154,7 +242,8 @@ export const en = {
   "humanBulk.csvFile": "Recipient file (SMS: XLSX or CSV; Email/WhatsApp: CSV)",
   "humanBulk.csvHint":
     "Up to 1,000 rows and 2 MB. SMS: recipient,body. Email: recipient,subject,body. WhatsApp: recipient,template_key,language,variables. Use an empty variable map for parameterless templates. The server validates CSV syntax and row outcomes when creating the job; invalid rows are counted without sending them.",
-  "humanBulk.csvError": "Choose a valid recipient file no larger than 2 MB. For SMS Excel files, use one worksheet with recipient and body headers and phone numbers stored as Text; formulas are not supported.",
+  "humanBulk.csvError":
+    "Choose a valid recipient file no larger than 2 MB. For SMS Excel files, use one worksheet with recipient and body headers and phone numbers stored as Text; formulas are not supported.",
   "humanSend.title": "Submit a message",
   "humanSend.subtitle": "Prepare a message for the selected application.",
   "humanSend.note":
@@ -226,8 +315,7 @@ export const en = {
     "I reviewed evidence that the provider did not accept this message and authorize quota release.",
   "unknownResolve.confirm": "Confirm resolution",
   "unknownResolve.saved": "Decision recorded.",
-  "unknownResolve.unchanged":
-    "This decision was already recorded. No further change was made.",
+  "unknownResolve.unchanged": "This decision was already recorded. No further change was made.",
   "unknownResolve.reservation": "Quota reservation",
   "unknownResolve.conflict":
     "This message was already resolved differently. Close this dialog and refresh history before reviewing again.",
@@ -498,7 +586,8 @@ export const en = {
   "liveAudit.uuidHint": "Reference number",
   "liveAudit.applyFilters": "Apply filters",
   "liveAudit.clearFilters": "Clear filters",
-  "liveAudit.invalidFilters": "Check the reference numbers and select only one user or credential filter.",
+  "liveAudit.invalidFilters":
+    "Check the reference numbers and select only one user or credential filter.",
   "liveAudit.loading": "Loading audit event…",
   "liveAudit.description":
     "Redacted administrative audit records, separate from message delivery history.",
@@ -543,6 +632,12 @@ export const en = {
   "liveUsage.groupHint":
     "These are alternative groupings of the same messages. Do not add the sections together or treat message counts as application quota units.",
   "liveUsage.quota": "Whole-month quota snapshots",
+  "liveUsage.currentQuota": "Current monthly quota",
+  "liveUsage.currentQuotaHint": "Effective plan limits and subscription overrides. This summary is independent of the historical date filter below. All quantities are message quota units.",
+  "liveUsage.currentPeriod": "Period start / resets at",
+  "liveUsage.usedHint": "Used includes committed usage and pending reservations. Remaining excludes both. Provider delivery counts are separate.",
+  "liveUsage.channelDisabled": "Not enabled by current entitlements",
+  "liveUsage.noCeiling": "No configured quota",
   "liveUsage.quotaHint":
     "Counters cover each full UTC month overlapping the selected window. They are not prorated. The tenant aggregate counter is independent of the channel counters and must not be added to them.",
   "registry.title": "WhatsApp template registry",
@@ -604,7 +699,8 @@ export const en = {
   "bulkHistory.through": "Created through (UTC)",
   "bulkHistory.applicationId": "Application ID (optional)",
   "bulkHistory.jobId": "Job ID (optional)",
-  "bulkHistory.invalidFilters": "Choose a date range of up to 31 days and check the selected filters.",
+  "bulkHistory.invalidFilters":
+    "Choose a date range of up to 31 days and check the selected filters.",
   "bulkHistory.accepted": "Accepted",
   "bulkHistory.itemCount": "Total rows",
   "bulkHistory.pendingCount": "Pending rows",
@@ -616,7 +712,8 @@ export const en = {
   "bulkHistory.failureCode": "Failure reason",
   "bulkHistory.messageId": "Message ID",
   "bulkHistory.resolved": "Rows resolved",
-  "bulkHistory.acceptedHint": "Accepted means accepted into message processing; it does not mean delivered.",
+  "bulkHistory.acceptedHint":
+    "Accepted means accepted into message processing; it does not mean delivered.",
   "bulkHistory.refresh": "Refresh",
   "bulkHistory.result.OPEN": "Processing is open",
   "bulkHistory.result.SUCCEEDED": "All rows accepted",
@@ -692,7 +789,8 @@ export const en = {
   "auth.portal": "Dolf Connect",
   "auth.welcomeBack": "Welcome back",
   "auth.welcome": "One connected platform for every message.",
-  "auth.description": "Sign in to manage communication, applications, and delivery operations across your organization.",
+  "auth.description":
+    "Sign in to manage communication, applications, and delivery operations across your organization.",
   "auth.panelTitle": "Sign in to Dolf Connect",
   "auth.signInTitle": "Sign in",
   "auth.signInDescription": "Enter your work credentials to continue.",
@@ -748,9 +846,11 @@ export const en = {
   "auth.hidePassword": "Hide password",
   "auth.rememberMe": "Remember me on this device",
   "auth.forgotPassword": "Forgot password?",
-  "auth.forgotPasswordInfo": "Password recovery is managed by your organization’s identity administrator.",
+  "auth.forgotPasswordInfo":
+    "Password recovery is managed by your organization’s identity administrator.",
   "auth.invalidCredentials": "The email or password is incorrect.",
-  "auth.unavailable": "Sign-in is unavailable in this build. Use the development mock session locally.",
+  "auth.unavailable":
+    "Sign-in is unavailable in this build. Use the development mock session locally.",
   "auth.signingIn": "Signing in…",
   "auth.signIn": "Sign in",
   "auth.developmentAccounts": "Development accounts",
@@ -802,12 +902,15 @@ export const en = {
   "common.copy": "Copy",
   "common.copied": "Copied to clipboard",
   "common.forbiddenTitle": "You don't have access to this area",
-  "common.forbiddenBody": "Your role does not include permission for this module. Contact your administrator if you believe this is incorrect.",
+  "common.forbiddenBody":
+    "Your role does not include permission for this module. Contact your administrator if you believe this is incorrect.",
   "common.backToDashboard": "Back to dashboard",
   "common.scheduledTitle": "Module scheduled for a later delivery stage",
-  "common.scheduledBody": "Navigation, permissions and routing for this module are in place. Screens will be delivered against the Dolf Connect API contract.",
+  "common.scheduledBody":
+    "Navigation, permissions and routing for this module are in place. Screens will be delivered against the Dolf Connect API contract.",
   "common.errorTitle": "Unable to load data",
-  "common.errorBody": "We could not complete the request. Try again, or contact support if the problem continues.",
+  "common.errorBody":
+    "We could not complete the request. Try again, or contact support if the problem continues.",
   "auth.restoring": "Restoring your session…",
   "common.retry": "Retry",
   "common.last14": "Last 14 days",
@@ -878,8 +981,10 @@ export const en = {
   "dash.title": "Dashboard",
   "dash.subtitle": "Operational overview · {scope}",
   "dash.unavailableTitle": "Operational data is not connected",
-  "dash.unavailableBody": "Sign-in succeeded, but dashboard metrics are not loaded from Dolf Connect Engine yet.",
-  "dash.unclassified": "{submitted} submitted and {unknown} unknown are included in the total only. They are not delivered, pending, or failed.",
+  "dash.unavailableBody":
+    "Sign-in succeeded, but dashboard metrics are not loaded from Dolf Connect Engine yet.",
+  "dash.unclassified":
+    "{submitted} submitted and {unknown} unknown are included in the total only. They are not delivered, pending, or failed.",
   "dash.quotaUnavailableTitle": "No monthly quota for this view",
   "dash.quotaUnavailableBody": "This dashboard scope has no single configured monthly limit.",
   "dash.sectionUnavailableTitle": "Not connected yet",
@@ -895,7 +1000,8 @@ export const en = {
   "dash.quota": "Usage & quota",
   "dash.quotaStatus": "Quota status",
   "dash.quotaUnconfiguredTitle": "Quota is not configured",
-  "dash.quotaUnconfiguredBody": "This tenant has no effective quota policy or numeric monthly limit.",
+  "dash.quotaUnconfiguredBody":
+    "This tenant has no effective quota policy or numeric monthly limit.",
   "dash.quotaPolicy.hardStop": "Hard stop",
   "dash.quotaPolicy.softCap": "Soft cap",
   "dash.quotaPolicySource.plan": "From the plan",
@@ -903,11 +1009,14 @@ export const en = {
   "dash.quotaOverageLabel": "Overage",
   "dash.quotaSeparate": "Channel usage is counted separately from the monthly total.",
   "dash.quota.hardStop.80": "80% of the monthly quota has been consumed.",
-  "dash.quota.hardStop.90": "90% of the monthly quota has been consumed. Sending may be restricted soon.",
+  "dash.quota.hardStop.90":
+    "90% of the monthly quota has been consumed. Sending may be restricted soon.",
   "dash.quota.hardStop.100": "Monthly quota exhausted. Sending can be stopped.",
   "dash.quota.softCap.80": "80% of the soft cap has been consumed.",
-  "dash.quota.softCap.90": "90% of the soft cap has been consumed. Further usage is tracked as overage.",
-  "dash.quota.softCap.100": "Usage is over the soft cap. Overage is tracked and this quota does not stop sending.",
+  "dash.quota.softCap.90":
+    "90% of the soft cap has been consumed. Further usage is tracked as overage.",
+  "dash.quota.softCap.100":
+    "Usage is over the soft cap. Overage is tracked and this quota does not stop sending.",
   "dash.unconfiguredTenants": "Unconfigured",
   "dash.used": "Used",
   "dash.limit": "Limit",
@@ -925,7 +1034,8 @@ export const en = {
   "dash.messages": "messages",
 
   "msg.historyTitle": "Message History",
-  "msg.historySubtitle": "Review messages accepted by Dolf Connect and inspect their available history.",
+  "msg.historySubtitle":
+    "Review messages accepted by Dolf Connect and inspect their available history.",
   "msg.searchPlaceholder": "Search by message ID, recipient or template",
   "msg.timeline": "Delivery timeline",
   "msg.metadata": "Metadata",
@@ -939,29 +1049,41 @@ export const en = {
   "msg.dateThrough": "Accepted through",
   "msg.dateRangeInvalid": "Choose a valid date range of no more than 31 days.",
   "msg.exportCurrentPage": "Export current page",
-  "msg.exportCurrentPageNote": "Exports the current page only. Recipient details and message content are excluded.",
+  "msg.exportCurrentPageNote":
+    "Exports the current page only. Recipient details and message content are excluded.",
   "msg.exportGuidanceTitle": "About exports",
-  "msg.exportGuidance": "Export the current page or matching results across all pages (up to 10,000 rows within 31 days). Recipient details and message content are excluded.",
+  "msg.exportGuidance":
+    "Export the current page or matching results across all pages (up to 10,000 rows within 31 days). Recipient details and message content are excluded.",
   "msg.acceptedAt": "Accepted at",
   "msg.queuedAt": "Queued at",
   "msg.applicationId": "Application ID",
   "msg.historyAttempts": "Attempts",
   "msg.recipient": "Recipient",
   "msg.templateId": "Template ID",
+  "msg.noTemplate": "No template linked",
+  "msg.templateUnavailable": "Template information unavailable",
+  "msg.templateVariables": "Stored template parameters",
+  "msg.contentExpired": "Message content is withheld because its retention period has ended.",
+  "msg.contentPurged": "Message content has been removed under the retention policy.",
+  "msg.contentMissing": "No message content was retained for this record. Template details, when available, are shown above.",
   "msg.contentUnavailable": "The message content is not included in the message-history response.",
   "msg.contentPurgedAt": "Content purged at {date}",
   "msg.lifecycle": "Acceptance lifecycle",
-  "msg.lifecycleNote": "Only acceptance and queue timestamps are provided here; provider delivery timestamps are not available.",
+  "msg.lifecycleNote":
+    "Only acceptance and queue timestamps are provided here; provider delivery timestamps are not available.",
   "msg.selectTenantTitle": "Select a tenant",
-  "send.selectTenantBody": "Choose a tenant in the platform tenant selector to send messages from its applications.",
+  "send.selectTenantBody":
+    "Choose a tenant in the platform tenant selector to send messages from its applications.",
   "bulkPreview.title": "Recipient preview",
   "bulkPreview.counts": "{total} recipients · {invalid} rows need attention",
   "bulkPreview.total": "{count} recipients",
-  "bulkPreview.localOnly": "Only recipients shown in this table are included. Final checks are performed when you submit the job.",
+  "bulkPreview.localOnly":
+    "Only recipients shown in this table are included. Final checks are performed when you submit the job.",
   "bulkPreview.add": "Add recipient",
   "bulkPreview.clear": "Clear list",
   "bulkPreview.paste": "Paste multiple recipients",
-  "bulkPreview.pasteHelp": "Paste one phone number or email address per line, then add the list to the table. Maximum 1,000 recipients.",
+  "bulkPreview.pasteHelp":
+    "Paste one phone number or email address per line, then add the list to the table. Maximum 1,000 recipients.",
   "bulkPreview.addList": "Add list",
   "bulkPreview.remove": "Remove recipient in row {row}",
   "bulkPreview.emailPlaceholder": "name@example.com",
@@ -972,21 +1094,28 @@ export const en = {
   "bulkPreview.column.template_key": "Template key",
   "bulkPreview.column.language": "Language",
   "bulkPreview.column.variables": "Variables",
-  "bulkPreview.error.recipient": "Enter a valid email address or an international phone number for this channel.",
+  "bulkPreview.error.recipient":
+    "Enter a valid email address or an international phone number for this channel.",
   "bulkPreview.error.content": "Message content is missing or exceeds the channel's length limit.",
   "bulkPreview.error.variables": "Variables must be a JSON object of up to 20 named string values.",
   "bulkPreview.error.template": "Use a valid template key and language, identical across all rows.",
-  "bulkPreview.error.shared": "Shared mode requires identical message content in every row. Use Personalized for different messages.",
-  "bulkPreview.issue.headers": "This CSV does not match the selected channel. Download the matching sample or use these column headers:",
-  "bulkPreview.issue.malformed": "The CSV is empty or malformed. Check quotes, commas and the number of fields in each row.",
+  "bulkPreview.error.shared":
+    "Shared mode requires identical message content in every row. Use Personalized for different messages.",
+  "bulkPreview.issue.headers":
+    "This CSV does not match the selected channel. Download the matching sample or use these column headers:",
+  "bulkPreview.issue.malformed":
+    "The CSV is empty or malformed. Check quotes, commas and the number of fields in each row.",
   "bulkPreview.issue.limit": "Use at most 1,000 recipients and a CSV file no larger than 2 MB.",
   "humanBulk.downloadSample": "Download sample",
   "humanBulk.sample.sms": "SMS Sample (.xlsx)",
   "humanBulk.sample.email": "Email Sample (.csv)",
   "humanBulk.sample.whatsapp": "WhatsApp Sample (.csv)",
-  "humanBulk.excelHelp": "SMS is available as an Excel workbook with phone numbers stored as text. Keep the recipient column formatted as Text to preserve every digit and the + prefix. Email and WhatsApp samples use CSV. Keep the English column headers unchanged.",
-  "humanBulk.sampleHelp": "Choose your channel's sample. Replace every placeholder before uploading and keep the English column headers unchanged. WhatsApp requires an approved template. Select the application and sender separately in the form.",
-  "msg.selectTenantBody": "Choose a tenant in the platform tenant selector to view its message history.",
+  "humanBulk.excelHelp":
+    "SMS is available as an Excel workbook with phone numbers stored as text. Keep the recipient column formatted as Text to preserve every digit and the + prefix. Email and WhatsApp samples use CSV. Keep the English column headers unchanged.",
+  "humanBulk.sampleHelp":
+    "Choose your channel's sample. Replace every placeholder before uploading and keep the English column headers unchanged. WhatsApp requires an approved template. Select the application and sender separately in the form.",
+  "msg.selectTenantBody":
+    "Choose a tenant in the platform tenant selector to view its message history.",
   "msg.attemptError.credential_unusable": "Submission authority unavailable",
   "msg.attemptError.tenant_not_operational": "Tenant not operational",
   "msg.attemptError.sender_unavailable": "Sender unavailable",
@@ -1046,7 +1175,8 @@ export const en = {
   "msg.failure.category.delivery_failure": "Delivery failure",
 
   "send.title": "Send Message",
-  "send.subtitle": "Send a single message through an enabled channel. Provider selection is handled by Dolf Connect.",
+  "send.subtitle":
+    "Send a single message through an enabled channel. Provider selection is handled by Dolf Connect.",
   "send.application": "Sending application",
   "send.recipient": "Recipient",
   "send.recipientHintPhone": "E.164 format, e.g. +9665XXXXXXXX",
@@ -1070,7 +1200,8 @@ export const en = {
   "send.senderRequired": "Select an eligible sender identity for this application and channel.",
   "send.selectAppFirst": "Select an application to load its eligible sender identities.",
   "send.noEligibleSender": "No verified and active sender identity is available for this channel.",
-  "send.senderEligibilityHint": "Only verified and active identities belonging to this tenant are available.",
+  "send.senderEligibilityHint":
+    "Only verified and active identities belonging to this tenant are available.",
   "send.templateVariables": "Template variables",
   "send.variablesRequired": "Complete every template variable.",
   "send.smsSegments": "{count} segments ({encoding})",
@@ -1083,7 +1214,8 @@ export const en = {
   "tpl.new": "New template",
   "tpl.preview": "Preview",
   "tpl.search": "Search templates",
-  "tpl.createDescription": "Create reusable channel content. WhatsApp templates start as drafts until submitted for provider approval.",
+  "tpl.createDescription":
+    "Create reusable channel content. WhatsApp templates start as drafts until submitted for provider approval.",
   "tpl.editDescription": "Edit a tenant template. WhatsApp changes return to provider approval.",
   "tpl.name": "Template name",
   "tpl.invalidName": "Use 2-64 letters, numbers, underscores, or hyphens.",
@@ -1097,7 +1229,8 @@ export const en = {
   "tpl.smsEstimate": "Estimated SMS segments: {count} ({encoding})",
   "tpl.gsm": "GSM-7",
   "tpl.unicode": "Unicode",
-  "tpl.whatsappPending": "WhatsApp templates start as drafts and require provider approval before they can be used for sending.",
+  "tpl.whatsappPending":
+    "WhatsApp templates start as drafts and require provider approval before they can be used for sending.",
   "tpl.category.Authentication": "Authentication",
   "tpl.category.Transactional": "Transactional",
   "tpl.category.Notification": "Notification",
@@ -1113,7 +1246,8 @@ export const en = {
   "tpl.noHistory": "No previous versions.",
   "tpl.createdAt": "Created",
   "tpl.updatedBy": "Updated by",
-  "tpl.versionUpdateNotice": "Saving changes creates a new Draft version; the previous Active or provider-approved version is retained in history.",
+  "tpl.versionUpdateNotice":
+    "Saving changes creates a new Draft version; the previous Active or provider-approved version is retained in history.",
   "tpl.malformedVariables": "Variable syntax is invalid. Use names like {{code}} or {{firstName}}.",
   "tpl.submitApproval": "Submit for approval",
   "tpl.submitError": "The template could not be submitted for approval.",
@@ -1126,7 +1260,8 @@ export const en = {
   "apps.title": "Applications",
   "apps.subtitle": "Systems integrated with Dolf Connect through secured APIs.",
   "apps.new": "Register application",
-  "apps.createDescription": "Register an integration and limit it to the channels and scopes it needs.",
+  "apps.createDescription":
+    "Register an integration and limit it to the channels and scopes it needs.",
   "apps.created": "Application registered.",
   "apps.nameExists": "An application with that name already exists.",
   "apps.nameRequired": "Enter an application name.",
@@ -1141,20 +1276,25 @@ export const en = {
   "apps.activateTitle": "Activate this application?",
   "apps.activateBody": "{name} will be available for permitted integrations again.",
   "apps.deactivateTitle": "Deactivate this application?",
-  "apps.deactivateBody": "Requests using {name} will no longer be accepted until it is reactivated.",
+  "apps.deactivateBody":
+    "Requests using {name} will no longer be accepted until it is reactivated.",
   "apps.credentials": "Credentials",
   "apps.apiCredentials": "API Credentials",
   "apps.createdAt": "Created at",
   "apps.createdBy": "Created by",
   "apps.tenantImmutable": "Tenant ownership cannot be changed after registration.",
   "apps.accessChangeTitle": "Confirm production access change",
-  "apps.accessChangeBody": "Removing enabled channels or API scopes from {name} may prevent the application and its credentials from performing those operations.",
+  "apps.accessChangeBody":
+    "Removing enabled channels or API scopes from {name} may prevent the application and its credentials from performing those operations.",
   "apps.lastActivity": "Last activity",
   "apps.channels": "Channels",
-  "apps.liveReadOnly": "Live application data is read-only in this phase. Create, edit, and status changes are unavailable.",
-  "apps.liveListLimit": "The live API supports pagination only. Search, status filtering, and sorting are unavailable.",
+  "apps.liveReadOnly":
+    "Live application data is read-only in this phase. Create, edit, and status changes are unavailable.",
+  "apps.liveListLimit":
+    "The live API supports pagination only. Search, status filtering, and sorting are unavailable.",
   "apps.selectTenantForApplications": "Select a tenant to view its applications.",
-  "apps.allTenantApplicationsNote": "Applications are shown across tenants. Each row identifies its tenant by name and ID.",
+  "apps.allTenantApplicationsNote":
+    "Applications are shown across tenants. Each row identifies its tenant by name and ID.",
   "apps.detailLoading": "Loading application details…",
   "apps.notFound": "This application was not found for the selected tenant.",
   "apps.notAvailable": "Not available from this API.",
@@ -1185,8 +1325,7 @@ export const en = {
   "liveCredentials.revokeReason": "Revocation reason",
   "liveCredentials.scopes": "Granted scopes",
   "liveCredentials.rate": "Rate limit per second (optional)",
-  "liveCredentials.rateHint":
-    "This setting does not override your subscription's sending limits.",
+  "liveCredentials.rateHint": "This setting does not override your subscription's sending limits.",
   "liveCredentials.detail": "Credential details",
   "liveCredentials.issue": "Issue credential",
   "liveCredentials.rotate": "Rotate credential",
@@ -1208,10 +1347,12 @@ export const en = {
   "liveCredentials.error.request":
     "The request failed. Its outcome may be uncertain; refresh the credential list before submitting again.",
   "cred.title": "API Credentials",
-  "cred.subtitle": "Machine identities used by applications to authenticate. Secrets are displayed once at creation.",
+  "cred.subtitle":
+    "Machine identities used by applications to authenticate. Secrets are displayed once at creation.",
   "cred.new": "Issue API Credential",
   "cred.search": "Search client ID, application, tenant or environment",
-  "cred.generateDescription": "Choose an active application and issue a credential limited to its approved scopes.",
+  "cred.generateDescription":
+    "Choose an active application and issue a credential limited to its approved scopes.",
   "cred.generate": "Generate credential",
   "cred.created": "Credential generated.",
   "cred.createError": "The credential could not be generated. Check the application and scopes.",
@@ -1219,17 +1360,20 @@ export const en = {
   "cred.noScopes": "This application has no allowed scopes. Update its configuration first.",
   "cred.rotate": "Rotate",
   "cred.rotateTitle": "Rotate credential?",
-  "cred.rotateBody": "The current credential for {id} will be revoked immediately. The new secret is shown once.",
+  "cred.rotateBody":
+    "The current credential for {id} will be revoked immediately. The new secret is shown once.",
   "cred.rotated": "Credential rotated.",
   "cred.secretTitle": "Credential secret",
-  "cred.secretWarning": "Copy this secret now. It will not be shown again after this dialog is closed.",
+  "cred.secretWarning":
+    "Copy this secret now. It will not be shown again after this dialog is closed.",
   "cred.copyClientId": "Copy Client ID",
   "cred.copy": "Copy secret",
   "cred.copyBoth": "Copy both",
   "cred.copied": "Secret copied",
   "cred.copiedId": "Client ID copied",
   "cred.copiedBoth": "Client ID and secret copied",
-  "cred.confirmSecretWarning": "I understand this one-time secret will only be shown once and must be stored securely.",
+  "cred.confirmSecretWarning":
+    "I understand this one-time secret will only be shown once and must be stored securely.",
   "cred.copyFailed": "Could not copy. Select and copy the secret before closing.",
   "cred.done": "Done",
   "cred.clientId": "Client ID",
@@ -1239,13 +1383,16 @@ export const en = {
   "cred.requestsPerSecond": "requests/second",
   "cred.revoke": "Revoke",
   "cred.revokeTitle": "Revoke credential?",
-  "cred.revokeBody": "Applications using {id} will immediately lose access. This action is recorded in the audit log and cannot be undone.",
+  "cred.revokeBody":
+    "Applications using {id} will immediately lose access. This action is recorded in the audit log and cannot be undone.",
   "cred.revoked": "Credential {id} revoked",
-  "cred.securityNote": "Provider credentials are managed by Dolftech and are never exposed in the client portal.",
+  "cred.securityNote":
+    "Provider credentials are managed by Dolftech and are never exposed in the client portal.",
 
   "usage.title": "Usage & Quotas",
   "usage.subtitle": "Usage and available allowance for the current billing period.",
-  "usage.platformSubtitle": "Customer usage and subscription allowance for the current billing period.",
+  "usage.platformSubtitle":
+    "Customer usage and subscription allowance for the current billing period.",
   "usage.totalUsage": "Total tenant consumption",
   "usage.at80": "At or above 80%",
   "usage.at90": "At or above 90%",
@@ -1328,7 +1475,8 @@ export const en = {
   "ten.channelAvailability": "Channel availability",
   "ten.subscriptionStartsAt": "Starts",
   "ten.subscriptionEndsAt": "Ends",
-  "ten.ignoredOverride": "An override exists but is ignored because the plan does not enable this channel.",
+  "ten.ignoredOverride":
+    "An override exists but is ignored because the plan does not enable this channel.",
   "ten.sourcePlan": "Plan",
   "ten.sourceSubscription": "Subscription",
   "ten.sourceChannel": "Channel override",
@@ -1349,7 +1497,8 @@ export const en = {
   "ten.edit": "Edit tenant",
   "ten.editDescription": "Update the tenant's organization profile.",
   "ten.profileSaved": "Tenant profile updated.",
-  "ten.profileRejected": "The tenant profile update request was rejected. Review the information and try again.",
+  "ten.profileRejected":
+    "The tenant profile update request was rejected. Review the information and try again.",
   "ten.profileForbidden": "You do not have permission to update this tenant profile.",
   "ten.profileNotFound": "This tenant could not be found. Refresh the tenant list and try again.",
   "ten.profileConflict": "The tenant profile update could not be applied because of a conflict.",
@@ -1361,18 +1510,22 @@ export const en = {
   "ten.suspended": "Tenant suspended.",
   "ten.reactivated": "Tenant reactivated.",
   "ten.suspendTitle": "Suspend this tenant?",
-  "ten.suspendBody": "{name}'s status will change from {current} to Suspended. This does not change the tenant's subscription.",
+  "ten.suspendBody":
+    "{name}'s status will change from {current} to Suspended. This does not change the tenant's subscription.",
   "ten.statusRejected": "The tenant status change request was rejected.",
   "ten.statusForbidden": "You do not have permission to change this tenant's status.",
   "ten.statusNotFound": "This tenant could not be found. Refresh the tenant list and try again.",
-  "ten.statusConflict": "The tenant status could not be changed because its current status conflicts with the request.",
+  "ten.statusConflict":
+    "The tenant status could not be changed because its current status conflicts with the request.",
   "ten.statusError": "The tenant status could not be changed. Please try again.",
-  "ten.onboardDescription": "Create a tenant organization, assign its subscription, and set initial access limits.",
+  "ten.onboardDescription":
+    "Create a tenant organization, assign its subscription, and set initial access limits.",
   "ten.organization": "Organization details",
   "ten.organizationName": "Organization name",
   "ten.code": "Tenant code",
   "ten.invalidCode": "Use 2-32 letters, numbers, or hyphens.",
-  "ten.invalidCodeLive": "Use 2-32 uppercase letters, numbers, or hyphens; start and end with a letter or number.",
+  "ten.invalidCodeLive":
+    "Use 2-32 uppercase letters, numbers, or hyphens; start and end with a letter or number.",
   "ten.required": "This field is required.",
   "ten.language": "Default language",
   "ten.timezone": "Time zone",
@@ -1388,11 +1541,16 @@ export const en = {
   "ten.tps": "Rate limit (messages per second)",
   "ten.invalidLimits": "Enter non-negative quotas and a rate limit greater than zero.",
   "ten.created": "Tenant onboarded.",
-  "ten.createdLive": "Tenant created. The primary administrator is recorded as invited; no email was sent and no plan was assigned.",
-  "ten.liveAdminNoInvitation": "This creates an administrator record. Their sign-in account must be set up separately; no invitation email is sent.",
-  "ten.liveCreateNoPlan": "Tenant creation does not assign a plan or subscription. Plan assignment is a separate operation.",
-  "ten.createConflict": "Tenant creation could not be completed because the request conflicts with current data. Review the submitted information and try again.",
-  "ten.createRejected": "The tenant or primary administrator information is invalid. Review the submitted details and try again.",
+  "ten.createdLive":
+    "Tenant created. The primary administrator is recorded as invited; no email was sent and no plan was assigned.",
+  "ten.liveAdminNoInvitation":
+    "This creates an administrator record. Their sign-in account must be set up separately; no invitation email is sent.",
+  "ten.liveCreateNoPlan":
+    "Tenant creation does not assign a plan or subscription. Plan assignment is a separate operation.",
+  "ten.createConflict":
+    "Tenant creation could not be completed because the request conflicts with current data. Review the submitted information and try again.",
+  "ten.createRejected":
+    "The tenant or primary administrator information is invalid. Review the submitted details and try again.",
   "ten.createForbidden": "You do not have permission to provision a tenant.",
   "ten.createError": "Tenant creation failed. Please try again.",
   "ten.codeExists": "That tenant code is already in use.",
@@ -1418,21 +1576,27 @@ export const en = {
   "ten.subscriptionStatus": "Subscription status",
   "ten.assignmentOpen": "Assign plan",
   "ten.assignmentTitle": "Assign a subscription plan?",
-  "ten.assignmentBody": "{tenant} will receive {plan} as a {status} subscription. Any existing open subscription will be cancelled and replaced; its overrides will not carry forward.",
+  "ten.assignmentBody":
+    "{tenant} will receive {plan} as a {status} subscription. Any existing open subscription will be cancelled and replaced; its overrides will not carry forward.",
   "ten.assignmentPlan": "Active plan",
   "ten.assignmentStatus": "New subscription status",
   "ten.assignmentSelectPlan": "Select an active plan",
   "ten.assignmentPlanRequired": "Select an active plan to continue.",
-  "ten.assignmentNoPlans": "No eligible active plans are available. The tenant's current plan cannot be assigned again.",
+  "ten.assignmentNoPlans":
+    "No eligible active plans are available. The tenant's current plan cannot be assigned again.",
   "ten.assignmentPlansLoading": "Loading active plans…",
   "ten.assignmentPlansError": "Active plans could not be loaded.",
   "ten.assignmentConfirm": "Confirm assignment",
   "ten.assignmentSuccess": "Subscription plan assigned successfully.",
-  "ten.assignmentRejected": "The plan assignment request was rejected. Check the selected plan and subscription status.",
+  "ten.assignmentRejected":
+    "The plan assignment request was rejected. Check the selected plan and subscription status.",
   "ten.assignmentForbidden": "You do not have permission to assign plans to tenants.",
-  "ten.assignmentNotFound": "The tenant or selected plan could not be found. Refresh the data and try again.",
-  "ten.assignmentConflict": "The request conflicts with the tenant's current subscription. Check its status and choose a different active plan.",
-  "ten.assignmentEntitlement": "The selected plan could not be assigned. Check its included channels and limits.",
+  "ten.assignmentNotFound":
+    "The tenant or selected plan could not be found. Refresh the data and try again.",
+  "ten.assignmentConflict":
+    "The request conflicts with the tenant's current subscription. Check its status and choose a different active plan.",
+  "ten.assignmentEntitlement":
+    "The selected plan could not be assigned. Check its included channels and limits.",
   "ten.assignmentError": "The plan could not be assigned. Please try again.",
   "ten.subscriptionHistory": "Subscription history",
   "ten.subscriptionHistoryLoading": "Loading subscription history…",
@@ -1481,14 +1645,17 @@ export const en = {
   "ten.noAdministrator": "No primary administrator is associated.",
   "ten.usageSummary": "Usage summary",
   "ten.reactivateTitle": "Reactivate this tenant?",
-  "ten.reactivateBody": "{name}'s status will change from {current} to {next}. This does not change the tenant's subscription.",
+  "ten.reactivateBody":
+    "{name}'s status will change from {current} to {next}. This does not change the tenant's subscription.",
   "ten.planChangeTitle": "Change subscription plan?",
-  "ten.planChangeBody": "Changing to {plan} will discard existing tenant-specific limit overrides and use the new plan defaults.",
+  "ten.planChangeBody":
+    "Changing to {plan} will discard existing tenant-specific limit overrides and use the new plan defaults.",
   "ten.clearOverridesChangePlan": "Clear overrides and change plan",
   "ten.saveError": "Tenant details could not be saved. Review the entered values.",
 
   "prov.title": "Gateways & Providers",
-  "prov.subtitle": "Upstream communication providers. Restricted to Dolftech platform administrators.",
+  "prov.subtitle":
+    "Upstream communication providers. Restricted to Dolftech platform administrators.",
   "prov.provider": "Provider",
   "prov.health": "Health",
   "prov.credentialsConfigured": "Credentials configured",
@@ -1496,7 +1663,8 @@ export const en = {
   "prov.credentialsNo": "No",
   "prov.lastTest": "Last connection test",
   "prov.adapterConfiguration": "Provider-specific configuration",
-  "prov.adapterConfigurationHint": "Mock adapter settings only. Final requirements will be defined with the provider integration.",
+  "prov.adapterConfigurationHint":
+    "Mock adapter settings only. Final requirements will be defined with the provider integration.",
   "prov.field.apiBaseUrl": "API base URL",
   "prov.field.apiKey": "API key",
   "prov.field.apiSecret": "API secret / token",
@@ -1534,10 +1702,12 @@ export const en = {
   "prov.restricted": "Restricted area — provider configuration is never visible to tenants.",
   "prov.add": "Add provider",
   "prov.edit": "Configure provider",
-  "prov.formDescription": "Configure a channel adapter. Provider secrets are never returned after submission.",
+  "prov.formDescription":
+    "Configure a channel adapter. Provider secrets are never returned after submission.",
   "prov.created": "Provider added.",
   "prov.saved": "Provider configuration updated.",
-  "prov.saveError": "Provider configuration could not be saved. Check the name and required fields.",
+  "prov.saveError":
+    "Provider configuration could not be saved. Check the name and required fields.",
   "prov.secret": "Provider secret",
   "prov.secretKeep": "Leave blank to keep the current secret",
   "prov.secretMasked": "The value is masked and is never shown again after saving.",
@@ -1560,7 +1730,8 @@ export const en = {
   "prov.enableTitle": "Enable this provider?",
   "prov.enableBody": "This connection becomes eligible for routing rules on its channel.",
   "prov.disableTitle": "Disable this provider?",
-  "prov.disableBody": "Traffic will no longer route through {name}. Review routing rules and failover coverage first.",
+  "prov.disableBody":
+    "Traffic will no longer route through {name}. Review routing rules and failover coverage first.",
   "prov.tab.overview": "Overview",
   "prov.tab.configuration": "Configuration",
   "prov.configurationSecretsOmitted": "Secret values are never displayed here.",
@@ -1569,7 +1740,8 @@ export const en = {
   "prov.usage.noRecord": "This provider does not expose {channel} usage or billing data.",
   "prov.usage.loading": "Loading provider usage and billing",
   "prov.usage.loadError": "Provider usage and billing could not be loaded.",
-  "prov.usage.source.sample": "Development sample data. Not live provider data and not synchronized.",
+  "prov.usage.source.sample":
+    "Development sample data. Not live provider data and not synchronized.",
   "prov.usage.source.providerApi": "Reported by provider API.",
   "prov.usage.source.internal": "Measured by Dolf Connect internal metering.",
   "prov.usage.source.manual": "Manually configured commercial data.",
@@ -1626,19 +1798,23 @@ export const en = {
   "health.noActiveRules": "No active routing rules use this provider.",
   "health.trafficProtected": "Primary unavailable. Traffic protected by failover → {provider}.",
   "health.trafficUnprotected": "Primary provider unavailable — no available failover configured.",
-  "health.trafficDegradedProtected": "Primary provider degraded. Failover is available → {provider}.",
+  "health.trafficDegradedProtected":
+    "Primary provider degraded. Failover is available → {provider}.",
   "health.trafficDegraded": "Primary provider degraded — no available failover configured.",
   "health.trafficPrimary": "Primary provider is handling traffic.",
   "health.trafficNoFailover": "Primary provider is healthy, but no failover is configured.",
-  "health.trafficFailoverUnavailable": "Traffic is unprotected: the configured failover is unavailable.",
+  "health.trafficFailoverUnavailable":
+    "Traffic is unprotected: the configured failover is unavailable.",
   "health.failoverUnavailable": "Configured failover is unavailable.",
   "health.failoverReady": "Available as a configured failover.",
   "health.viewProvider": "View provider",
 
   "si.title": "Sender Identities",
   "si.liveSubtitle": "Read sender identities for your tenant or the selected tenant.",
-  "si.liveReadOnlyNotice": "These statuses show recorded progress. Provider registration and approval must be confirmed separately.",
-  "si.liveSelectTenant": "Select a tenant to view its sender identities. All Tenants sender browsing is not supported.",
+  "si.liveReadOnlyNotice":
+    "These statuses show recorded progress. Provider registration and approval must be confirmed separately.",
+  "si.liveSelectTenant":
+    "Select a tenant to view its sender identities. All Tenants sender browsing is not supported.",
   "si.liveLoading": "Loading sender identities…",
   "si.loadError": "Could not load sender identities. Try again.",
   "si.detailUnavailable": "This sender identity is no longer available in the selected tenant.",
@@ -1671,7 +1847,8 @@ export const en = {
   "si.domainVerification": "Domain verification",
   "si.spf": "SPF status",
   "si.dkim": "DKIM status",
-  "si.formDescription": "Register sender identity details. Provider credentials and verification secrets are not collected here.",
+  "si.formDescription":
+    "Register sender identity details. Provider credentials and verification secrets are not collected here.",
   "si.selectTenant": "Select tenant",
   "si.selectIdentity": "Enter sender identity",
   "si.selectChannel": "Select channel",
@@ -1731,8 +1908,10 @@ export const en = {
   "si.action.reactivated": "Reactivated",
 
   "docs.reference": "Endpoint reference",
-  "docs.referenceBody": "Client reference includes machine integration and tenant portal APIs. Human routes require the operation's backend permission; visibility here grants no access. UUID path parameters must belong to the authenticated scope. Each list endpoint defines its own filters and pagination; use its DTO schema rather than assuming common fields.",
-  "docs.baseBody": "Paths below include /api/v1. Use the API origin supplied by your administrator; the portal API URL is configured through VITE_API_BASE_URL. This is a route index and integration guide, not a replacement for request/response schemas. Non-production backend Swagger schemas are available at /api/docs; that endpoint is disabled in production.",
+  "docs.referenceBody":
+    "Client reference includes machine integration and tenant portal APIs. Human routes require the operation's backend permission; visibility here grants no access. UUID path parameters must belong to the authenticated scope. Each list endpoint defines its own filters and pagination; use its DTO schema rather than assuming common fields.",
+  "docs.baseBody":
+    "Paths below include /api/v1. Use the API origin supplied by your administrator; the portal API URL is configured through VITE_API_BASE_URL. This is a route index and integration guide, not a replacement for request/response schemas. Non-production backend Swagger schemas are available at /api/docs; that endpoint is disabled in production.",
   "docs.clientReference": "Client APIs",
   "docs.fullReference": "All APIs (platform)",
   "docs.search": "Search by method, path or audience",
@@ -1745,20 +1924,25 @@ export const en = {
   "docs.audience.callback": "Provider callback ? gated verification",
   "docs.audience.public": "Public health",
   "docs.noResults": "No matching endpoints.",
-  "docs.platformBody": "Platform routes require platform access context and PlatformAdminister; named tenant routes explicitly identify the target tenant. A selected tenant in the portal does not turn a platform identity into a tenant identity. Provider callbacks are provider-facing and gated; listing them does not mean they are enabled.",
+  "docs.platformBody":
+    "Platform routes require platform access context and PlatformAdminister; named tenant routes explicitly identify the target tenant. A selected tenant in the portal does not turn a platform identity into a tenant identity. Provider callbacks are provider-facing and gated; listing them does not mean they are enabled.",
   "landing.eyebrow": "ONE PLATFORM. EVERY CONVERSATION.",
   "landing.title": "Connect your business to the moments that matter.",
-  "landing.description": "Bring SMS, Email and WhatsApp together in one workspace. Manage your applications, organize messaging and follow activity with Dolf Connect.",
+  "landing.description":
+    "Bring SMS, Email and WhatsApp together in one workspace. Manage your applications, organize messaging and follow activity with Dolf Connect.",
   "landing.explore": "Explore the platform",
   "landing.sms": "Reach customers with timely notifications and verification messages.",
   "landing.email": "Keep customers informed with transactional email.",
   "landing.whatsapp": "Build conversations with approved business messaging.",
   "landing.workspace": "A clearer workspace",
-  "landing.workspaceBody": "Manage applications, sender identities and message history in one place.",
+  "landing.workspaceBody":
+    "Manage applications, sender identities and message history in one place.",
   "landing.access": "Access with confidence",
-  "landing.accessBody": "Tenant-scoped access and role-based permissions keep teams focused on their work.",
+  "landing.accessBody":
+    "Tenant-scoped access and role-based permissions keep teams focused on their work.",
   "landing.integrate": "Built to connect",
-  "landing.integrateBody": "Connect your systems through application APIs and monitor asynchronous processing.",
+  "landing.integrateBody":
+    "Connect your systems through application APIs and monitor asynchronous processing.",
   "entity.copyFailed": "Could not copy the reference.",
   "entity.loading": "Loading name…",
   "entity.unavailable": "Name unavailable",
@@ -1770,24 +1954,34 @@ export const en = {
   "entity.record": "Record",
   "entity.application": "Application",
   "docs.title": "API Documentation",
-  "docs.subtitle": "API reference for application integrations and authenticated portal operations.",
+  "docs.subtitle":
+    "API reference for application integrations and authenticated portal operations.",
   "docs.auth": "Authentication",
-  "docs.authBody": "Machine integrations use HTTP Basic with an application clientId and secret over HTTPS, not a Keycloak Bearer token. POST /messages requires messages:send; GET /messages/:messageId requires messages:read. All /bulk-jobs operations currently require messages:send. Human management APIs use a Keycloak access token (Authorization: Bearer), with local tenant and application authorization enforced by the backend. Never put application secrets in browser code.",
+  "docs.authBody":
+    "Machine integrations use HTTP Basic with an application clientId and secret over HTTPS, not a Keycloak Bearer token. POST /messages requires messages:send; GET /messages/:messageId requires messages:read. All /bulk-jobs operations currently require messages:send. Human management APIs use a Keycloak access token (Authorization: Bearer), with local tenant and application authorization enforced by the backend. Never put application secrets in browser code.",
   "docs.send": "Sending messages",
-  "docs.sendBody": "Use channel SMS, EMAIL or WHATSAPP with senderId and recipient. Supply sms: { body }, email: { subject, body }, or whatsapp: { templateKey, language, variables? } for that channel. SMS body is 1?1600 characters; Email subject 1?200 and body 1?20000. The sender must be authorized and ready for the application. New acceptance returns 201; matching replay returns 200. Dispatch requires running, enabled workers and a valid provider binding. The example below is a placeholder, not an executable test.",
+  "docs.sendBody":
+    "Use channel SMS, EMAIL or WHATSAPP with senderId and recipient. Supply sms: { body }, email: { subject, body }, or whatsapp: { templateKey, language, variables? } for that channel. SMS body is 1?1600 characters; Email subject 1?200 and body 1?20000. The sender must be authorized and ready for the application. New acceptance returns 201; matching replay returns 200. Dispatch requires running, enabled workers and a valid provider binding. The example below is a placeholder, not an executable test.",
   "docs.bulk": "Bulk messaging",
-  "docs.bulkBody": "POST /bulk-jobs accepts channel, senderId, mode (SHARED or PERSONALIZED), items and channel-specific content. Maximum: 1000 rows and 2 MB. POST /bulk-jobs/csv takes raw text/csv or application/csv with channel, mode and senderId query parameters. SMS CSV columns: recipient,body; Email: recipient,subject,body; WhatsApp: recipient,template_key,language,variables (JSON). Read /bulk-jobs/:jobId, /items?page=1&pageSize=20 (maximum 100), or /results for redacted CSV. POST /:jobId/cancel cancels eligible rows, not already accepted messages. acceptedCount means message acceptance, never delivery.",
+  "docs.bulkBody":
+    "POST /bulk-jobs accepts channel, senderId, mode (SHARED or PERSONALIZED), items and channel-specific content. Maximum: 1000 rows and 2 MB. POST /bulk-jobs/csv takes raw text/csv or application/csv with channel, mode and senderId query parameters. SMS CSV columns: recipient,body; Email: recipient,subject,body; WhatsApp: recipient,template_key,language,variables (JSON). Read /bulk-jobs/:jobId, /items?page=1&pageSize=20 (maximum 100), or /results for redacted CSV. POST /:jobId/cancel cancels eligible rows, not already accepted messages. acceptedCount means message acceptance, never delivery.",
   "docs.templates": "Templates",
-  "docs.templatesBody": "SMS and Email use explicit content in machine submissions. Reusable content-template management and rendering use human Bearer routes in the reference. WhatsApp requires current provider-synchronized approval; local drafts or revision metadata do not grant approval. Parameterized WhatsApp revision integration is still incomplete; do not assume arbitrary variables can be dispatched.",
+  "docs.templatesBody":
+    "SMS and Email use explicit content in machine submissions. Reusable content-template management and rendering use human Bearer routes in the reference. WhatsApp requires current provider-synchronized approval; local drafts or revision metadata do not grant approval. Parameterized WhatsApp revision integration is still incomplete; do not assume arbitrary variables can be dispatched.",
   "docs.status": "Message status",
-  "docs.statusBody": "The machine message response contains id, status, channel, acceptedAt and nullable queuedAt. Current statuses: ACCEPTED, QUEUED, DISPATCHING, SUBMITTED, FAILED, UNKNOWN. SUBMITTED means provider handoff, not confirmed delivery. UNKNOWN needs reconciliation; avoid blind retries. Provider delivery callbacks and end-to-end customer webhook verification remain incomplete.",
+  "docs.statusBody":
+    "The machine message response contains id, status, channel, acceptedAt and nullable queuedAt. Current statuses: ACCEPTED, QUEUED, DISPATCHING, SUBMITTED, FAILED, UNKNOWN. SUBMITTED means provider handoff, not confirmed delivery. UNKNOWN needs reconciliation; avoid blind retries. Provider delivery callbacks and end-to-end customer webhook verification remain incomplete.",
   "docs.webhooks": "Webhooks",
-  "docs.webhooksBody": "Webhook management uses human Bearer routes under /applications/:applicationId/webhooks. Create/update with url, eventTypes and optional description; the signing secret is returned once on creation or rotation. Delivery history is paginated. A ping queues endpoint.ping; it does not prove network delivery. When delivery is enabled, verify X-Dolf-Signature as sha256=<hex HMAC-SHA256(secret, X-Dolf-Timestamp + \".\" + exact raw body)> using a constant-time comparison. Enforce a timestamp freshness policy and deduplicate X-Dolf-Event-Id. Delivery workers and provider callbacks are separate; complete delivery integration is still pending.",
+  "docs.webhooksBody":
+    'Webhook management uses human Bearer routes under /applications/:applicationId/webhooks. Create/update with url, eventTypes and optional description; the signing secret is returned once on creation or rotation. Delivery history is paginated. A ping queues endpoint.ping; it does not prove network delivery. When delivery is enabled, verify X-Dolf-Signature as sha256=<hex HMAC-SHA256(secret, X-Dolf-Timestamp + "." + exact raw body)> using a constant-time comparison. Enforce a timestamp freshness policy and deduplicate X-Dolf-Event-Id. Delivery workers and provider callbacks are separate; complete delivery integration is still pending.',
   "docs.errors": "Errors",
-  "docs.errorsBody": "The error envelope contains statusCode, error, message (string or array), path, timestamp and correlationId. Preserve correlationId for support. Handle 400 validation, 401 authentication, 403 permission, 404 scoped not-found and 409 conflicts. Respect gateway 429 responses. Do not retry authorization or validation failures unchanged.",
+  "docs.errorsBody":
+    "The error envelope contains statusCode, error, message (string or array), path, timestamp and correlationId. Preserve correlationId for support. Handle 400 validation, 401 authentication, 403 permission, 404 scoped not-found and 409 conflicts. Respect gateway 429 responses. Do not retry authorization or validation failures unchanged.",
   "docs.idempotency": "Idempotency",
-  "docs.idempotencyBody": "Message and bulk creation require Idempotency-Key: 16?128 characters from A?Z, a?z, 0?9, dot, underscore, colon or hyphen. Keys are application-scoped. Matching payload replay returns the original acceptance; different content with the same key conflicts. Keep the same key and payload after an ambiguous network failure. Do not generate a new key just to retry.",
-  "docs.illustrative": "Contract-shaped example with placeholder IDs; no request is sent from this page.",
+  "docs.idempotencyBody":
+    "Message and bulk creation require Idempotency-Key: 16?128 characters from A?Z, a?z, 0?9, dot, underscore, colon or hyphen. Keys are application-scoped. Matching payload replay returns the original acceptance; different content with the same key conflicts. Keep the same key and payload after an ambiguous network failure. Do not generate a new key just to retry.",
+  "docs.illustrative":
+    "Contract-shaped example with placeholder IDs; no request is sent from this page.",
 
   "common.save": "Save changes",
   "common.saved": "Changes saved",
@@ -1815,7 +2009,8 @@ export const en = {
   "bulk.newJob": "New bulk job",
   "bulk.jobName": "Job name",
   "bulk.file": "Recipient file (CSV)",
-  "bulk.fileHint": "One recipient per row in the first column. Additional columns map to template variables.",
+  "bulk.fileHint":
+    "One recipient per row in the first column. Additional columns map to template variables.",
   "bulk.downloadSample": "Download sample CSV",
   "bulk.valid": "{count} valid recipients",
   "bulk.invalid": "{count} invalid rows will be excluded",
@@ -1855,7 +2050,8 @@ export const en = {
   "bulk.next": "Next",
   "bulk.templateRequired": "Select an approved template",
   "bulk.senderIdentity": "Sender identity",
-  "bulk.noEligibleSender": "No verified, active sender identity is eligible for this application and channel.",
+  "bulk.noEligibleSender":
+    "No verified, active sender identity is eligible for this application and channel.",
   "bulk.tenantFilter": "Tenant filter",
   "bulk.searchJobs": "Search jobs, IDs, applications or tenants",
   "bulk.allTenants": "All tenants",
@@ -1892,9 +2088,11 @@ export const en = {
   "wh.created": "Endpoint added",
   "wh.invalidUrl": "Enter a valid HTTPS URL",
   "wh.selectEvents": "Select at least one event",
-  "wh.signing": "Verify the X-Dolf-Signature header (HMAC-SHA256) on every callback before processing it.",
+  "wh.signing":
+    "Verify the X-Dolf-Signature header (HMAC-SHA256) on every callback before processing it.",
   "wh.secretTitle": "Webhook signing secret",
-  "wh.secretWarning": "Copy this secret now. It will not be shown again after this dialog is closed.",
+  "wh.secretWarning":
+    "Copy this secret now. It will not be shown again after this dialog is closed.",
   "wh.secretCopied": "Signing secret copied",
   "wh.secretCopyFailed": "Could not copy. Select and copy the secret before closing.",
   "wh.copySecret": "Copy signing secret",
@@ -1916,7 +2114,8 @@ export const en = {
   "wh.disableBody": "Delivery events will stop being sent to {url} until it is re-enabled.",
   "wh.delete": "Delete endpoint",
   "wh.deleteTitle": "Delete this endpoint?",
-  "wh.deleteBody": "The endpoint {url} and its configuration will be removed. This cannot be undone.",
+  "wh.deleteBody":
+    "The endpoint {url} and its configuration will be removed. This cannot be undone.",
   "users.title": "Users",
   "users.subtitleAllTenants": "Manage portal users and role assignments across tenants.",
   "users.subtitleSelectedTenant": "Manage portal users and role assignments for this tenant.",
@@ -1932,8 +2131,10 @@ export const en = {
   "users.descending": "Descending",
   "users.switchToAscending": "Sort ascending",
   "users.switchToDescending": "Sort descending",
-  "users.sso": "Authentication is managed by the Dolf Connect identity service. Creating a local user record does not create an identity account.",
-  "users.createdLocal": "User record created for {email}. Their sign-in account must be set up separately; no invitation email was sent.",
+  "users.sso":
+    "Authentication is managed by the Dolf Connect identity service. Creating a local user record does not create an identity account.",
+  "users.createdLocal":
+    "User record created for {email}. Their sign-in account must be set up separately; no invitation email was sent.",
   "users.createError": "The local user record could not be created.",
   "users.duplicateEmail": "A user with this email already exists. Use a different email address.",
   "users.createRejected": "Check the user details and try again.",
@@ -1941,8 +2142,10 @@ export const en = {
   "users.notFound": "This user could not be found in the authorized tenant.",
   "users.requestError": "The user request could not be completed.",
   "users.requestRejected": "The user request was rejected. Check the supplied details.",
-  "users.transitionRejected": "This status change is not allowed for the user's current state or administrator assignment.",
-  "users.roleRejected": "This role change is not allowed for the user's current role or administrator assignment.",
+  "users.transitionRejected":
+    "This status change is not allowed for the user's current state or administrator assignment.",
+  "users.roleRejected":
+    "This role change is not allowed for the user's current role or administrator assignment.",
   "users.loadError": "The user directory could not be loaded.",
   "users.noUsers": "No users are available in this directory.",
   "users.unavailable": "Not available",
@@ -1976,9 +2179,11 @@ export const en = {
   "users.activateTitle": "Activate this user?",
   "users.activateBody": "{name} will be allowed to sign in if a linked identity account exists.",
   "users.suspendTitle": "Suspend this user?",
-  "users.suspendBody": "{name} will lose access until reactivated. Their history remains available for audit.",
+  "users.suspendBody":
+    "{name} will lose access until reactivated. Their history remains available for audit.",
   "users.disableTitle": "Disable this user?",
-  "users.disableBody": "{name} will lose access until reactivated. Their history remains available for audit.",
+  "users.disableBody":
+    "{name} will lose access until reactivated. Their history remains available for audit.",
   "users.statusActionError": "The status change could not be completed.",
   "users.on": "On",
   "users.off": "Off",
@@ -2016,7 +2221,8 @@ export const en = {
   "plans.monthly": "Monthly allowance",
   "plans.new": "New plan",
   "plans.createTitle": "Create plan",
-  "plans.createDescription": "Define the default channel limits, rate, policy and features for new subscriptions.",
+  "plans.createDescription":
+    "Define the default channel limits, rate, policy and features for new subscriptions.",
   "plans.details": "Plan details",
   "plans.code": "Plan code",
   "plans.name": "Plan name",
@@ -2040,7 +2246,8 @@ export const en = {
   "plans.limits": "Limits",
   "plans.noFeatures": "No additional features are enabled.",
   "plans.codeImmutable": "Plan code cannot be changed after creation.",
-  "plans.activeEditNotice": "Changes update the plan's defaults. Review existing customer subscriptions separately because they may have their own limits.",
+  "plans.activeEditNotice":
+    "Changes update the plan's defaults. Review existing customer subscriptions separately because they may have their own limits.",
   "plans.invalidTps": "Enter a positive whole number.",
   "plans.invalidQuota": "Enabled channel quotas must be non-negative whole numbers.",
   "plans.loadError": "Plans could not be loaded.",
@@ -2050,43 +2257,55 @@ export const en = {
   "plans.invalidNumber": "Enter non-negative quotas and a rate limit greater than zero.",
   "plans.codeExists": "That plan code is already in use.",
   "plans.validationError": "Check the plan code, name, status, limits and channel allowances.",
-  "plans.conflictError": "The plan could not be created because its status or details conflict with catalog rules.",
+  "plans.conflictError":
+    "The plan could not be created because its status or details conflict with catalog rules.",
   "plans.partialSaveTitle": "Plan save stopped before all changes were applied.",
   "plans.partialSaveFailureReason": "Reason: {message}",
   "plans.partialSaveFailed": "The update failed.",
-  "plans.partialSaveRefreshed": "The latest plan was fetched. Current server values below are from that refresh; a matching value alone does not prove the failed request was applied.",
-  "plans.partialSaveAcknowledged": "Values acknowledged by successful endpoint responses at response time:",
+  "plans.partialSaveRefreshed":
+    "The latest plan was fetched. Current server values below are from that refresh; a matching value alone does not prove the failed request was applied.",
+  "plans.partialSaveAcknowledged":
+    "Values acknowledged by successful endpoint responses at response time:",
   "plans.partialSaveCurrentValues": "Current server values for attempted fields:",
   "plans.partialSaveRemaining": "Differences still present between the server and your draft:",
   "plans.partialSaveServerValue": "server",
   "plans.partialSaveDraftValue": "draft",
-  "plans.partialSaveConflictReview": "Another administrator changed these fields. Review before continuing:",
+  "plans.partialSaveConflictReview":
+    "Another administrator changed these fields. Review before continuing:",
   "plans.partialSaveUseServer": "Use server values for conflicts",
   "plans.partialSaveKeepDraft": "Keep my draft values and retry",
   "plans.partialSaveArchived": "This plan is now archived and cannot be edited.",
-  "plans.partialSaveRefreshRequired": "The latest server state could not be confirmed. No retry is allowed until the plan is refreshed.",
+  "plans.partialSaveRefreshRequired":
+    "The latest server state could not be confirmed. No retry is allowed until the plan is refreshed.",
   "plans.partialSaveRefresh": "Refresh plan",
   "plans.partialSaveRefreshing": "Refreshing plan…",
-  "plans.partialRefreshFailed": "The plan could not be refreshed. Saving remains blocked; try refreshing again.",
-  "plans.catalogRefreshFailed": "The plan was saved or refreshed, but the catalog list could not be refreshed.",
+  "plans.partialRefreshFailed":
+    "The plan could not be refreshed. Saving remains blocked; try refreshing again.",
+  "plans.catalogRefreshFailed":
+    "The plan was saved or refreshed, but the catalog list could not be refreshed.",
   "plans.created": "Plan created.",
   "plans.saved": "Plan updated.",
   "plans.archived": "Plan archived.",
   "plans.statusChanged": "Plan status updated.",
   "plans.statusValidationError": "The requested plan status is invalid.",
-  "plans.statusConflict": "The plan status could not be changed because its current state or subscriptions conflict with this transition.",
-  "plans.statusError": "The plan status could not be changed. Try again after checking the latest plan status.",
-    "plans.editTitle": "Edit plan",
-    "plans.editDescription": "Update the defaults used for new subscriptions. Existing subscription values remain separate.",
-    "plans.activate": "Activate plan",
-    "plans.setInactive": "Set inactive",
-    "plans.archive": "Archive plan",
-    "plans.archiveTitle": "Archive this plan?",
-    "plans.archiveBody": "{name} will become read-only and unavailable for new subscriptions. Existing subscriptions and historical tenant data remain unchanged.",
-    "plans.statusTitle": "Change plan status?",
-    "plans.statusBody": "This changes availability for new subscriptions only. Existing subscriptions and their effective values remain unchanged.",
-    "status.inactive": "Inactive",
-    "status.archived": "Archived",
+  "plans.statusConflict":
+    "The plan status could not be changed because its current state or subscriptions conflict with this transition.",
+  "plans.statusError":
+    "The plan status could not be changed. Try again after checking the latest plan status.",
+  "plans.editTitle": "Edit plan",
+  "plans.editDescription":
+    "Update the defaults used for new subscriptions. Existing subscription values remain separate.",
+  "plans.activate": "Activate plan",
+  "plans.setInactive": "Set inactive",
+  "plans.archive": "Archive plan",
+  "plans.archiveTitle": "Archive this plan?",
+  "plans.archiveBody":
+    "{name} will become read-only and unavailable for new subscriptions. Existing subscriptions and historical tenant data remain unchanged.",
+  "plans.statusTitle": "Change plan status?",
+  "plans.statusBody":
+    "This changes availability for new subscriptions only. Existing subscriptions and their effective values remain unchanged.",
+  "status.inactive": "Inactive",
+  "status.archived": "Archived",
   "ch.title": "Channels",
   "ch.subtitle": "Platform-wide channel availability and provider coverage.",
   "ch.providers": "Providers",
@@ -2102,7 +2321,8 @@ export const en = {
   "ch.capability.smsSenderIds": "Registered sender ID configuration",
   "ch.capability.smsFailover": "Multiple-provider routing and failover",
   "ch.capability.whatsappApproval": "Provider-approved templates for business-initiated messages",
-  "ch.capability.whatsappStatus": "Normalized sent, delivered, failed, and read statuses where supported",
+  "ch.capability.whatsappStatus":
+    "Normalized sent, delivered, failed, and read statuses where supported",
   "ch.capability.whatsappFailover": "Provider-adapter routing configuration",
   "ch.capability.emailSubject": "Subject and body content with template variables",
   "ch.capability.emailEvents": "Delivery and failure event reporting",
@@ -2119,7 +2339,8 @@ export const en = {
   "rt.primary": "Primary provider",
   "rt.failover": "Failover",
   "rt.failoverTriggers": "Failover triggers",
-  "rt.failoverTriggersHint": "Move to the failover provider when one of these mock conditions occurs.",
+  "rt.failoverTriggersHint":
+    "Move to the failover provider when one of these mock conditions occurs.",
   "rt.failoverTriggersRequired": "Select at least one trigger when a failover provider is set.",
   "rt.trigger.connection_timeout": "Connection timeout",
   "rt.trigger.network_error": "Network / connection error",
@@ -2131,27 +2352,33 @@ export const en = {
   "rt.providerUnavailable": "Unavailable — correction required",
   "rt.providerWrongChannel": "Wrong channel — correction required",
   "rt.selectProvider": "Select provider connection",
-  "rt.staleProviderCorrection": "This rule references a disabled, unavailable, or wrong-channel connection. Choose an eligible provider or remove the failover before saving.",
+  "rt.staleProviderCorrection":
+    "This rule references a disabled, unavailable, or wrong-channel connection. Choose an eligible provider or remove the failover before saving.",
   "rt.retry": "Retry policy",
   "rt.retryAttempts": "Retry attempts",
   "rt.retryInterval": "Retry interval (seconds)",
   "rt.retrySummary": "Summary: {summary}",
   "rt.duplicateCondition": "A rule with this channel and condition already exists.",
   "rt.priorityConflict": "An overlapping rule already uses this priority. Choose another priority.",
-  "rt.noFailoverProvider": "No other enabled provider is available for this channel. Failover can remain None.",
+  "rt.noFailoverProvider":
+    "No other enabled provider is available for this channel. Failover can remain None.",
   "rt.add": "Create routing rule",
   "rt.edit": "Edit routing rule",
-  "rt.formDescription": "Select an enabled provider path and define its priority and retry behavior.",
+  "rt.formDescription":
+    "Select an enabled provider path and define its priority and retry behavior.",
   "rt.created": "Routing rule created.",
   "rt.saved": "Routing rule updated.",
   "rt.saveError": "The routing rule could not be saved. Check its fields and selected providers.",
-  "rt.required": "Complete the required fields, select an eligible primary provider, and check retry values.",
+  "rt.required":
+    "Complete the required fields, select an eligible primary provider, and check retry values.",
   "rt.enable": "Enable rule",
   "rt.disable": "Disable rule",
   "rt.statusChanged": "Routing rule status updated.",
   "rt.confirmTitle": "Confirm routing change",
-  "rt.confirmBody": "Saving this rule can change how messages are routed. Review the provider priority and failover path for {name}.",
-  "rt.confirmStatus": "Changing the status for {name} may affect delivery paths. Confirm the operational impact.",
+  "rt.confirmBody":
+    "Saving this rule can change how messages are routed. Review the provider priority and failover path for {name}.",
+  "rt.confirmStatus":
+    "Changing the status for {name} may affect delivery paths. Confirm the operational impact.",
   "apc.title": "API Clients",
   "apc.subtitle": "Machine clients registered across all tenants.",
   "apc.rateLimit": "Rate limit",
@@ -2166,21 +2393,27 @@ export const en = {
   "cfg.subtitle": "Platform-wide operating parameters.",
   "cfg.key": "Parameter",
   "cfg.readOnly": "Read-only view. Changes go through the platform change-management process.",
-  "cfg.manageNotice": "Edit existing parameters by group. Sensitive operating values require confirmation.",
+  "cfg.manageNotice":
+    "Edit existing parameters by group. Sensitive operating values require confirmation.",
   "cfg.editTitle": "Edit configuration parameter",
   "cfg.saved": "Configuration updated.",
   "cfg.saveError": "The configuration value could not be saved.",
   "cfg.required": "Enter a value before saving.",
   "cfg.confirmTitle": "Confirm sensitive configuration change",
-  "cfg.confirmBody": "Changing {key} may affect delivery, security, or platform limits. Confirm the operational impact.",
+  "cfg.confirmBody":
+    "Changing {key} may affect delivery, security, or platform limits. Confirm the operational impact.",
   "mode.mockBanner": "Simulated portal. This session is not connected to Dolf Connect Engine.",
-  "mode.liveBanner": "Live sign-in. Business screens are not connected to the engine in this phase.",
+  "mode.liveBanner":
+    "Live sign-in. Business screens are not connected to the engine in this phase.",
   "auth.organizationSignIn": "Continue to organization sign-in",
-  "auth.organizationSignInDescription": "Dolf Connect sends you to your organization’s identity provider. This portal does not collect your password.",
-  "auth.profileForbidden": "Sign-in succeeded, but this account is not authorized for the portal. Ask an administrator to check the Dolf Connect user profile.",
+  "auth.organizationSignInDescription":
+    "Dolf Connect sends you to your organization’s identity provider. This portal does not collect your password.",
+  "auth.profileForbidden":
+    "Sign-in succeeded, but this account is not authorized for the portal. Ask an administrator to check the Dolf Connect user profile.",
   "auth.profileError": "The portal could not load your profile. No access was granted.",
   "auth.configurationTitle": "Live sign-in is not configured",
-  "auth.configurationBody": "Required public settings are missing or invalid. Mock data is not being used.",
+  "auth.configurationBody":
+    "Required public settings are missing or invalid. Mock data is not being used.",
   "auth.callbackWorking": "Completing organization sign-in…",
   "livePolicy.description": "Subscription access, channel availability and account preferences.",
   "livePolicy.ownership": "Policy ownership and administration",
@@ -2207,7 +2440,7 @@ export const en = {
   "emailEvidence.confirm":
     "Confirm that you reviewed the referenced domain, SPF and DKIM evidence and that the selected states accurately reflect it. Verified states can permit future binding and email handoff checks. Downgrading a state can prevent future handoffs but cannot cancel an in-flight provider request.",
   "emailEvidence.referenceHint":
-    "Use ticket:CASE-123, change:CASE-123 or review:CASE-123. Reference identifier: 1–64 letters, digits, dots, underscores or hyphens. Do not paste URLs, secrets or evidence payloads.",
+    "Use a real reviewed reference, e.g. EMAIL-READINESS-2026-10-27. Optional ticket:, change: or review: prefix; identifier 1–64 ASCII letters/digits/dots/underscores/hyphens, starting with a letter or digit. Existence is not checked. No URLs, secrets or evidence content.",
   "emailEvidence.conflict":
     "Readiness or evidence changed. Close this review, refresh, and review the current state before recording again.",
   "emailEvidence.error":
@@ -2240,7 +2473,8 @@ export const en = {
   "livePolicy.selectTenant": "Select an organization to view its channels and limits.",
   "livePolicy.operational":
     "Tenant and subscription checks permit operations; channel and message checks still apply.",
-  "livePolicy.blocked": "Some actions are unavailable. Review the reasons below or contact your administrator.",
+  "livePolicy.blocked":
+    "Some actions are unavailable. Review the reasons below or contact your administrator.",
   "pilotState.title": "SMS pilot submission gate",
   "pilotState.description":
     "This setting controls permission for approved SMS tests. An open setting does not mean processing is running or a message was sent. Closing it cannot recall a test already started.",

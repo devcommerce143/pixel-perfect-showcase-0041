@@ -3,6 +3,8 @@
  * No network calls and no default to mock after a live failure.
  */
 
+import { productionConfigIssues } from "./production.ts";
+
 export type ApiMode = "mock" | "live";
 
 export interface PortalEnvInput {
@@ -33,6 +35,10 @@ export type PortalConfig =
 const ABSOLUTE_HTTP = /^https?:\/\/[^\s]+$/i;
 
 export function resolvePortalConfig(env: PortalEnvInput): PortalConfig {
+  if (env.PROD) {
+    const issues = productionConfigIssues({ ...env });
+    if (issues.length) return { ok: false, mode: "live", issues };
+  }
   const requested = env.VITE_API_MODE?.trim().toLowerCase() ?? "";
 
   if (env.PROD) {

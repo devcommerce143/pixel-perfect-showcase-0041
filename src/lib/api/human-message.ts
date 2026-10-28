@@ -11,6 +11,7 @@ import { mapMessageHistoryStatus } from "./http/message-history-mapper.ts";
 import { TEMPLATE_REGISTRY_KEY, TEMPLATE_REGISTRY_LANGUAGE } from "./template-registry.ts";
 
 interface Common {
+  contentTemplateId?: string;
   senderId: string;
   recipient: string;
 }
@@ -68,7 +69,18 @@ export function humanMessageBody(input: HumanMessageInput) {
       : !/^\+[1-9]\d{7,14}$/.test(recipient)
   )
     fail();
-  const common = { senderId: input.senderId, recipient };
+  if (
+    input.contentTemplateId !== undefined &&
+    (!isTenantUuid(input.contentTemplateId) || input.channel === "whatsapp")
+  )
+    fail();
+  const common = {
+    senderId: input.senderId,
+    recipient,
+    ...(input.contentTemplateId
+      ? { contentTemplateId: input.contentTemplateId.toLowerCase() }
+      : {}),
+  };
   if (input.channel === "sms")
     return { ...common, channel: "SMS", sms: { body: text(input.sms.body, 1600) } };
   if (input.channel === "email")

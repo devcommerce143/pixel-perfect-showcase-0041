@@ -80,8 +80,22 @@ export function MessageHistoryDetailLive({
                 <Field label={t("msg.senderIdentity")} mono>
                   <EntityName kind="sender" id={message.senderIdentityId} tenantId={tenantId} />
                 </Field>
-                <Field label={t("msg.templateId")} mono>
-                  <EntityName kind="template" id={message.templateId} tenantId={tenantId} />
+                <Field label={t("common.template")} mono>
+                  {(message.templateId ?? message.contentTemplateId) == null ? (
+                    t("msg.noTemplate")
+                  ) : message.template ? (
+                    <span>
+                      {message.template.key} ({message.template.language})
+                      {message.template.version !== undefined && (
+                        <>
+                          {" "}
+                          ? {t("content.version")} {message.template.version}
+                        </>
+                      )}
+                    </span>
+                  ) : (
+                    t("msg.templateUnavailable")
+                  )}
                 </Field>
                 <Field label={t("msg.acceptedAt")}>
                   {formatDateTime(message.acceptedAt, locale)}
@@ -95,9 +109,41 @@ export function MessageHistoryDetailLive({
               </dl>
             </Section>
             <Section title={t("send.body")}>
-              <p className="px-4 py-3 text-body text-muted-foreground">
-                {t("msg.contentUnavailable")}
-              </p>
+              {message.content?.state === "available" ? (
+                <div className="space-y-3 px-4 py-3 text-body">
+                  {message.content.subject !== null && (
+                    <div>
+                      <h3 className="font-medium">{t("send.subject")}</h3>
+                      <p dir="auto">{message.content.subject}</p>
+                    </div>
+                  )}
+                  {message.content.body !== null && (
+                    <p dir="auto" className="whitespace-pre-wrap break-words">
+                      {message.content.body}
+                    </p>
+                  )}
+                  {message.content.templateVariables !== null && (
+                    <div>
+                      <h3 className="font-medium">{t("msg.templateVariables")}</h3>
+                      <pre dir="auto" className="whitespace-pre-wrap break-words">
+                        {message.content.templateVariables}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="px-4 py-3 text-body text-muted-foreground">
+                  {t(
+                    message.content?.state === "expired"
+                      ? "msg.contentExpired"
+                      : message.content?.state === "purged"
+                        ? "msg.contentPurged"
+                        : message.content
+                          ? "msg.contentMissing"
+                          : "msg.contentUnavailable",
+                  )}
+                </p>
+              )}
               {message.contentPurgedAt && (
                 <p className="border-t px-4 py-2 text-caption text-muted-foreground">
                   {t("msg.contentPurgedAt", {

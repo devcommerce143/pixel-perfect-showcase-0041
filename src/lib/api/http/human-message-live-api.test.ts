@@ -292,3 +292,14 @@ describe("human message acceptance with no providers or persistence", () => {
     assert.doesNotMatch(ui, /\bfetch\(|api\.|localStorage|sessionStorage/);
   });
 });
+
+it("preserves the selected reusable version ID in ordinary Email submission", () => {
+  const r = humanMessageBody({
+    channel: "email",
+    senderId: "11111111-1111-4111-8111-111111111111",
+    recipient: "synthetic@example.test",
+    contentTemplateId: "22222222-2222-4222-8222-222222222222",
+    email: { subject: "synthetic", body: "synthetic" },
+  });
+  assert.equal(r.contentTemplateId, "22222222-2222-4222-8222-222222222222");
+});

@@ -40,6 +40,28 @@ it("renders real notification UI states safely in English and Arabic without net
       }: Record<string, unknown>) =>
         React.createElement("button", props, children as React.ReactNode);
       const load = (name: string, from = root): Record<string, unknown> => {
+        if (name === "@tanstack/react-router")
+          return {
+            Link: ({
+              children,
+              to,
+              search,
+            }: {
+              children: React.ReactNode;
+              to: string;
+              search: { senderId: string; tenantId: string };
+            }) =>
+              React.createElement(
+                "a",
+                { href: `${to}?senderId=${search.senderId}&tenantId=${search.tenantId}` },
+                children,
+              ),
+          };
+        if (name === "./EntityName")
+          return {
+            EntityName: ({ kind }: { kind: string }) =>
+              React.createElement("span", null, kind === "tenant" ? "Test tenant" : "Test sender"),
+          };
         if (name === "@/lib/i18n/i18n")
           return {
             useI18n: () => ({
@@ -88,6 +110,13 @@ it("renders real notification UI states safely in English and Arabic without net
                       {
                         id: "hidden-id",
                         kind,
+                        context: kind.startsWith("SENDER_")
+                          ? {
+                              senderId: "11111111-1111-4111-8111-111111111111",
+                              targetTenantId: "22222222-2222-4222-8222-222222222222",
+                              channel: "SMS",
+                            }
+                          : {},
                         createdAt: "2026-10-25T00:00:00.000Z",
                         readAt: state === "read" ? "2026-10-25T00:01:00.000Z" : null,
                       },
@@ -159,6 +188,16 @@ it("renders real notification UI states safely in English and Arabic without net
         assert.ok(!action.includes('disabled=""'));
         assert.ok(html.includes("line-clamp-2"));
         assert.ok(html.includes(text(dictionary[notificationCopy[kind].body])));
+        if (kind.startsWith("SENDER_")) {
+          assert.ok(
+            html.includes(
+              "/sender-identities?senderId=11111111-1111-4111-8111-111111111111&amp;tenantId=22222222-2222-4222-8222-222222222222",
+            ),
+          );
+          assert.ok(html.includes(text(dictionary["notifications.viewSender"])));
+          assert.ok(html.includes("Test tenant"));
+          assert.ok(html.includes("Test sender"));
+        }
       }
     }
   }

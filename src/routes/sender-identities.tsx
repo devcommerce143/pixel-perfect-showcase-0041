@@ -36,8 +36,15 @@ import { formatDateTime } from "@/lib/format";
 import { useI18n, type MessageKey } from "@/lib/i18n/i18n";
 import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { pageHead } from "@/lib/seo";
+import { isTenantUuid } from "@/lib/api/http/tenant-mapper";
 
 export const Route = createFileRoute("/sender-identities")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    senderId:
+      typeof search["senderId"] === "string" && isTenantUuid(search["senderId"])
+        ? search["senderId"]
+        : undefined,
+  }),
   head: () => pageHead("Sender Identities", "Tenant sender identities and verification lifecycle."),
   component: () => <RequirePermission permission="senderIdentities.view"><SenderIdentities /></RequirePermission>,
 });
@@ -356,6 +363,8 @@ function MockSenderIdentities() {
 
 function LiveSenderIdentities() {
   const { t, locale, dir } = useI18n();
+  const { senderId: linkedSenderId, tenantId: linkedTenantId } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { user } = useSession();
   const { tenantId: selectedTenantId } = useGlobalTenantContext();
   const actor: SenderIdentityActor = {
@@ -435,8 +444,19 @@ function LiveSenderIdentities() {
 
   useEffect(() => {
     setPage(1);
-    setSelected(null);
-  }, [scopeKey]);
+    const matchingTenant = isPlatform
+      ? !!requestTenantId
+      : !!actor.tenantId && (!linkedTenantId || linkedTenantId === actor.tenantId);
+    setSelected(
+      linkedSenderId && matchingTenant
+        ? {
+            id: linkedSenderId,
+            tenantId: isPlatform ? requestTenantId! : actor.tenantId!,
+            scope: scopeKey,
+          }
+        : null,
+    );
+  }, [scopeKey, linkedSenderId, linkedTenantId, isPlatform, requestTenantId, actor.tenantId]);
 
   const changeFilter = <T extends string>(
     setter: (value: T) => void,
@@ -444,6 +464,11 @@ function LiveSenderIdentities() {
   ) => {
     setter(value);
     setPage(1);
+    if (linkedSenderId)
+      void navigate({
+        search: (previous) => ({ ...previous, senderId: undefined }),
+        replace: true,
+      });
   };
   const columns: Column<SenderIdentityRead | PlatformSenderIdentityRead>[] = [
     {
@@ -647,14 +672,21 @@ function LiveSenderIdentities() {
       <Sheet
         open={!!selectedIdentity}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) {
+            setSelected(null);
+            if (linkedSenderId)
+              void navigate({
+                search: (previous) => ({ ...previous, senderId: undefined }),
+                replace: true,
+              });
+          }
         }}
       >
         <SheetContent dir={dir} className="overflow-y-auto sm:max-w-xl">
           <SheetHeader>
             <SheetTitle>{t("si.identity")}</SheetTitle>
             <SheetDescription>
-              {selectedIdentity?.id ?? ""}
+              {detailQuery.data?.displayName ?? t("si.identity")}
             </SheetDescription>
           </SheetHeader>
           {selectedIdentity &&

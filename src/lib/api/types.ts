@@ -125,7 +125,16 @@ export interface MessageHistoryAttempt {
   finishedAt: string | null;
 }
 
+export interface MessageHistoryContent {
+  state: 'available' | 'purged' | 'expired' | 'unavailable';
+  body: string | null;
+  subject: string | null;
+  templateVariables: string | null;
+}
 export interface MessageHistoryDetail extends MessageHistoryItem {
+  contentTemplateId?: string | null;
+  template?: { key: string; language: string; version?: number } | null;
+  content?: MessageHistoryContent;
   senderIdentityId: string;
   templateId: string | null;
   correlationId: string | null;

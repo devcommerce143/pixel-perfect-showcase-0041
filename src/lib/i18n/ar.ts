@@ -1,6 +1,74 @@
 import type { MessageKey } from "./en";
 
 export const ar: Record<MessageKey, string> = {
+  "deliveryControl.email": "البريد الإلكتروني",
+  "deliveryControl.whatsapp": "واتساب",
+  "deliveryControl.title": "إرسال {channel}",
+  "deliveryControl.description":
+    "التحكم في عمليات الإرسال الجديدة عبر مزوّد {channel} على مستوى المنصة. تُدار عمليات تشغيل المعالجة وجاهزية القناة بشكل منفصل.",
+  "deliveryControl.enabled": "إرسال {channel} مفعّل",
+  "deliveryControl.disabled": "إرسال {channel} معطّل",
+  "deliveryControl.enabledHint":
+    "قد تُرسل الرسائل المؤهلة في قائمة الانتظار عند توفر عملية معالجة للإرسال. تظل الصلاحيات وجاهزية المرسل والاشتراك وحدود الإرسال سارية. إرسال الطلب لا يؤكد تسليم الرسالة.",
+  "deliveryControl.disabledHint":
+    "تبقى الرسائل في قائمة الانتظار. لا يُصرّح بعمليات إرسال جديدة عبر مزوّد {channel}.",
+  "deliveryControl.changed": "آخر تغيير: {time} · {name}",
+  "deliveryControl.initial": "الحالة الأولية المعطّلة",
+  "deliveryControl.enable": "تفعيل إرسال {channel}",
+  "deliveryControl.disable": "تعطيل إرسال {channel}",
+  "deliveryControl.enableWarning":
+    "هل تريد تفعيل الإرسال الفعلي عبر {channel}؟ قد تُعالج الرسائل المؤهلة في قائمة الانتظار ويُستهلك رصيد المزوّد عند جاهزية المعالجة وإعدادات القناة. تبقى الصلاحيات والحدود الحالية سارية.",
+  "deliveryControl.disableWarning":
+    "هل تريد تعطيل عمليات الإرسال الجديدة عبر {channel}؟ ستبقى الرسائل في قائمة الانتظار. قد تكتمل الطلبات التي سبق التصريح بها، ولا يمكن سحبها.",
+  "deliveryControl.saved": "تم حفظ إعداد إرسال {channel}.",
+  "deliveryControl.saving": "جارٍ الحفظ…",
+  "smsAuto.title": "المعالجة الآلية للرسائل النصية للعميل",
+  "smsAuto.enabled": "مفعّلة",
+  "smsAuto.paused": "متوقفة مؤقتًا",
+  "smsAuto.disabled": "معطّلة",
+  "smsAuto.missing": "لم تتم التهيئة",
+  "smsAuto.missingHint": "تبقى معالجة الرسائل معلّقة حتى يهيئ مسؤول المنصة سياسة هذا العميل.",
+  "smsAuto.guidance":
+    "يبقى مفتاح الإرسال العام واعتماد المرسل والاشتراك والحصة وحدود الإرسال سارية. توفر المزوّد مستقل، وتبقى صلاحية الإرسال الجماعي منفصلة.",
+  "smsAuto.continuous": "معالجة مستمرة للرسائل الفردية",
+  "smsAuto.noExpiry": "دون انتهاء تشغيلي",
+  "smsAuto.capValue": "سقف عمليات الإرسال لكل تطبيق ومرسل: {count}",
+  "smsAuto.bulkOff": "الإرسال الجماعي غير مصرّح به",
+  "smsAuto.bulkOn": "الإرسال الجماعي مصرّح به بشكل منفصل",
+  "smsAuto.cap": "سقف الإرسال (١–٢٠)؛ اتركه فارغًا للمعالجة المستمرة",
+  "smsAuto.expiry": "تاريخ الانتهاء بصيغة ISO؛ اتركه فارغًا لعدم تحديد انتهاء تشغيلي",
+  "smsAuto.invalid":
+    "أدخل سقفًا من ١ إلى ٢٠ وتاريخ انتهاء مستقبليًا بصيغة ISO خلال سنة، أو اتركهما فارغين.",
+  "smsAuto.confirm":
+    "هل تريد تفعيل معالجة الرسائل لهذا العميل؟ قد تُعالج الرسائل المعلّقة المؤهلة عندما يكون الإرسال العام مفعّلًا. لا يُعاد ضبط عدد الإرسالات السابقة ولا تُتجاوز قيود المزوّد أو اعتماد المرسل أو الحصص أو الفحوص الأخرى.",
+  "smsAuto.hold":
+    "هل تريد تعليق عمليات الإرسال الجديدة لهذا العميل؟ قد تكتمل الطلبات المصرّح بها مسبقًا. تُحفظ الرسائل المعلّقة.",
+  "smsAuto.saved": "تم حفظ سياسة المعالجة الآلية للرسائل النصية.",
+  "smsControl.title": "إرسال الرسائل النصية",
+  "smsControl.description":
+    "التحكم في إرسال الرسائل النصية الفعلية إلى المزودين على مستوى المنصة. تستمر العمليات الخلفية في العمل، مع تطبيق سياسات العملاء واعتماد المرسل وحدود الإرسال.",
+  "smsControl.enabled": "إرسال الرسائل النصية مفعّل",
+  "smsControl.disabled": "إرسال الرسائل النصية معطّل",
+  "smsControl.enabledHint":
+    "قد تُرسل الرسائل المصرّح بها إلى المزود. قبول المزود للرسالة لا يؤكد وصولها.",
+  "smsControl.disabledHint": "تبقى الرسائل في قائمة الانتظار، ولا يُصرّح بعمليات إرسال جديدة.",
+  "smsControl.changed": "آخر تغيير: {time} · {name}",
+  "smsControl.initial": "الحالة الأولية المعطّلة",
+  "smsControl.enable": "تفعيل إرسال الرسائل النصية",
+  "smsControl.disable": "تعطيل إرسال الرسائل النصية",
+  "smsControl.enableWarning":
+    "هل تريد تفعيل إرسال الرسائل النصية الفعلية؟ قد تُعالج الرسائل المؤهلة في قائمة الانتظار ويُستهلك رصيد المزود. تبقى سياسات العملاء والحدود الحالية سارية.",
+  "smsControl.disableWarning":
+    "هل تريد تعطيل عمليات الإرسال الجديدة؟ ستبقى الرسائل في قائمة الانتظار. قد تكتمل الطلبات التي سبق التصريح بها، ولا يمكن سحبها.",
+  "smsControl.saved": "تم حفظ إعداد إرسال الرسائل النصية.",
+  "smsControl.saving": "جارٍ الحفظ…",
+  "notifications.senderRequestedTitle": "طلب التحقق من هوية مرسل",
+  "notifications.senderRequestedBody":
+    "قدّم مسؤول مؤسسة هوية مرسل للتحقق منها. افتح هوية المرسل لمراجعة الطلب.",
+  "notifications.senderSuspendedTitle": "تم تعليق هوية المرسل",
+  "notifications.senderSuspendedBody":
+    "هوية المرسل معلّقة ولا يمكن استخدامها لإرسال الرسائل. راجع حالتها وتواصل مع المسؤول.",
+  "notifications.viewSender": "عرض هوية المرسل",
   "notifications.quotaTitle": "تنبيه بشأن حدود الاستهلاك",
   "notifications.quotaBody": "راجع الاستهلاك وحدود الإرسال مع المسؤول.",
   "notifications.restrictedTitle": "الإرسال مقيّد",
@@ -16,8 +84,9 @@ export const ar: Record<MessageKey, string> = {
   "notifications.channelBody": "راجع القنوات المتاحة لمؤسستك قبل الإرسال.",
   "notifications.senderApprovedTitle": "تم اعتماد هوية المرسل",
   "notifications.senderApprovedBody": "راجع حالة المرسل وإعداداته قبل الإرسال.",
-  "notifications.senderRejectedTitle": "هوية المرسل تحتاج إلى مراجعة",
-  "notifications.senderRejectedBody": "راجع حالة اعتماد المرسل وتواصل مع المسؤول.",
+  "notifications.senderRejectedTitle": "تم رفض التحقق من هوية المرسل",
+  "notifications.senderRejectedBody":
+    "لم تُعتمد هوية المرسل. راجع حالتها وتواصل مع المسؤول قبل إعادتها إلى المسودة وتقديمها مجددًا.",
   "notifications.templateTitle": "تم تغيير حالة اعتماد القالب",
   "notifications.templateBody": "راجع حالة اعتماد القالب وجاهزيته قبل استخدامه.",
   "notifications.messageFailedTitle": "تعذر إرسال رسالة",
@@ -43,14 +112,18 @@ export const ar: Record<MessageKey, string> = {
   "notifications.empty": "لا توجد إشعارات",
   "notifications.emptyBody": "ستظهر هنا التحديثات المتعلقة بحسابك.",
   "notifications.accessTitle": "تم تغيير دورك",
-  "notifications.accessBody": "حدّث أحد المسؤولين دورك. قد تتغير الإجراءات المتاحة لك. تواصل مع المسؤول إذا كانت لديك أسئلة.",
+  "notifications.accessBody":
+    "حدّث أحد المسؤولين دورك. قد تتغير الإجراءات المتاحة لك. تواصل مع المسؤول إذا كانت لديك أسئلة.",
   "notifications.markRead": "تحديد كمقروء",
   "notifications.read": "مقروء",
   "notice.close": "إغلاق",
-  "notice.senderSetup": "لا يظهر مرسل مؤهل في هذه الصفحة. تحقق من صفحة أخرى أو اطلب من المسؤول توثيق مرسل وتفعيله لهذا التطبيق.",
-  "notice.templateSetup": "لا يظهر قالب واتساب معتمد في هذه الصفحة. تحقق من صفحة أخرى أو اطلب من المسؤول إكمال اعتماد القالب.",
+  "notice.senderSetup":
+    "لا يظهر مرسل مؤهل في هذه الصفحة. تحقق من صفحة أخرى أو اطلب من المسؤول توثيق مرسل وتفعيله لهذا التطبيق.",
+  "notice.templateSetup":
+    "لا يظهر قالب واتساب معتمد في هذه الصفحة. تحقق من صفحة أخرى أو اطلب من المسؤول إكمال اعتماد القالب.",
   "notice.pageMissing": "الصفحة غير موجودة",
-  "notice.pageMissingBody": "ربما نُقلت هذه الصفحة أو لم تعد متاحة. عُد إلى لوحة المعلومات للمتابعة.",
+  "notice.pageMissingBody":
+    "ربما نُقلت هذه الصفحة أو لم تعد متاحة. عُد إلى لوحة المعلومات للمتابعة.",
 
   "notice.title.error": "يلزم اتخاذ إجراء",
   "notice.title.warning": "تحقق قبل المتابعة",
@@ -74,8 +147,10 @@ export const ar: Record<MessageKey, string> = {
   "notice.subscriptionCancelled": "اشتراكك ملغى. تواصل مع المسؤول لترتيب اشتراك نشط.",
   "notice.subscriptionFuture": "لم يبدأ اشتراكك بعد. تحقق من تاريخ البدء مع المسؤول.",
   "notice.subscriptionEnded": "انتهى اشتراكك. تواصل مع المسؤول لتجديده قبل الإرسال.",
-  "notice.bulkUnavailable": "الإرسال الجماعي غير مشمول في خطتك الحالية. تواصل مع المسؤول لمراجعة الخطة.",
-  "notice.channelUnavailable": "قناة {channel} غير متاحة ضمن اشتراكك الحالي. تواصل مع المسؤول لمراجعة صلاحية القناة.",
+  "notice.bulkUnavailable":
+    "الإرسال الجماعي غير مشمول في خطتك الحالية. تواصل مع المسؤول لمراجعة الخطة.",
+  "notice.channelUnavailable":
+    "قناة {channel} غير متاحة ضمن اشتراكك الحالي. تواصل مع المسؤول لمراجعة صلاحية القناة.",
   "unknownResolve.replayed": "سُجل هذا القرار مسبقاً. لم يُجرَ تغيير إضافي.",
 
   "providerBalance.title": "رصيد الحساب كما يورده المزود",
@@ -128,7 +203,8 @@ export const ar: Record<MessageKey, string> = {
   "humanBulk.note":
     "يُحفظ المستلمون في مهمة جماعية للمعالجة. تبقى شروط الاشتراك والمرسل والحصة المتاحة سارية. إنشاء المهمة لا يؤكد التسليم.",
   "humanBulk.recipients": "المستلمون (حتى ١٬٠٠٠)",
-  "humanBulk.csvOnly": "تقبل الرسائل القصيرة CSV أو Excel (.xlsx). يقبل البريد وواتساب CSV فقط. لا تُدعم ملفات xls أو الملفات التي تحتوي على وحدات ماكرو.",
+  "humanBulk.csvOnly":
+    "تقبل الرسائل القصيرة CSV أو Excel (.xlsx). يقبل البريد وواتساب CSV فقط. لا تُدعم ملفات xls أو الملفات التي تحتوي على وحدات ماكرو.",
   "humanBulk.confirmNote":
     "راجع المستلمين ومحتوى الرسالة. إذا لم تكن النتيجة واضحة، تحقق من المهام الجماعية قبل المحاولة مجدداً. إغلاق هذا النموذج لا يلغي مهمة أُنشئت بالفعل.",
   "humanBulk.create": "إنشاء المهمة المراجعة",
@@ -145,7 +221,8 @@ export const ar: Record<MessageKey, string> = {
   "humanBulk.csvFile": "ملف المستلمين (SMS: XLSX أو CSV؛ البريد وواتساب: CSV)",
   "humanBulk.csvHint":
     "حتى ١٬٠٠٠ صف و٢ ميغابايت. SMS: recipient,body. البريد: recipient,subject,body. واتساب: recipient,template_key,language,variables. استخدم كائن متغيرات فارغاً للقوالب دون معاملات. يتحقق الخادم من صيغة الملف ونتائج الصفوف عند إنشاء المهمة؛ تُحصى الصفوف غير الصالحة دون إرسالها.",
-  "humanBulk.csvError": "اختر ملف مستلمين صالحاً لا يتجاوز ٢ ميغابايت. لملفات Excel للرسائل القصيرة، استخدم ورقة واحدة بعناوين recipient وbody وأرقام هواتف مخزنة كنص؛ لا تُدعم الصيغ.",
+  "humanBulk.csvError":
+    "اختر ملف مستلمين صالحاً لا يتجاوز ٢ ميغابايت. لملفات Excel للرسائل القصيرة، استخدم ورقة واحدة بعناوين recipient وbody وأرقام هواتف مخزنة كنص؛ لا تُدعم الصيغ.",
   "humanSend.title": "تقديم رسالة",
   "humanSend.subtitle": "أعدّ رسالة للتطبيق المحدد.",
   "humanSend.note":
@@ -241,7 +318,7 @@ export const ar: Record<MessageKey, string> = {
   "emailEvidence.confirm":
     "أكّد أنك راجعت أدلة النطاق وSPF وDKIM المشار إليها وأن الحالات المختارة تعكسها بدقة. قد تسمح الحالات المتحققة بفحوص الربط وتسليم البريد لاحقاً. قد يمنع خفض الحالة عمليات تسليم مستقبلية، لكنه لا يلغي طلباً جارياً لدى المزوّد.",
   "emailEvidence.referenceHint":
-    "استخدم ticket:CASE-123 أو change:CASE-123 أو review:CASE-123. يتكون المعرّف من 1 إلى 64 حرفاً لاتينياً أو رقماً أو نقطة أو شرطة سفلية أو شرطة. لا تلصق روابط أو أسراراً أو محتوى الأدلة.",
+    "استخدم مرجع مراجعة حقيقياً مثل EMAIL-READINESS-2026-10-27. البادئات ticket: أو change: أو review: اختيارية. المعرّف من 1 إلى 64 حرفاً لاتينياً أو رقماً أو نقطة أو شرطة سفلية أو شرطة، ويبدأ بحرف أو رقم. لا يتم التحقق من وجود المرجع. لا تدخل روابط أو أسراراً أو محتوى الأدلة.",
   "emailEvidence.conflict":
     "تغيّرت الجاهزية أو الأدلة. أغلق المراجعة وحدّث البيانات ثم راجع الحالة الحالية قبل التسجيل مجدداً.",
   "emailEvidence.error":
@@ -550,8 +627,7 @@ export const ar: Record<MessageKey, string> = {
   "liveCredentials.revokeReason": "سبب الإلغاء",
   "liveCredentials.scopes": "نطاقات الوصول الممنوحة",
   "liveCredentials.rate": "حد الطلبات في الثانية (اختياري)",
-  "liveCredentials.rateHint":
-    "لا يتجاوز هذا الإعداد حدود الإرسال في اشتراكك.",
+  "liveCredentials.rateHint": "لا يتجاوز هذا الإعداد حدود الإرسال في اشتراكك.",
   "liveCredentials.detail": "تفاصيل بيانات الاعتماد",
   "liveCredentials.issue": "إصدار بيانات اعتماد",
   "liveCredentials.rotate": "تدوير بيانات الاعتماد",
@@ -578,7 +654,8 @@ export const ar: Record<MessageKey, string> = {
   "liveAudit.uuidHint": "الرقم المرجعي",
   "liveAudit.applyFilters": "تطبيق المرشحات",
   "liveAudit.clearFilters": "مسح المرشحات",
-  "liveAudit.invalidFilters": "تحقق من الأرقام المرجعية واختر عامل تصفية واحداً للمستخدم أو بيانات الاعتماد.",
+  "liveAudit.invalidFilters":
+    "تحقق من الأرقام المرجعية واختر عامل تصفية واحداً للمستخدم أو بيانات الاعتماد.",
   "liveAudit.loading": "جارٍ تحميل حدث التدقيق…",
   "liveAudit.description": "سجلات تدقيق إدارية منقحة، منفصلة عن سجل تسليم الرسائل.",
   "liveAudit.coverage":
@@ -619,6 +696,12 @@ export const ar: Record<MessageKey, string> = {
   "liveUsage.groupHint":
     "هذه تجميعات مختلفة للرسائل نفسها. لا تجمع الأقسام معًا ولا تعتبر أعداد الرسائل وحدات حصة للتطبيق.",
   "liveUsage.quota": "لقطات الحصص للأشهر الكاملة",
+  "liveUsage.currentQuota": "الحصة الشهرية الحالية",
+  "liveUsage.currentQuotaHint": "حدود الخطة الفعلية وتجاوزات الاشتراك. هذا الملخص مستقل عن مرشح التواريخ أدناه. جميع الكميات بوحدات حصة الرسائل.",
+  "liveUsage.currentPeriod": "بداية الفترة / موعد إعادة التعيين",
+  "liveUsage.usedHint": "يشمل الاستخدام الكميات المحتسبة والحجوزات المعلقة، ويستثني المتبقي كليهما. أعداد التسليم لدى المزود منفصلة.",
+  "liveUsage.channelDisabled": "غير مفعلة ضمن الاستحقاقات الحالية",
+  "liveUsage.noCeiling": "لا توجد حصة مهيأة",
   "liveUsage.quotaHint":
     "تغطي العدادات كل شهر كامل بالتوقيت العالمي يتداخل مع الفترة، ولا تُحسب بالتناسب مع الأيام. العداد الإجمالي مستقل عن عدادات القنوات ولا يُجمع معها.",
   "registry.title": "سجل قوالب واتساب",
@@ -873,10 +956,12 @@ export const ar: Record<MessageKey, string> = {
   "common.copy": "نسخ",
   "common.copied": "تم النسخ",
   "common.forbiddenTitle": "ليست لديك صلاحية الوصول إلى هذا القسم",
-  "common.forbiddenBody": "لا يتضمن دورك صلاحية هذه الوحدة. تواصل مع المسؤول إذا كنت تعتقد أن ذلك غير صحيح.",
+  "common.forbiddenBody":
+    "لا يتضمن دورك صلاحية هذه الوحدة. تواصل مع المسؤول إذا كنت تعتقد أن ذلك غير صحيح.",
   "common.backToDashboard": "العودة إلى لوحة المعلومات",
   "common.scheduledTitle": "هذه الوحدة مجدولة لمرحلة تسليم لاحقة",
-  "common.scheduledBody": "التنقل والصلاحيات والمسارات لهذه الوحدة جاهزة. سيتم تسليم الشاشات وفق عقد واجهة دولف كونكت البرمجية.",
+  "common.scheduledBody":
+    "التنقل والصلاحيات والمسارات لهذه الوحدة جاهزة. سيتم تسليم الشاشات وفق عقد واجهة دولف كونكت البرمجية.",
   "common.errorTitle": "تعذّر تحميل البيانات",
   "common.errorBody": "تعذّر إكمال الطلب. حاول مجدداً، أو تواصل مع الدعم إذا استمرت المشكلة.",
   "auth.restoring": "جارٍ استعادة جلستك…",
@@ -949,8 +1034,10 @@ export const ar: Record<MessageKey, string> = {
   "dash.title": "لوحة المعلومات",
   "dash.subtitle": "نظرة تشغيلية · {scope}",
   "dash.unavailableTitle": "البيانات التشغيلية غير متصلة",
-  "dash.unavailableBody": "نجح تسجيل الدخول، لكن مؤشرات لوحة المعلومات لم تُحمَّل من محرك دولف كونكت بعد.",
-  "dash.unclassified": "{submitted} مقدَّمة و{unknown} غير معروفة تُحتسب في الإجمالي فقط. ليست مسلَّمة ولا معلّقة ولا فاشلة.",
+  "dash.unavailableBody":
+    "نجح تسجيل الدخول، لكن مؤشرات لوحة المعلومات لم تُحمَّل من محرك دولف كونكت بعد.",
+  "dash.unclassified":
+    "{submitted} مقدَّمة و{unknown} غير معروفة تُحتسب في الإجمالي فقط. ليست مسلَّمة ولا معلّقة ولا فاشلة.",
   "dash.quotaUnavailableTitle": "لا توجد حصة شهرية لهذه النظرة",
   "dash.quotaUnavailableBody": "نطاق لوحة المعلومات هذا ليس له حد شهري واحد مُعد.",
   "dash.sectionUnavailableTitle": "غير متصل بعد",
@@ -978,7 +1065,8 @@ export const ar: Record<MessageKey, string> = {
   "dash.quota.hardStop.100": "نفدت الحصة الشهرية. يمكن إيقاف الإرسال.",
   "dash.quota.softCap.80": "تم استهلاك 80% من الحد المرن.",
   "dash.quota.softCap.90": "تم استهلاك 90% من الحد المرن. يُتتبَّع الاستخدام الإضافي كتجاوز.",
-  "dash.quota.softCap.100": "تجاوز الاستخدام الحد المرن. يُتتبَّع التجاوز وهذه الحصة لا توقف الإرسال.",
+  "dash.quota.softCap.100":
+    "تجاوز الاستخدام الحد المرن. يُتتبَّع التجاوز وهذه الحصة لا توقف الإرسال.",
   "dash.unconfiguredTenants": "غير مُعدّة",
   "dash.used": "المستخدم",
   "dash.limit": "الحد",
@@ -1010,29 +1098,40 @@ export const ar: Record<MessageKey, string> = {
   "msg.dateThrough": "تاريخ القبول حتى",
   "msg.dateRangeInvalid": "اختر نطاقًا زمنيًا صالحًا لا يتجاوز 31 يومًا.",
   "msg.exportCurrentPage": "تصدير الصفحة الحالية",
-  "msg.exportCurrentPageNote": "يُصدّر الصفحة الحالية فقط. لا يتضمن التصدير تفاصيل المستلمين أو محتوى الرسائل.",
+  "msg.exportCurrentPageNote":
+    "يُصدّر الصفحة الحالية فقط. لا يتضمن التصدير تفاصيل المستلمين أو محتوى الرسائل.",
   "msg.exportGuidanceTitle": "حول التصدير",
-  "msg.exportGuidance": "يمكنك تصدير الصفحة الحالية أو النتائج المطابقة من جميع الصفحات (بحد أقصى 10,000 صف خلال فترة لا تتجاوز 31 يومًا). لا يتضمن التصدير تفاصيل المستلمين أو محتوى الرسائل.",
+  "msg.exportGuidance":
+    "يمكنك تصدير الصفحة الحالية أو النتائج المطابقة من جميع الصفحات (بحد أقصى 10,000 صف خلال فترة لا تتجاوز 31 يومًا). لا يتضمن التصدير تفاصيل المستلمين أو محتوى الرسائل.",
   "msg.acceptedAt": "تاريخ القبول",
   "msg.queuedAt": "تاريخ الإضافة إلى قائمة الانتظار",
   "msg.applicationId": "معرّف التطبيق",
   "msg.historyAttempts": "المحاولات",
   "msg.recipient": "المستلم",
   "msg.templateId": "معرّف القالب",
+  "msg.noTemplate": "لا يوجد قالب مرتبط",
+  "msg.templateUnavailable": "معلومات القالب غير متاحة",
+  "msg.templateVariables": "معلمات القالب المحفوظة",
+  "msg.contentExpired": "حُجب محتوى الرسالة لانتهاء مدة الاحتفاظ به.",
+  "msg.contentPurged": "أُزيل محتوى الرسالة وفق سياسة الاحتفاظ.",
+  "msg.contentMissing": "لم يُحتفظ بمحتوى لهذه الرسالة. تظهر تفاصيل القالب أعلاه عند توفرها.",
   "msg.contentUnavailable": "محتوى الرسالة غير موجود في استجابة سجل الرسائل.",
   "msg.contentPurgedAt": "تاريخ حذف المحتوى {date}",
   "msg.lifecycle": "مراحل القبول",
-  "msg.lifecycleNote": "تتضمن الاستجابة وقت القبول والإضافة إلى قائمة الانتظار فقط، ولا تتضمن أوقات تسليم المزود.",
+  "msg.lifecycleNote":
+    "تتضمن الاستجابة وقت القبول والإضافة إلى قائمة الانتظار فقط، ولا تتضمن أوقات تسليم المزود.",
   "msg.selectTenantTitle": "اختر مستأجرًا",
   "send.selectTenantBody": "اختر مستأجرًا من محدد المستأجرين لإرسال الرسائل من تطبيقاته.",
   "bulkPreview.title": "معاينة المستلمين",
   "bulkPreview.counts": "{total} مستلم · {invalid} صف يحتاج إلى مراجعة",
   "bulkPreview.total": "{count} مستلم",
-  "bulkPreview.localOnly": "تُدرج فقط بيانات المستلمين الظاهرة في هذا الجدول. تُجرى الفحوص النهائية عند تقديم المهمة.",
+  "bulkPreview.localOnly":
+    "تُدرج فقط بيانات المستلمين الظاهرة في هذا الجدول. تُجرى الفحوص النهائية عند تقديم المهمة.",
   "bulkPreview.add": "إضافة مستلم",
   "bulkPreview.clear": "مسح القائمة",
   "bulkPreview.paste": "لصق عدة مستلمين",
-  "bulkPreview.pasteHelp": "الصق رقم هاتف أو بريدًا إلكترونيًا واحدًا في كل سطر، ثم أضف القائمة إلى الجدول. الحد الأقصى 1000 مستلم.",
+  "bulkPreview.pasteHelp":
+    "الصق رقم هاتف أو بريدًا إلكترونيًا واحدًا في كل سطر، ثم أضف القائمة إلى الجدول. الحد الأقصى 1000 مستلم.",
   "bulkPreview.addList": "إضافة القائمة",
   "bulkPreview.remove": "إزالة المستلم في الصف {row}",
   "bulkPreview.emailPlaceholder": "name@example.com",
@@ -1045,18 +1144,24 @@ export const ar: Record<MessageKey, string> = {
   "bulkPreview.column.variables": "المتغيرات",
   "bulkPreview.error.recipient": "أدخل بريدًا إلكترونيًا صالحًا أو رقم هاتف دوليًا مناسبًا للقناة.",
   "bulkPreview.error.content": "محتوى الرسالة مفقود أو يتجاوز الحد المسموح للقناة.",
-  "bulkPreview.error.variables": "يجب أن تكون المتغيرات كائن JSON يحتوي على 20 قيمة نصية مسماة كحد أقصى.",
+  "bulkPreview.error.variables":
+    "يجب أن تكون المتغيرات كائن JSON يحتوي على 20 قيمة نصية مسماة كحد أقصى.",
   "bulkPreview.error.template": "استخدم مفتاح قالب ولغة صالحين ومتطابقين في جميع الصفوف.",
-  "bulkPreview.error.shared": "يتطلب الوضع المشترك محتوى متطابقًا في كل الصفوف. استخدم الوضع المخصص للرسائل المختلفة.",
-  "bulkPreview.issue.headers": "لا يتوافق ملف CSV مع القناة المحددة. نزّل النموذج المناسب أو استخدم عناوين الأعمدة التالية:",
-  "bulkPreview.issue.malformed": "ملف CSV فارغ أو غير صالح. تحقق من علامات الاقتباس والفواصل وعدد الحقول في كل صف.",
+  "bulkPreview.error.shared":
+    "يتطلب الوضع المشترك محتوى متطابقًا في كل الصفوف. استخدم الوضع المخصص للرسائل المختلفة.",
+  "bulkPreview.issue.headers":
+    "لا يتوافق ملف CSV مع القناة المحددة. نزّل النموذج المناسب أو استخدم عناوين الأعمدة التالية:",
+  "bulkPreview.issue.malformed":
+    "ملف CSV فارغ أو غير صالح. تحقق من علامات الاقتباس والفواصل وعدد الحقول في كل صف.",
   "bulkPreview.issue.limit": "استخدم 1000 مستلم كحد أقصى وملف CSV لا يتجاوز 2 ميجابايت.",
   "humanBulk.downloadSample": "تنزيل نموذج",
   "humanBulk.sample.sms": "نموذج SMS (.xlsx)",
   "humanBulk.sample.email": "نموذج البريد الإلكتروني (.csv)",
   "humanBulk.sample.whatsapp": "نموذج واتساب (.csv)",
-  "humanBulk.excelHelp": "يتوفر نموذج SMS بصيغة Excel مع حفظ أرقام الهاتف كنص. أبقِ عمود المستلم بتنسيق نص للحفاظ على جميع الأرقام وعلامة +. نماذج البريد الإلكتروني وواتساب بصيغة CSV. أبقِ عناوين الأعمدة الإنجليزية كما هي.",
-  "humanBulk.sampleHelp": "اختر نموذج القناة واستبدل جميع القيم الإرشادية قبل الرفع مع إبقاء عناوين الأعمدة الإنجليزية كما هي. يتطلب واتساب قالبًا معتمدًا. اختر التطبيق والمرسل بشكل منفصل من النموذج.",
+  "humanBulk.excelHelp":
+    "يتوفر نموذج SMS بصيغة Excel مع حفظ أرقام الهاتف كنص. أبقِ عمود المستلم بتنسيق نص للحفاظ على جميع الأرقام وعلامة +. نماذج البريد الإلكتروني وواتساب بصيغة CSV. أبقِ عناوين الأعمدة الإنجليزية كما هي.",
+  "humanBulk.sampleHelp":
+    "اختر نموذج القناة واستبدل جميع القيم الإرشادية قبل الرفع مع إبقاء عناوين الأعمدة الإنجليزية كما هي. يتطلب واتساب قالبًا معتمدًا. اختر التطبيق والمرسل بشكل منفصل من النموذج.",
   "msg.selectTenantBody": "اختر مستأجرًا من محدد المستأجرين لعرض سجل رسائله.",
   "msg.attemptError.credential_unusable": "صلاحية التقديم غير متاحة",
   "msg.attemptError.tenant_not_operational": "المستأجر غير جاهز للتشغيل",
@@ -1154,7 +1259,8 @@ export const ar: Record<MessageKey, string> = {
   "tpl.new": "قالب جديد",
   "tpl.preview": "معاينة",
   "tpl.search": "ابحث في القوالب",
-  "tpl.createDescription": "أنشئ محتوى قابلًا لإعادة الاستخدام. تبدأ قوالب واتساب كمسودات حتى إرسالها لاعتماد المزود.",
+  "tpl.createDescription":
+    "أنشئ محتوى قابلًا لإعادة الاستخدام. تبدأ قوالب واتساب كمسودات حتى إرسالها لاعتماد المزود.",
   "tpl.editDescription": "عدّل قالب المستأجر. تعود تغييرات واتساب إلى اعتماد المزود.",
   "tpl.name": "اسم القالب",
   "tpl.invalidName": "استخدم من حرفين إلى 64 حرفًا أو رقمًا أو شرطة سفلية أو عادية.",
@@ -1184,7 +1290,8 @@ export const ar: Record<MessageKey, string> = {
   "tpl.noHistory": "لا توجد إصدارات سابقة.",
   "tpl.createdAt": "تاريخ الإنشاء",
   "tpl.updatedBy": "آخر تحديث بواسطة",
-  "tpl.versionUpdateNotice": "سيؤدي حفظ التغييرات إلى إنشاء إصدار مسودة جديد مع الاحتفاظ بالإصدار النشط أو المعتمد السابق في السجل.",
+  "tpl.versionUpdateNotice":
+    "سيؤدي حفظ التغييرات إلى إنشاء إصدار مسودة جديد مع الاحتفاظ بالإصدار النشط أو المعتمد السابق في السجل.",
   "tpl.malformedVariables": "صيغة المتغير غير صالحة. استخدم أسماء مثل {{code}} أو {{firstName}}.",
   "tpl.submitApproval": "إرسال للاعتماد",
   "tpl.submitError": "تعذر إرسال القالب للاعتماد.",
@@ -1219,13 +1326,17 @@ export const ar: Record<MessageKey, string> = {
   "apps.createdBy": "أنشأه",
   "apps.tenantImmutable": "لا يمكن تغيير ملكية المستأجر بعد التسجيل.",
   "apps.accessChangeTitle": "تأكيد تغيير صلاحيات الإنتاج",
-  "apps.accessChangeBody": "قد تؤدي إزالة القنوات المفعّلة أو نطاقات الواجهة البرمجية من {name} إلى منع التطبيق وبيانات اعتماده من تنفيذ تلك العمليات.",
+  "apps.accessChangeBody":
+    "قد تؤدي إزالة القنوات المفعّلة أو نطاقات الواجهة البرمجية من {name} إلى منع التطبيق وبيانات اعتماده من تنفيذ تلك العمليات.",
   "apps.lastActivity": "آخر نشاط",
   "apps.channels": "القنوات",
-  "apps.liveReadOnly": "بيانات التطبيقات المباشرة للقراءة فقط في هذه المرحلة. إنشاء التطبيقات أو تعديلها أو تغيير حالتها غير متاح.",
-  "apps.liveListLimit": "تدعم الواجهة المباشرة تقسيم الصفحات فقط. البحث والتصفية حسب الحالة والترتيب غير متاحة.",
+  "apps.liveReadOnly":
+    "بيانات التطبيقات المباشرة للقراءة فقط في هذه المرحلة. إنشاء التطبيقات أو تعديلها أو تغيير حالتها غير متاح.",
+  "apps.liveListLimit":
+    "تدعم الواجهة المباشرة تقسيم الصفحات فقط. البحث والتصفية حسب الحالة والترتيب غير متاحة.",
   "apps.selectTenantForApplications": "اختر مستأجرًا لعرض تطبيقاته.",
-  "apps.allTenantApplicationsNote": "تُعرض التطبيقات عبر المستأجرين. يوضّح كل صف المستأجر باسمه ومعرّفه.",
+  "apps.allTenantApplicationsNote":
+    "تُعرض التطبيقات عبر المستأجرين. يوضّح كل صف المستأجر باسمه ومعرّفه.",
   "apps.detailLoading": "جارٍ تحميل تفاصيل التطبيق…",
   "apps.notFound": "لم يتم العثور على هذا التطبيق لدى المستأجر المحدد.",
   "apps.notAvailable": "غير متاح من خلال هذه الواجهة البرمجية.",
@@ -1242,7 +1353,8 @@ export const ar: Record<MessageKey, string> = {
   "cred.subtitle": "هويات آلية تستخدمها التطبيقات للمصادقة. تُعرض الأسرار مرة واحدة عند الإنشاء.",
   "cred.new": "إصدار اعتماد API",
   "cred.search": "ابحث عن معرف العميل أو التطبيق أو المؤسسة أو البيئة",
-  "cred.generateDescription": "اختر تطبيقًا مفعّلًا وأنشئ بيانات اعتماد تقتصر على نطاقاته المسموح بها.",
+  "cred.generateDescription":
+    "اختر تطبيقًا مفعّلًا وأنشئ بيانات اعتماد تقتصر على نطاقاته المسموح بها.",
   "cred.generate": "إنشاء بيانات الاعتماد",
   "cred.created": "تم إنشاء بيانات الاعتماد.",
   "cred.createError": "تعذر إنشاء بيانات الاعتماد. تحقق من التطبيق والنطاقات.",
@@ -1250,7 +1362,8 @@ export const ar: Record<MessageKey, string> = {
   "cred.noScopes": "لا توجد نطاقات مسموح بها لهذا التطبيق. حدّث إعداداته أولًا.",
   "cred.rotate": "تدوير",
   "cred.rotateTitle": "تدوير بيانات الاعتماد؟",
-  "cred.rotateBody": "سيتم إلغاء بيانات الاعتماد الحالية للمعرّف {id} فورًا. سيظهر السر الجديد مرة واحدة.",
+  "cred.rotateBody":
+    "سيتم إلغاء بيانات الاعتماد الحالية للمعرّف {id} فورًا. سيظهر السر الجديد مرة واحدة.",
   "cred.rotated": "تم تدوير بيانات الاعتماد.",
   "cred.secretTitle": "سر بيانات الاعتماد",
   "cred.secretWarning": "انسخ هذا السر الآن. لن يظهر مجددًا بعد إغلاق هذا الحوار.",
@@ -1270,7 +1383,8 @@ export const ar: Record<MessageKey, string> = {
   "cred.requestsPerSecond": "طلبات/ثانية",
   "cred.revoke": "إلغاء",
   "cred.revokeTitle": "إلغاء بيانات الاعتماد؟",
-  "cred.revokeBody": "ستفقد التطبيقات التي تستخدم {id} الوصول فورًا. يُسجَّل هذا الإجراء في سجل التدقيق ولا يمكن التراجع عنه.",
+  "cred.revokeBody":
+    "ستفقد التطبيقات التي تستخدم {id} الوصول فورًا. يُسجَّل هذا الإجراء في سجل التدقيق ولا يمكن التراجع عنه.",
   "cred.revoked": "تم إلغاء {id}",
   "cred.securityNote": "تدير دولفتك بيانات اعتماد المزودين ولا تُعرض مطلقًا في بوابة العميل.",
 
@@ -1419,11 +1533,16 @@ export const ar: Record<MessageKey, string> = {
   "ten.tps": "حد المعدل (رسالة في الثانية)",
   "ten.invalidLimits": "أدخل حصصًا غير سالبة وحد معدل أكبر من صفر.",
   "ten.created": "تم إعداد المستأجر.",
-  "ten.createdLive": "تم إنشاء المستأجر. سُجّل المسؤول الرئيسي كمدعو؛ لم يُرسل بريد إلكتروني ولم تُعيّن باقة.",
-  "ten.liveAdminNoInvitation": "يُنشئ هذا الإجراء سجل مسؤول. يجب إعداد حساب الدخول بشكل منفصل؛ لا تُرسل رسالة دعوة.",
-  "ten.liveCreateNoPlan": "لا يؤدي إنشاء المستأجر إلى تعيين باقة أو اشتراك. تعيين الباقة عملية منفصلة.",
-  "ten.createConflict": "تعذر إكمال إنشاء المستأجر بسبب تعارض الطلب مع البيانات الحالية. راجع المعلومات المقدمة وحاول مرة أخرى.",
-  "ten.createRejected": "معلومات المستأجر أو المسؤول الرئيسي غير صالحة. راجع التفاصيل المقدمة وحاول مرة أخرى.",
+  "ten.createdLive":
+    "تم إنشاء المستأجر. سُجّل المسؤول الرئيسي كمدعو؛ لم يُرسل بريد إلكتروني ولم تُعيّن باقة.",
+  "ten.liveAdminNoInvitation":
+    "يُنشئ هذا الإجراء سجل مسؤول. يجب إعداد حساب الدخول بشكل منفصل؛ لا تُرسل رسالة دعوة.",
+  "ten.liveCreateNoPlan":
+    "لا يؤدي إنشاء المستأجر إلى تعيين باقة أو اشتراك. تعيين الباقة عملية منفصلة.",
+  "ten.createConflict":
+    "تعذر إكمال إنشاء المستأجر بسبب تعارض الطلب مع البيانات الحالية. راجع المعلومات المقدمة وحاول مرة أخرى.",
+  "ten.createRejected":
+    "معلومات المستأجر أو المسؤول الرئيسي غير صالحة. راجع التفاصيل المقدمة وحاول مرة أخرى.",
   "ten.createForbidden": "ليس لديك صلاحية لتجهيز مستأجر.",
   "ten.createError": "تعذر إنشاء المستأجر. يرجى المحاولة مرة أخرى.",
   "ten.codeExists": "رمز المستأجر مستخدم بالفعل.",
@@ -1449,20 +1568,24 @@ export const ar: Record<MessageKey, string> = {
   "ten.subscriptionStatus": "حالة الاشتراك",
   "ten.assignmentOpen": "تعيين باقة",
   "ten.assignmentTitle": "تعيين باقة اشتراك؟",
-  "ten.assignmentBody": "سيحصل {tenant} على الباقة {plan} باشتراك {status}. سيتم إلغاء أي اشتراك مفتوح حالي واستبداله، ولن تنتقل التجاوزات الحالية إلى الاشتراك الجديد.",
+  "ten.assignmentBody":
+    "سيحصل {tenant} على الباقة {plan} باشتراك {status}. سيتم إلغاء أي اشتراك مفتوح حالي واستبداله، ولن تنتقل التجاوزات الحالية إلى الاشتراك الجديد.",
   "ten.assignmentPlan": "الباقة المفعّلة",
   "ten.assignmentStatus": "حالة الاشتراك الجديد",
   "ten.assignmentSelectPlan": "اختر باقة مفعّلة",
   "ten.assignmentPlanRequired": "اختر باقة مفعّلة للمتابعة.",
-  "ten.assignmentNoPlans": "لا توجد باقات مفعّلة مؤهلة. لا يمكن تعيين الباقة الحالية للمستأجر مرة أخرى.",
+  "ten.assignmentNoPlans":
+    "لا توجد باقات مفعّلة مؤهلة. لا يمكن تعيين الباقة الحالية للمستأجر مرة أخرى.",
   "ten.assignmentPlansLoading": "جارٍ تحميل الباقات المفعّلة…",
   "ten.assignmentPlansError": "تعذر تحميل الباقات المفعّلة.",
   "ten.assignmentConfirm": "تأكيد التعيين",
   "ten.assignmentSuccess": "تم تعيين باقة الاشتراك بنجاح.",
   "ten.assignmentRejected": "تم رفض طلب تعيين الباقة. تحقق من الباقة وحالة الاشتراك المحددتين.",
   "ten.assignmentForbidden": "ليس لديك صلاحية لتعيين باقات للمستأجرين.",
-  "ten.assignmentNotFound": "تعذر العثور على المستأجر أو الباقة المحددة. حدّث البيانات وحاول مرة أخرى.",
-  "ten.assignmentConflict": "يتعارض الطلب مع الاشتراك الحالي للمستأجر. تحقق من حالته واختر باقة مفعّلة أخرى.",
+  "ten.assignmentNotFound":
+    "تعذر العثور على المستأجر أو الباقة المحددة. حدّث البيانات وحاول مرة أخرى.",
+  "ten.assignmentConflict":
+    "يتعارض الطلب مع الاشتراك الحالي للمستأجر. تحقق من حالته واختر باقة مفعّلة أخرى.",
   "ten.assignmentEntitlement": "تعذّر تخصيص الخطة المحددة. تحقق من القنوات والحدود المشمولة فيها.",
   "ten.assignmentError": "تعذر تعيين الباقة. يرجى المحاولة مرة أخرى.",
   "ten.subscriptionHistory": "سجل الاشتراكات",
@@ -1499,7 +1622,8 @@ export const ar: Record<MessageKey, string> = {
   "ten.subscriptionMutationNotFound":
     "تعذر العثور على المستأجر أو الاشتراك. حدّث البيانات وحاول مرة أخرى.",
   "ten.subscriptionMutationConflict": "يتعارض تغيير الاشتراك مع حالته الحالية.",
-  "ten.subscriptionMutationEntitlement": "لا تسمح قنوات الخطة أو حدودها بهذا التغيير. راجع الخطة قبل المحاولة مجدداً.",
+  "ten.subscriptionMutationEntitlement":
+    "لا تسمح قنوات الخطة أو حدودها بهذا التغيير. راجع الخطة قبل المحاولة مجدداً.",
   "ten.subscriptionMutationError": "تعذر تحديث الاشتراك. يرجى المحاولة مرة أخرى.",
   "ten.tenantOverride": "تجاوز خاص بالمستأجر",
   "ten.restrictedOnly": "مقيّدة عن القيمة الافتراضية للباقة",
@@ -1511,7 +1635,8 @@ export const ar: Record<MessageKey, string> = {
   "ten.reactivateTitle": "إعادة تفعيل هذا المستأجر؟",
   "ten.reactivateBody": "ستتغير حالة {name} من {current} إلى {next}. لا يغيّر ذلك اشتراك المستأجر.",
   "ten.planChangeTitle": "تغيير باقة الاشتراك؟",
-  "ten.planChangeBody": "سيؤدي التغيير إلى {plan} إلى حذف تجاوزات الحدود الخاصة بالمستأجر وتطبيق القيم الافتراضية للباقة الجديدة.",
+  "ten.planChangeBody":
+    "سيؤدي التغيير إلى {plan} إلى حذف تجاوزات الحدود الخاصة بالمستأجر وتطبيق القيم الافتراضية للباقة الجديدة.",
   "ten.clearOverridesChangePlan": "حذف التجاوزات وتغيير الباقة",
   "ten.saveError": "تعذر حفظ تفاصيل المستأجر. راجع القيم المدخلة.",
 
@@ -1524,7 +1649,8 @@ export const ar: Record<MessageKey, string> = {
   "prov.credentialsNo": "لا",
   "prov.lastTest": "آخر اختبار اتصال",
   "prov.adapterConfiguration": "إعدادات خاصة بالمزود",
-  "prov.adapterConfigurationHint": "إعدادات تجريبية للموائم فقط. ستُحدد المتطلبات النهائية عند تنفيذ تكامل المزود.",
+  "prov.adapterConfigurationHint":
+    "إعدادات تجريبية للموائم فقط. ستُحدد المتطلبات النهائية عند تنفيذ تكامل المزود.",
   "prov.field.apiBaseUrl": "عنوان API الأساسي",
   "prov.field.apiKey": "مفتاح API",
   "prov.field.apiSecret": "سر API / الرمز",
@@ -1652,7 +1778,8 @@ export const ar: Record<MessageKey, string> = {
   "health.unavailable": "غير متاح",
   "health.noAlternative": "لم يتم إعداد مزود بديل",
   "health.noActiveRules": "لا تستخدم قواعد توجيه نشطة هذا المزود.",
-  "health.trafficProtected": "المزود الأساسي غير متاح. الحركة محمية عبر المزود الاحتياطي ← {provider}.",
+  "health.trafficProtected":
+    "المزود الأساسي غير متاح. الحركة محمية عبر المزود الاحتياطي ← {provider}.",
   "health.trafficUnprotected": "المزود الأساسي غير متاح — لا يوجد مزود احتياطي متاح.",
   "health.trafficDegradedProtected": "المزود الأساسي متدهور. المزود الاحتياطي متاح ← {provider}.",
   "health.trafficDegraded": "المزود الأساسي متدهور — لا يوجد مزود احتياطي متاح.",
@@ -1665,8 +1792,10 @@ export const ar: Record<MessageKey, string> = {
 
   "si.title": "هويات المرسل",
   "si.liveSubtitle": "اعرض هويات المرسل الخاصة بمستأجرك أو المستأجر المحدد.",
-  "si.liveReadOnlyNotice": "تعرض هذه الحالات التقدم المسجل. يجب تأكيد التسجيل وموافقة المزود بشكل منفصل.",
-  "si.liveSelectTenant": "اختر مستأجرًا لعرض هويات المرسل الخاصة به. لا يتوفر استعراض الهويات عبر جميع المستأجرين.",
+  "si.liveReadOnlyNotice":
+    "تعرض هذه الحالات التقدم المسجل. يجب تأكيد التسجيل وموافقة المزود بشكل منفصل.",
+  "si.liveSelectTenant":
+    "اختر مستأجرًا لعرض هويات المرسل الخاصة به. لا يتوفر استعراض الهويات عبر جميع المستأجرين.",
   "si.liveLoading": "جارٍ تحميل هويات المرسل…",
   "si.loadError": "تعذر تحميل هويات المرسل. حاول مرة أخرى.",
   "si.detailUnavailable": "لم تعد هوية المرسل هذه متاحة للمستأجر المحدد.",
@@ -1674,7 +1803,8 @@ export const ar: Record<MessageKey, string> = {
   "si.emailCheck.pending": "قيد الانتظار",
   "si.emailCheck.verified": "تم التحقق",
   "si.emailCheck.failed": "فشل",
-  "si.platformSubtitle": "هويات المستأجرين المصرح بها لإرسال الرسائل عبر SMS وواتساب والبريد الإلكتروني.",
+  "si.platformSubtitle":
+    "هويات المستأجرين المصرح بها لإرسال الرسائل عبر SMS وواتساب والبريد الإلكتروني.",
   "si.clientSubtitle": "سجّل هويات المرسل الخاصة بمستأجرك وتابع حالتها.",
   "si.add": "تسجيل هوية",
   "si.search": "ابحث بالمعرف أو المستأجر أو هوية المرسل",
@@ -1699,7 +1829,8 @@ export const ar: Record<MessageKey, string> = {
   "si.domainVerification": "التحقق من النطاق",
   "si.spf": "حالة SPF",
   "si.dkim": "حالة DKIM",
-  "si.formDescription": "سجّل تفاصيل هوية المرسل. لا تُجمع بيانات اعتماد المزود أو أسرار التحقق هنا.",
+  "si.formDescription":
+    "سجّل تفاصيل هوية المرسل. لا تُجمع بيانات اعتماد المزود أو أسرار التحقق هنا.",
   "si.selectTenant": "اختر المستأجر",
   "si.selectIdentity": "أدخل هوية المرسل",
   "si.selectChannel": "اختر القناة",
@@ -1759,8 +1890,10 @@ export const ar: Record<MessageKey, string> = {
   "si.action.reactivated": "أعيد تفعيلها",
 
   "docs.reference": "مرجع نقاط النهاية",
-  "docs.referenceBody": "يتضمن مرجع العميل واجهات الأنظمة وبوابة المستأجر. تتطلب العمليات البشرية صلاحيات الخادم؛ ظهورها هنا لا يمنح وصولاً. يجب أن تنتمي معرّفات UUID للنطاق المصادق عليه. لكل قائمة مرشحات وصفحات خاصة؛ ارجع لمخطط DTO.",
-  "docs.baseBody": "تتضمن المسارات /api/v1. استخدم عنوان الخادم الذي يحدده المسؤول؛ يُضبط عنوان البوابة عبر VITE_API_BASE_URL. هذا فهرس ودليل وليس بديلاً لمخططات الطلبات والاستجابات. تتوفر مخططات Swagger خارج الإنتاج في /api/docs وهي معطلة في الإنتاج.",
+  "docs.referenceBody":
+    "يتضمن مرجع العميل واجهات الأنظمة وبوابة المستأجر. تتطلب العمليات البشرية صلاحيات الخادم؛ ظهورها هنا لا يمنح وصولاً. يجب أن تنتمي معرّفات UUID للنطاق المصادق عليه. لكل قائمة مرشحات وصفحات خاصة؛ ارجع لمخطط DTO.",
+  "docs.baseBody":
+    "تتضمن المسارات /api/v1. استخدم عنوان الخادم الذي يحدده المسؤول؛ يُضبط عنوان البوابة عبر VITE_API_BASE_URL. هذا فهرس ودليل وليس بديلاً لمخططات الطلبات والاستجابات. تتوفر مخططات Swagger خارج الإنتاج في /api/docs وهي معطلة في الإنتاج.",
   "docs.clientReference": "واجهات العميل",
   "docs.fullReference": "جميع الواجهات (المنصة)",
   "docs.search": "البحث بالطريقة أو المسار أو الفئة",
@@ -1773,10 +1906,12 @@ export const ar: Record<MessageKey, string> = {
   "docs.audience.callback": "إشعار المزود · تحقق مشروط",
   "docs.audience.public": "فحص صحة عام",
   "docs.noResults": "لا توجد نقاط نهاية مطابقة.",
-  "docs.platformBody": "تتطلب واجهات المنصة سياق المنصة وصلاحية PlatformAdminister؛ تحدد مسارات المستأجر المسمى المستأجر المستهدف. اختيار مستأجر لا يحول هوية المنصة إلى هوية مستأجر. إشعارات المزود مقيدة؛ إدراجها لا يعني تفعيلها.",
+  "docs.platformBody":
+    "تتطلب واجهات المنصة سياق المنصة وصلاحية PlatformAdminister؛ تحدد مسارات المستأجر المسمى المستأجر المستهدف. اختيار مستأجر لا يحول هوية المنصة إلى هوية مستأجر. إشعارات المزود مقيدة؛ إدراجها لا يعني تفعيلها.",
   "landing.eyebrow": "منصة واحدة. لكل محادثة.",
   "landing.title": "اربط أعمالك باللحظات التي تهم عملاءك.",
-  "landing.description": "اجمع الرسائل النصية والبريد الإلكتروني وواتساب في مساحة عمل واحدة. أدر تطبيقاتك ونظّم المراسلات وتابع النشاط مع دولف كونكت.",
+  "landing.description":
+    "اجمع الرسائل النصية والبريد الإلكتروني وواتساب في مساحة عمل واحدة. أدر تطبيقاتك ونظّم المراسلات وتابع النشاط مع دولف كونكت.",
   "landing.explore": "استكشف المنصة",
   "landing.sms": "تواصل مع العملاء عبر التنبيهات ورسائل التحقق في الوقت المناسب.",
   "landing.email": "أبقِ العملاء على اطلاع عبر رسائل البريد المرتبطة بمعاملاتهم.",
@@ -1800,21 +1935,29 @@ export const ar: Record<MessageKey, string> = {
   "docs.title": "توثيق الواجهة البرمجية",
   "docs.subtitle": "مرجع واجهات تكامل التطبيقات وعمليات البوابة المصادق عليها.",
   "docs.auth": "المصادقة",
-  "docs.authBody": "تستخدم الأنظمة HTTP Basic بمعرّف التطبيق clientId والسر عبر HTTPS. يتطلب إرسال الرسائل messages:send وقراءتها messages:read. تتطلب جميع عمليات /bulk-jobs حالياً messages:send. تستخدم واجهات الإدارة البشرية رمز وصول Keycloak بصيغة Bearer، ويفرض الخادم صلاحيات المستأجر والتطبيق. لا تضع الأسرار في المتصفح.",
+  "docs.authBody":
+    "تستخدم الأنظمة HTTP Basic بمعرّف التطبيق clientId والسر عبر HTTPS. يتطلب إرسال الرسائل messages:send وقراءتها messages:read. تتطلب جميع عمليات /bulk-jobs حالياً messages:send. تستخدم واجهات الإدارة البشرية رمز وصول Keycloak بصيغة Bearer، ويفرض الخادم صلاحيات المستأجر والتطبيق. لا تضع الأسرار في المتصفح.",
   "docs.send": "إرسال الرسائل",
-  "docs.sendBody": "استخدم SMS أو EMAIL أو WHATSAPP مع senderId وrecipient ومحتوى القناة: sms: { body } أو email: { subject, body } أو whatsapp: { templateKey, language, variables? }. طول نص SMS من 1 إلى 1600، وعنوان البريد من 1 إلى 200 ونصه من 1 إلى 20000 حرف. يجب اعتماد المرسل للتطبيق. القبول الجديد يعيد 201 وإعادة الطلب المطابق تعيد 200. يتطلب الإرسال عمال معالجة مفعّلين وربط مزود صالحاً. المثال لا يُنفذ.",
+  "docs.sendBody":
+    "استخدم SMS أو EMAIL أو WHATSAPP مع senderId وrecipient ومحتوى القناة: sms: { body } أو email: { subject, body } أو whatsapp: { templateKey, language, variables? }. طول نص SMS من 1 إلى 1600، وعنوان البريد من 1 إلى 200 ونصه من 1 إلى 20000 حرف. يجب اعتماد المرسل للتطبيق. القبول الجديد يعيد 201 وإعادة الطلب المطابق تعيد 200. يتطلب الإرسال عمال معالجة مفعّلين وربط مزود صالحاً. المثال لا يُنفذ.",
   "docs.bulk": "الإرسال الجماعي",
-  "docs.bulkBody": "يقبل POST /bulk-jobs الحقول channel وsenderId وmode بقيمة SHARED أو PERSONALIZED وitems ومحتوى القناة. الحد الأقصى 1000 صف و2 ميجابايت. يقبل /bulk-jobs/csv نص CSV خاماً مع channel وmode وsenderId في الاستعلام. أعمدة SMS: recipient,body؛ البريد: recipient,subject,body؛ واتساب: recipient,template_key,language,variables بصيغة JSON. اقرأ المهمة أو /items?page=1&pageSize=20 بحد أقصى 100، أو /results لتنزيل CSV منقح. يلغي POST /:jobId/cancel الصفوف المؤهلة وليس الرسائل المقبولة. acceptedCount يعني القبول وليس التسليم.",
+  "docs.bulkBody":
+    "يقبل POST /bulk-jobs الحقول channel وsenderId وmode بقيمة SHARED أو PERSONALIZED وitems ومحتوى القناة. الحد الأقصى 1000 صف و2 ميجابايت. يقبل /bulk-jobs/csv نص CSV خاماً مع channel وmode وsenderId في الاستعلام. أعمدة SMS: recipient,body؛ البريد: recipient,subject,body؛ واتساب: recipient,template_key,language,variables بصيغة JSON. اقرأ المهمة أو /items?page=1&pageSize=20 بحد أقصى 100، أو /results لتنزيل CSV منقح. يلغي POST /:jobId/cancel الصفوف المؤهلة وليس الرسائل المقبولة. acceptedCount يعني القبول وليس التسليم.",
   "docs.templates": "القوالب",
-  "docs.templatesBody": "تستخدم طلبات الأنظمة محتوى صريحاً لـ SMS والبريد. تستخدم إدارة القوالب القابلة لإعادة الاستخدام وعرضها واجهات Bearer البشرية. يتطلب واتساب اعتماداً حديثاً متزامناً من المزود؛ المسودات وبيانات المراجعات لا تمنح اعتماداً. تكامل مراجعات معاملات واتساب غير مكتمل.",
+  "docs.templatesBody":
+    "تستخدم طلبات الأنظمة محتوى صريحاً لـ SMS والبريد. تستخدم إدارة القوالب القابلة لإعادة الاستخدام وعرضها واجهات Bearer البشرية. يتطلب واتساب اعتماداً حديثاً متزامناً من المزود؛ المسودات وبيانات المراجعات لا تمنح اعتماداً. تكامل مراجعات معاملات واتساب غير مكتمل.",
   "docs.status": "حالة الرسالة",
-  "docs.statusBody": "تتضمن الاستجابة id وstatus وchannel وacceptedAt وqueuedAt القابل للقيمة null. الحالات: ACCEPTED وQUEUED وDISPATCHING وSUBMITTED وFAILED وUNKNOWN. تعني SUBMITTED التسليم للمزود وليس وصول الرسالة. تتطلب UNKNOWN تسوية دون إعادة عمياء. استقبال إشعارات المزود والتحقق الشامل من خطافات العملاء غير مكتمل.",
+  "docs.statusBody":
+    "تتضمن الاستجابة id وstatus وchannel وacceptedAt وqueuedAt القابل للقيمة null. الحالات: ACCEPTED وQUEUED وDISPATCHING وSUBMITTED وFAILED وUNKNOWN. تعني SUBMITTED التسليم للمزود وليس وصول الرسالة. تتطلب UNKNOWN تسوية دون إعادة عمياء. استقبال إشعارات المزود والتحقق الشامل من خطافات العملاء غير مكتمل.",
   "docs.webhooks": "خطافات الويب",
-  "docs.webhooksBody": "تستخدم إدارة الخطافات Bearer تحت /applications/:applicationId/webhooks. حقول الإنشاء والتعديل: url وeventTypes وdescription الاختياري. يُعرض سر التوقيع مرة واحدة عند الإنشاء أو التدوير. سجل المحاولات مقسم لصفحات. يضع ping حدث endpoint.ping في الطابور ولا يثبت التسليم. عند تفعيل النقل تحقق من X-Dolf-Signature بصيغة sha256=<hex HMAC-SHA256(secret, X-Dolf-Timestamp + \".\" + raw body)> بمقارنة ثابتة الزمن. طبّق سياسة حداثة الطابع الزمني وامنع التكرار باستخدام X-Dolf-Event-Id. عمال الخطافات منفصلون عن إشعارات المزود والتكامل الكامل معلق.",
+  "docs.webhooksBody":
+    'تستخدم إدارة الخطافات Bearer تحت /applications/:applicationId/webhooks. حقول الإنشاء والتعديل: url وeventTypes وdescription الاختياري. يُعرض سر التوقيع مرة واحدة عند الإنشاء أو التدوير. سجل المحاولات مقسم لصفحات. يضع ping حدث endpoint.ping في الطابور ولا يثبت التسليم. عند تفعيل النقل تحقق من X-Dolf-Signature بصيغة sha256=<hex HMAC-SHA256(secret, X-Dolf-Timestamp + "." + raw body)> بمقارنة ثابتة الزمن. طبّق سياسة حداثة الطابع الزمني وامنع التكرار باستخدام X-Dolf-Event-Id. عمال الخطافات منفصلون عن إشعارات المزود والتكامل الكامل معلق.',
   "docs.errors": "الأخطاء",
-  "docs.errorsBody": "تتضمن الأخطاء statusCode وerror وmessage كنص أو مصفوفة وpath وtimestamp وcorrelationId. احتفظ بمعرّف التتبع للدعم. تعامل مع 400 للتحقق و401 للمصادقة و403 للصلاحيات و404 لعدم العثور ضمن النطاق و409 للتعارض. احترم استجابة البوابة 429 ولا تُعد أخطاء التحقق والصلاحيات دون تصحيح.",
+  "docs.errorsBody":
+    "تتضمن الأخطاء statusCode وerror وmessage كنص أو مصفوفة وpath وtimestamp وcorrelationId. احتفظ بمعرّف التتبع للدعم. تعامل مع 400 للتحقق و401 للمصادقة و403 للصلاحيات و404 لعدم العثور ضمن النطاق و409 للتعارض. احترم استجابة البوابة 429 ولا تُعد أخطاء التحقق والصلاحيات دون تصحيح.",
   "docs.idempotency": "عدم التكرار",
-  "docs.idempotencyBody": "يتطلب إنشاء الرسائل والمهام Idempotency-Key بطول 16 إلى 128 من الحروف الإنجليزية والأرقام والنقطة والشرطة السفلية والنقطتين والشرطة. المفتاح ضمن نطاق التطبيق. يعيد الطلب المطابق القبول الأصلي ويؤدي المحتوى المختلف بنفس المفتاح إلى تعارض. احتفظ بالمفتاح والمحتوى بعد فشل شبكة مبهم.",
+  "docs.idempotencyBody":
+    "يتطلب إنشاء الرسائل والمهام Idempotency-Key بطول 16 إلى 128 من الحروف الإنجليزية والأرقام والنقطة والشرطة السفلية والنقطتين والشرطة. المفتاح ضمن نطاق التطبيق. يعيد الطلب المطابق القبول الأصلي ويؤدي المحتوى المختلف بنفس المفتاح إلى تعارض. احتفظ بالمفتاح والمحتوى بعد فشل شبكة مبهم.",
   "docs.illustrative": "مثال مطابق لبنية العقد بمعرّفات بديلة؛ لا تُرسل الصفحة أي طلب.",
 
   "common.save": "حفظ التغييرات",
@@ -1960,8 +2103,10 @@ export const ar: Record<MessageKey, string> = {
   "users.descending": "تنازلي",
   "users.switchToAscending": "الترتيب تصاعديًا",
   "users.switchToDescending": "الترتيب تنازليًا",
-  "users.sso": "تُدار المصادقة عبر خدمة الهوية في دولف كونكت. إنشاء سجل مستخدم محلي لا ينشئ حساب هوية.",
-  "users.createdLocal": "تم إنشاء سجل المستخدم للبريد {email}. يجب إعداد حساب الدخول بشكل منفصل؛ لم تُرسل رسالة دعوة.",
+  "users.sso":
+    "تُدار المصادقة عبر خدمة الهوية في دولف كونكت. إنشاء سجل مستخدم محلي لا ينشئ حساب هوية.",
+  "users.createdLocal":
+    "تم إنشاء سجل المستخدم للبريد {email}. يجب إعداد حساب الدخول بشكل منفصل؛ لم تُرسل رسالة دعوة.",
   "users.createError": "تعذر إنشاء سجل المستخدم المحلي.",
   "users.duplicateEmail": "يوجد مستخدم بهذا البريد الإلكتروني بالفعل. استخدم عنوانًا آخر.",
   "users.createRejected": "تحقق من بيانات المستخدم وحاول مرة أخرى.",
@@ -2004,9 +2149,11 @@ export const ar: Record<MessageKey, string> = {
   "users.activateTitle": "هل تريد تفعيل هذا المستخدم؟",
   "users.activateBody": "سيُسمح لـ {name} بتسجيل الدخول إذا كان حساب الهوية مرتبطًا.",
   "users.suspendTitle": "هل تريد إيقاف هذا المستخدم مؤقتًا؟",
-  "users.suspendBody": "سيفقد {name} إمكانية الوصول حتى إعادة تفعيله، مع الاحتفاظ بسجل نشاطه للتدقيق.",
+  "users.suspendBody":
+    "سيفقد {name} إمكانية الوصول حتى إعادة تفعيله، مع الاحتفاظ بسجل نشاطه للتدقيق.",
   "users.disableTitle": "هل تريد تعطيل هذا المستخدم؟",
-  "users.disableBody": "سيفقد {name} إمكانية الوصول حتى إعادة تفعيله، مع الاحتفاظ بسجل نشاطه للتدقيق.",
+  "users.disableBody":
+    "سيفقد {name} إمكانية الوصول حتى إعادة تفعيله، مع الاحتفاظ بسجل نشاطه للتدقيق.",
   "users.statusActionError": "تعذر إكمال تغيير الحالة.",
   "users.on": "مفعّل",
   "users.off": "غير مفعّل",
@@ -2044,7 +2191,8 @@ export const ar: Record<MessageKey, string> = {
   "plans.monthly": "الحصة الشهرية",
   "plans.new": "باقة جديدة",
   "plans.createTitle": "إنشاء باقة",
-  "plans.createDescription": "حدد حدود القنوات الافتراضية والمعدل والسياسة والميزات للاشتراكات الجديدة.",
+  "plans.createDescription":
+    "حدد حدود القنوات الافتراضية والمعدل والسياسة والميزات للاشتراكات الجديدة.",
   "plans.details": "تفاصيل الباقة",
   "plans.code": "رمز الباقة",
   "plans.name": "اسم الباقة",
@@ -2068,7 +2216,8 @@ export const ar: Record<MessageKey, string> = {
   "plans.limits": "الحدود",
   "plans.noFeatures": "لا توجد ميزات إضافية مفعّلة.",
   "plans.codeImmutable": "لا يمكن تغيير رمز الباقة بعد إنشائها.",
-  "plans.activeEditNotice": "تُحدّث التغييرات القيم الافتراضية للخطة. راجع اشتراكات العملاء الحالية بشكل منفصل، فقد تكون لها حدود خاصة.",
+  "plans.activeEditNotice":
+    "تُحدّث التغييرات القيم الافتراضية للخطة. راجع اشتراكات العملاء الحالية بشكل منفصل، فقد تكون لها حدود خاصة.",
   "plans.invalidTps": "أدخل عددًا صحيحًا أكبر من صفر.",
   "plans.invalidQuota": "يجب أن تكون حصص القنوات المفعّلة أعدادًا صحيحة غير سالبة.",
   "plans.loadError": "تعذر تحميل الباقات.",
@@ -2082,7 +2231,8 @@ export const ar: Record<MessageKey, string> = {
   "plans.partialSaveTitle": "توقف الحفظ قبل تطبيق جميع التغييرات.",
   "plans.partialSaveFailureReason": "السبب: {message}",
   "plans.partialSaveFailed": "فشل التحديث.",
-  "plans.partialSaveRefreshed": "تم جلب أحدث بيانات الباقة. القيم الحالية أدناه من الخادم؛ تطابق القيمة وحده لا يثبت تطبيق الطلب الذي فشل.",
+  "plans.partialSaveRefreshed":
+    "تم جلب أحدث بيانات الباقة. القيم الحالية أدناه من الخادم؛ تطابق القيمة وحده لا يثبت تطبيق الطلب الذي فشل.",
   "plans.partialSaveAcknowledged": "القيم التي أكّدتها استجابات الطلبات الناجحة وقت الاستجابة:",
   "plans.partialSaveCurrentValues": "القيم الحالية في الخادم للحقول التي جرت محاولة تحديثها:",
   "plans.partialSaveRemaining": "الاختلافات المتبقية بين الخادم ومسودتك:",
@@ -2092,7 +2242,8 @@ export const ar: Record<MessageKey, string> = {
   "plans.partialSaveUseServer": "استخدام قيم الخادم للتعارضات",
   "plans.partialSaveKeepDraft": "الاحتفاظ بقيم مسودتي وإعادة المحاولة",
   "plans.partialSaveArchived": "تمت أرشفة هذه الباقة ولا يمكن تعديلها.",
-  "plans.partialSaveRefreshRequired": "تعذر تأكيد أحدث حالة للخادم. لا يمكن إعادة المحاولة قبل تحديث بيانات الباقة.",
+  "plans.partialSaveRefreshRequired":
+    "تعذر تأكيد أحدث حالة للخادم. لا يمكن إعادة المحاولة قبل تحديث بيانات الباقة.",
   "plans.partialSaveRefresh": "تحديث الباقة",
   "plans.partialSaveRefreshing": "جارٍ تحديث الباقة…",
   "plans.partialRefreshFailed": "تعذر تحديث الباقة. سيظل الحفظ محظورًا؛ حاول التحديث مرة أخرى.",
@@ -2102,19 +2253,23 @@ export const ar: Record<MessageKey, string> = {
   "plans.archived": "تمت أرشفة الباقة.",
   "plans.statusChanged": "تم تحديث حالة الباقة.",
   "plans.statusValidationError": "حالة الباقة المطلوبة غير صالحة.",
-  "plans.statusConflict": "تعذر تغيير حالة الباقة بسبب تعارض حالتها الحالية أو اشتراكاتها مع هذا الانتقال.",
+  "plans.statusConflict":
+    "تعذر تغيير حالة الباقة بسبب تعارض حالتها الحالية أو اشتراكاتها مع هذا الانتقال.",
   "plans.statusError": "تعذر تغيير حالة الباقة. تحقق من أحدث حالة للباقة ثم حاول مرة أخرى.",
-    "plans.editTitle": "تعديل الباقة",
-    "plans.editDescription": "حدّث القيم الافتراضية للاشتراكات الجديدة. تبقى قيم الاشتراكات الحالية منفصلة.",
-    "plans.activate": "تفعيل الباقة",
-    "plans.setInactive": "تعيين كغير نشطة",
-    "plans.archive": "أرشفة الباقة",
-    "plans.archiveTitle": "أرشفة هذه الباقة؟",
-    "plans.archiveBody": "ستصبح {name} للقراءة فقط وغير متاحة للاشتراكات الجديدة. تبقى الاشتراكات الحالية وبيانات العملاء التاريخية دون تغيير.",
-    "plans.statusTitle": "تغيير حالة الباقة؟",
-    "plans.statusBody": "يغيّر هذا الإجراء الإتاحة للاشتراكات الجديدة فقط. تبقى الاشتراكات الحالية وقيمها الفعلية دون تغيير.",
-    "status.inactive": "غير نشطة",
-    "status.archived": "مؤرشفة",
+  "plans.editTitle": "تعديل الباقة",
+  "plans.editDescription":
+    "حدّث القيم الافتراضية للاشتراكات الجديدة. تبقى قيم الاشتراكات الحالية منفصلة.",
+  "plans.activate": "تفعيل الباقة",
+  "plans.setInactive": "تعيين كغير نشطة",
+  "plans.archive": "أرشفة الباقة",
+  "plans.archiveTitle": "أرشفة هذه الباقة؟",
+  "plans.archiveBody":
+    "ستصبح {name} للقراءة فقط وغير متاحة للاشتراكات الجديدة. تبقى الاشتراكات الحالية وبيانات العملاء التاريخية دون تغيير.",
+  "plans.statusTitle": "تغيير حالة الباقة؟",
+  "plans.statusBody":
+    "يغيّر هذا الإجراء الإتاحة للاشتراكات الجديدة فقط. تبقى الاشتراكات الحالية وقيمها الفعلية دون تغيير.",
+  "status.inactive": "غير نشطة",
+  "status.archived": "مؤرشفة",
   "ch.title": "القنوات",
   "ch.subtitle": "توفر القنوات على مستوى المنصة وتغطية المزودين.",
   "ch.providers": "المزودون",
@@ -2159,14 +2314,16 @@ export const ar: Record<MessageKey, string> = {
   "rt.providerUnavailable": "غير متاح — يتطلب التصحيح",
   "rt.providerWrongChannel": "قناة غير مطابقة — يتطلب التصحيح",
   "rt.selectProvider": "اختر اتصال المزود",
-  "rt.staleProviderCorrection": "تشير هذه القاعدة إلى اتصال معطل أو غير متاح أو بقناة غير مطابقة. اختر مزودًا مؤهلًا أو أزل الاحتياطي قبل الحفظ.",
+  "rt.staleProviderCorrection":
+    "تشير هذه القاعدة إلى اتصال معطل أو غير متاح أو بقناة غير مطابقة. اختر مزودًا مؤهلًا أو أزل الاحتياطي قبل الحفظ.",
   "rt.retry": "سياسة إعادة المحاولة",
   "rt.retryAttempts": "عدد محاولات الإعادة",
   "rt.retryInterval": "الفاصل بين المحاولات (ثوانٍ)",
   "rt.retrySummary": "الملخص: {summary}",
   "rt.duplicateCondition": "توجد قاعدة بهذا الشرط والقناة بالفعل.",
   "rt.priorityConflict": "تستخدم قاعدة متداخلة هذه الأولوية بالفعل. اختر أولوية أخرى.",
-  "rt.noFailoverProvider": "لا يوجد مزود آخر مفعّل لهذه القناة. يمكن ترك التحويل الاحتياطي على لا شيء.",
+  "rt.noFailoverProvider":
+    "لا يوجد مزود آخر مفعّل لهذه القناة. يمكن ترك التحويل الاحتياطي على لا شيء.",
   "rt.add": "إنشاء قاعدة توجيه",
   "rt.edit": "تعديل قاعدة التوجيه",
   "rt.formDescription": "اختر مسار مزود مفعّلًا وحدد أولويته وسلوك إعادة المحاولة.",
@@ -2178,7 +2335,8 @@ export const ar: Record<MessageKey, string> = {
   "rt.disable": "تعطيل القاعدة",
   "rt.statusChanged": "تم تحديث حالة قاعدة التوجيه.",
   "rt.confirmTitle": "تأكيد تغيير التوجيه",
-  "rt.confirmBody": "قد يؤدي حفظ هذه القاعدة إلى تغيير مسار الرسائل. راجع أولوية المزود والمسار الاحتياطي لـ {name}.",
+  "rt.confirmBody":
+    "قد يؤدي حفظ هذه القاعدة إلى تغيير مسار الرسائل. راجع أولوية المزود والمسار الاحتياطي لـ {name}.",
   "rt.confirmStatus": "قد يؤثر تغيير حالة {name} في مسارات التسليم. أكد الأثر التشغيلي.",
   "apc.title": "عملاء API",
   "apc.subtitle": "العملاء الآليون المسجلون لدى جميع العملاء.",
@@ -2194,7 +2352,8 @@ export const ar: Record<MessageKey, string> = {
   "cfg.subtitle": "معاملات التشغيل على مستوى المنصة.",
   "cfg.key": "المعامل",
   "cfg.readOnly": "عرض للقراءة فقط. تتم التغييرات عبر إجراءات إدارة التغيير في المنصة.",
-  "cfg.manageNotice": "عدّل المعاملات الحالية ضمن مجموعاتها. تتطلب القيم التشغيلية الحساسة تأكيدًا.",
+  "cfg.manageNotice":
+    "عدّل المعاملات الحالية ضمن مجموعاتها. تتطلب القيم التشغيلية الحساسة تأكيدًا.",
   "cfg.editTitle": "تعديل معامل الإعداد",
   "cfg.saved": "تم تحديث الإعداد.",
   "cfg.saveError": "تعذر حفظ قيمة الإعداد.",
@@ -2204,11 +2363,14 @@ export const ar: Record<MessageKey, string> = {
   "mode.mockBanner": "بوابة محاكاة. هذه الجلسة غير متصلة بمحرك دولف كونكت.",
   "mode.liveBanner": "تسجيل دخول مباشر. شاشات العمل غير متصلة بالمحرك في هذه المرحلة.",
   "auth.organizationSignIn": "المتابعة إلى تسجيل الدخول المؤسسي",
-  "auth.organizationSignInDescription": "ينقلك دولف كونكت إلى مزود الهوية في منظمتك. هذه البوابة لا تجمع كلمة المرور.",
-  "auth.profileForbidden": "نجح تسجيل الدخول، لكن هذا الحساب غير مصرح له باستخدام البوابة. اطلب من المسؤول التحقق من ملف المستخدم في دولف كونكت.",
+  "auth.organizationSignInDescription":
+    "ينقلك دولف كونكت إلى مزود الهوية في منظمتك. هذه البوابة لا تجمع كلمة المرور.",
+  "auth.profileForbidden":
+    "نجح تسجيل الدخول، لكن هذا الحساب غير مصرح له باستخدام البوابة. اطلب من المسؤول التحقق من ملف المستخدم في دولف كونكت.",
   "auth.profileError": "تعذر على البوابة تحميل ملفك. لم يُمنح أي وصول.",
   "auth.configurationTitle": "تسجيل الدخول المباشر غير مهيأ",
-  "auth.configurationBody": "الإعدادات العامة المطلوبة ناقصة أو غير صالحة. لا تُستخدم بيانات المحاكاة.",
+  "auth.configurationBody":
+    "الإعدادات العامة المطلوبة ناقصة أو غير صالحة. لا تُستخدم بيانات المحاكاة.",
   "auth.callbackWorking": "جارٍ إكمال تسجيل الدخول المؤسسي…",
   "auth.correlation": "المرجع {id}",
   "providerAccounts.transport": "بروتوكول المزوّد",

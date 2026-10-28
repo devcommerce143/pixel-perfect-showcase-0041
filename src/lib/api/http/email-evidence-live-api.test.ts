@@ -54,12 +54,44 @@ describe("reviewed email evidence live contracts", () => {
     for (const value of [0, 1.5, 1e12])
       assert.throws(() => emailEvidencePath(actor, tenant, id, value));
   });
+  it("accepts plain and legacy references, trims whitespace and preserves history", () => {
+    for (const reference of [
+      "EMAIL-READINESS-2026-10-27",
+      "review:EMAIL-READINESS-2026-10-27",
+      "ticket:INC-123",
+      "change:CHG-123",
+    ]) {
+      assert.equal(
+        emailEvidenceBody({ ...input, evidenceReference: `  ${reference}  ` }).evidenceReference,
+        reference,
+      );
+      assert.equal(
+        mapEmailEvidencePage(
+          { ...page, items: [{ ...item, evidenceReference: reference }] },
+          tenant,
+          id,
+          1,
+          ).items[0]?.evidenceReference,
+        reference,
+      );
+    }
+    for (const reference of [
+      "",
+      "  ",
+      "x".repeat(65),
+      "review:" + "x".repeat(65),
+      "a/b",
+      "a:b",
+      "a\nB",
+    ])
+      assert.throws(() => emailEvidenceBody({ ...input, evidenceReference: reference }));
+  });
   it("projects only reviewed fields and preserves the frozen expected state and revision", () => {
     assert.deepEqual(
       emailEvidenceBody({ ...input, rawEvidence: "secret" } as EmailEvidenceInput),
       input,
     );
-    for (const reference of ["https://private.test?token=secret", "review:has space", "raw-token"])
+    for (const reference of ["https://private.test?token=secret", "review:has space"])
       assert.throws(() => emailEvidenceBody({ ...input, evidenceReference: reference }));
     assert.throws(() => emailEvidenceBody({ ...input, expectedRevision: -1 }));
     assert.throws(() =>

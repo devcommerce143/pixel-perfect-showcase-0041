@@ -244,6 +244,29 @@ describe("live dashboard client", () => {
     );
   });
 
+  it("reads a selected tenant quota through the platform-authorized endpoint", async () => {
+    const tenantId = "11111111-1111-4111-8111-111111111111";
+    let requested = "";
+    const reading = { used: 4, committed: 3, reserved: 1, ceiling: 20, band: "NONE", overage: 0 };
+    const api = createLiveApi({
+      apiBaseUrl: base,
+      getAccessToken: () => token,
+      fetchImpl: async (input, init) => {
+        requested = String(input);
+        assert.equal(init?.method, "GET");
+        assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer ${token}`);
+        return new Response(JSON.stringify({ scope: "tenant", tenantId, periodStart: "2026-10-01", configured: true, policy: "SOFT_CAP", policySource: "subscription", aggregate: reading, channels: [{ channel: "EMAIL", enabled: true, ...reading }] }));
+      },
+    });
+    const quota = await api.getDashboardQuota(tenantId);
+    assert.equal(new URL(requested).pathname, `/api/v1/tenants/${tenantId}/dashboard/quota`);
+    assert.equal(quota.scope, "tenant");
+    if (quota.scope === "tenant") {
+      assert.equal(quota.policySource, "subscription");
+      assert.equal(quota.channels[0]?.ceiling, 20);
+    }
+  });
+
   it("surfaces a dashboard message API error", async () => {
     const api = createLiveApi({
       apiBaseUrl: base,

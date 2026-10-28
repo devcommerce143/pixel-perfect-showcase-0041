@@ -1,4 +1,17 @@
+import {
+  deliveryDispatchControlPath,
+  deliveryDispatchChangeBody,
+  mapDeliveryDispatchControl,
+  mapDeliveryDispatchChange,
+} from "../delivery-dispatch-control.ts";
 import { senderMutationRequest, mapSenderMutation } from "./sender-mutation-mapper.ts";
+import { smsAutomationPath, smsAutomationBody, mapSmsAutomation } from "../sms-automation.ts";
+import {
+  smsDispatchControlPath,
+  smsDispatchChangeBody,
+  mapSmsDispatchControl,
+  mapSmsDispatchChange,
+} from "../sms-dispatch-control.ts";
 import { mapNotificationPage, mapNotificationRead, mapNotificationsReadAll, notificationId, notificationPageNumber } from '../notifications.ts';
 import {
   contentTemplateScope,
@@ -430,6 +443,57 @@ export function createLiveApi(options: {
       if (property === "getSmsPilotControl")
         return async (...[actor]: Parameters<DolfConnectApi["getSmsPilotControl"]>) =>
           mapSmsPilotControl(await http.get(smsPilotControlPath(actor)));
+      if (property === "getSmsAutomation")
+        return async (actor: Parameters<DolfConnectApi["getSmsAutomation"]>[0], tenant: string) =>
+          mapSmsAutomation(await http.get(smsAutomationPath(actor, tenant)));
+      if (property === "updateSmsAutomation")
+        return async (
+          ...[actor, tenant, input]: Parameters<DolfConnectApi["updateSmsAutomation"]>
+        ) => {
+          const result = (await http.put(
+            smsAutomationPath(actor, tenant),
+            smsAutomationBody(input),
+          )) as { revision?: unknown };
+          if (
+            !result ||
+            !Number.isSafeInteger(result.revision) ||
+            (result.revision as number) !== input.expectedRevision + 1
+          )
+            throw new Error("Invalid automation response");
+          return { revision: result.revision as number };
+        };
+      if (property === "getDeliveryDispatchControl")
+        return async (
+          ...[actor, channel]: Parameters<DolfConnectApi["getDeliveryDispatchControl"]>
+        ) =>
+          mapDeliveryDispatchControl(await http.get(deliveryDispatchControlPath(actor, channel)));
+      if (property === "updateDeliveryDispatchControl")
+        return async (
+          ...[actor, channel, enabled, revision, confirmed]: Parameters<
+            DolfConnectApi["updateDeliveryDispatchControl"]
+          >
+        ) =>
+          mapDeliveryDispatchChange(
+            await http.put(
+              deliveryDispatchControlPath(actor, channel),
+              deliveryDispatchChangeBody(enabled, revision, confirmed),
+            ),
+          );
+      if (property === "getSmsDispatchControl")
+        return async (actor: Parameters<DolfConnectApi["getSmsDispatchControl"]>[0]) =>
+          mapSmsDispatchControl(await http.get(smsDispatchControlPath(actor)));
+      if (property === "updateSmsDispatchControl")
+        return async (
+          ...[actor, enabled, revision, confirmed]: Parameters<
+            DolfConnectApi["updateSmsDispatchControl"]
+          >
+        ) =>
+          mapSmsDispatchChange(
+            await http.put(
+              smsDispatchControlPath(actor),
+              smsDispatchChangeBody(enabled, revision, confirmed),
+            ),
+          );
       if (property === "listProviderMonitoring")
         return async (...[actor, query]: Parameters<DolfConnectApi["listProviderMonitoring"]>) =>
           mapProviderHealthPage(await http.get(providerMonitorPath(actor, query)), query);
@@ -755,7 +819,9 @@ export function createLiveApi(options: {
         return async () => mapDashboardMessages(await http.get("/dashboard/messages"));
       }
       if (property === "getDashboardQuota") {
-        return async () => mapDashboardQuota(await http.get("/dashboard/quota"));
+        return async (tenantId?: string) => mapDashboardQuota(await http.get(
+          tenantId ? `/tenants/${encodeURIComponent(tenantId)}/dashboard/quota` : "/dashboard/quota",
+        ));
       }
       if (property === "listSenderIdentityReadPage") {
         return async (

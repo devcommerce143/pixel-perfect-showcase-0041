@@ -8,7 +8,16 @@ import { ar } from "../i18n/ar.ts";
 
 it("validates every event and provides deliberate English/Arabic copy", () => {
   for (const kind of NOTIFICATION_KINDS) {
-    const context = kind === "QUOTA_THRESHOLD" ? { threshold: 80 } : {};
+    const context =
+      kind === "QUOTA_THRESHOLD"
+        ? { threshold: 80 }
+        : ["SENDER_VERIFICATION_REQUESTED", "SENDER_SUSPENDED"].includes(kind)
+          ? {
+              senderId: "11111111-1111-4111-8111-111111111111",
+              targetTenantId: "22222222-2222-4222-8222-222222222222",
+              channel: "SMS",
+            }
+          : {};
     const event = validateNotification(kind, context);
     for (const dictionary of [en, ar]) {
       assert.ok(dictionary[notificationCopy[event.kind].title]);
@@ -40,4 +49,18 @@ it("rejects unknown kinds, raw payloads, credentials, invalid context and traili
     assert.throws(() => validateNotification("MESSAGE_FAILED", context));
   assert.throws(() => validateNotification("QUOTA_THRESHOLD", {}));
   assert.throws(() => validateNotification("ACCESS_CHANGED", { channel: "SMS" }));
+  const reference = {
+    senderId: "11111111-1111-4111-8111-111111111111",
+    targetTenantId: "22222222-2222-4222-8222-222222222222",
+    channel: "SMS",
+  };
+  for (const kind of ["SENDER_VERIFICATION_REQUESTED", "SENDER_SUSPENDED"]) {
+    assert.throws(() => validateNotification(kind, {}));
+    assert.throws(() =>
+      validateNotification(kind, { ...reference, senderId: reference.senderId + "\n" }),
+    );
+    assert.throws(() => validateNotification(kind, { ...reference, evidence: "private" }));
+    assert.throws(() => validateNotification(kind, { senderId: reference.senderId }));
+  }
+  assert.throws(() => validateNotification("MESSAGE_FAILED", reference));
 });

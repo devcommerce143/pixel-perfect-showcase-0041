@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { EntityName } from "./EntityName";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSession } from "@/lib/auth/session";
@@ -135,6 +137,29 @@ function PersonalNotifications({ actor }: { actor: SenderIdentityActor }) {
                   <p className="line-clamp-2 break-words text-sm text-muted-foreground">
                     {t(notificationCopy[item.kind].body)}
                   </p>
+                  {item.context?.senderId && item.context.targetTenantId && (
+                    <div className="space-y-1 text-sm">
+                      <p className="break-words">
+                        <EntityName kind="tenant" id={item.context.targetTenantId} />
+                        {" · "}
+                        <EntityName
+                          kind="sender"
+                          id={item.context.senderId}
+                          tenantId={item.context.targetTenantId}
+                        />
+                      </p>
+                      <Link
+                        className="inline-block underline"
+                        to="/sender-identities"
+                        search={{
+                          senderId: item.context.senderId,
+                          tenantId: item.context.targetTenantId,
+                        }}
+                      >
+                        {t("notifications.viewSender")}
+                      </Link>
+                    </div>
+                  )}
                   <time className="block text-xs text-muted-foreground" dateTime={item.createdAt}>
                     {formatDateTime(item.createdAt, locale)}
                   </time>

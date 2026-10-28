@@ -1,4 +1,5 @@
 import { MessageAlert } from "@/components/app/MessageAlert";
+import { TenantSmsAutomation } from "@/components/app/TenantSmsAutomation";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -1687,6 +1688,12 @@ function Tenants() {
                     </Button>
                   </div>
                 )}
+                {apiMode === "live" &&
+                  selectedTenantId &&
+                  tenantDetailQuery.data &&
+                  can("platform.tenants.manage") && (
+                    <TenantSmsAutomation key={selectedTenantId} tenantId={selectedTenantId} />
+                  )}
               {selectedTenantId && tenantDetailQuery.data && can("platform.tenants.manage") && <div className="border-t pt-4">
                 <Button variant="outline" onClick={() => {
                   const tenant = tenantDetailQuery.data;

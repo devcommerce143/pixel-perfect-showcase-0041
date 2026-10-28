@@ -1,0 +1,20 @@
+# Allow only application build inputs; no developer configuration, Git or output.
+**
+!package.json
+!package-lock.json
+!vite.config.ts
+!tsconfig.json
+!src/
+!src/**
+!public/
+!public/**
+# Defense in depth for accidentally placed secrets inside allowed directories.
+**/.env
+**/.env.*
+**/*.local
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.dump
+**/.npmrc

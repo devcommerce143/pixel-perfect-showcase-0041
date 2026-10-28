@@ -42,8 +42,7 @@ export function ConnectLanding({
     <main className="min-h-svh bg-background text-foreground">
       <header className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6 lg:px-10">
         <div className="flex items-center gap-3">
-          <img src="/connect-logo.png" alt="" className="size-10 object-contain" />
-          <span className="text-lg font-semibold tracking-tight">{t("app.name")}</span>
+          <img src="/logo-light.png" alt={t("app.name")} className="h-14 w-48 object-contain sm:h-16 sm:w-56" />
         </div>
         <div className="flex items-center gap-3">
           <Button

@@ -327,13 +327,13 @@ export function createMockApi(): DolfConnectApi {
 
   return {
     async listNotifications(page) {
-      return {items:[],page,pageSize:20,total:0,unreadCount:0};
+      return { items: [], page, pageSize: 20, total: 0, unreadCount: 0 };
     },
     async markNotificationRead() {
-      throw new Error('Notification not found');
+      throw new Error("Notification not found");
     },
     async markAllNotificationsRead() {
-      return {updatedCount:0};
+      return { updatedCount: 0 };
     },
     async getDashboard() {
       await delay();
@@ -343,7 +343,14 @@ export function createMockApi(): DolfConnectApi {
       const pending = sum("pending");
       const total = delivered + failed + pending;
       return {
-        kpis: { total, delivered, failed, pending, deliveryRate: (delivered / total) * 100, totalDeltaPct: 6.4 },
+        kpis: {
+          total,
+          delivered,
+          failed,
+          pending,
+          deliveryRate: (delivered / total) * 100,
+          totalDeltaPct: 6.4,
+        },
         trend: TREND,
         channels: [
           { channel: "sms", count: Math.round(total * 0.54) },
@@ -390,7 +397,9 @@ export function createMockApi(): DolfConnectApi {
       throw new Error("The message history HTTP contract is available in live mode only.");
     },
     async listAllTenantMessageHistory() {
-      throw new Error("The platform-wide message history HTTP contract is available in live mode only.");
+      throw new Error(
+        "The platform-wide message history HTTP contract is available in live mode only.",
+      );
     },
     async getMessageHistory() {
       throw new Error("The message history HTTP contract is available in live mode only.");
@@ -407,17 +416,18 @@ export function createMockApi(): DolfConnectApi {
       const id = `MSG-20261004-${String(seq++).padStart(6, "0")}`;
       const now = new Date().toISOString();
       const application = applications.find((item) => item.id === input.applicationId);
-        if (!application) throw new Error("Application was not found");
-      if (actor.role === "super_admin") throw new Error("Platform administrators cannot send tenant messages");
+      if (!application) throw new Error("Application was not found");
+      if (actor.role === "super_admin")
+        throw new Error("Platform administrators cannot send tenant messages");
       assertTenantAccess(actor, application.tenantId);
       const template = templates.find((item) => item.id === input.templateId);
       const message: Message = {
         id,
         channel: input.channel,
         recipient: input.recipient,
-          tenantId: application.tenantId,
+        tenantId: application.tenantId,
         applicationId: input.applicationId,
-          applicationName: application.name,
+        applicationName: application.name,
         templateName: template?.name ?? null,
         status: "queued",
         createdAt: now,
@@ -430,7 +440,10 @@ export function createMockApi(): DolfConnectApi {
         errorCode: null,
         errorMessage: null,
         preview: input.body,
-        events: [{ status: "accepted", at: now }, { status: "queued", at: now }],
+        events: [
+          { status: "accepted", at: now },
+          { status: "queued", at: now },
+        ],
       };
       messages.unshift(message);
       return { id, status: "accepted" };
@@ -449,13 +462,25 @@ export function createMockApi(): DolfConnectApi {
       );
       const field = p.sortBy ?? "name";
       const direction = p.sortDirection === "desc" ? -1 : 1;
-      rows.sort((a, b) => String(a[field] ?? "").localeCompare(String(b[field] ?? ""), undefined, { numeric: true }) * direction);
+      rows.sort(
+        (a, b) =>
+          String(a[field] ?? "").localeCompare(String(b[field] ?? ""), undefined, {
+            numeric: true,
+          }) * direction,
+      );
       return paginate(rows, { ...p, pageSize: p.pageSize ?? 50 });
     },
     async createTemplate(actor, input) {
       await delay(500);
-      if (actor.role !== "client_admin" || !actor.tenantId) throw new Error("Template creation is not permitted for this actor");
-      if (templates.some((template) => template.name.toLowerCase() === input.name.trim().toLowerCase() && template.channel === input.channel)) {
+      if (actor.role !== "client_admin" || !actor.tenantId)
+        throw new Error("Template creation is not permitted for this actor");
+      if (
+        templates.some(
+          (template) =>
+            template.name.toLowerCase() === input.name.trim().toLowerCase() &&
+            template.channel === input.channel,
+        )
+      ) {
         throw new Error("Template name already exists for this channel");
       }
       const tenantName = tenants.find((tenant) => tenant.id === actor.tenantId)?.name;
@@ -477,8 +502,20 @@ export function createMockApi(): DolfConnectApi {
       if (!template) throw new Error("Template was not found");
       if (!template.tenantId) throw new Error("Template is not available to this actor");
       assertTenantAccess(actor, template.tenantId);
-      if (templates.some((item) => item.id !== id && item.channel === input.channel && item.name.toLowerCase() === input.name.trim().toLowerCase())) throw new Error("Template name already exists for this channel");
-      Object.assign(template, input, { status: input.channel === "whatsapp" ? "pending_approval" : "draft", version: template.version + 1, updatedAt: new Date().toISOString() });
+      if (
+        templates.some(
+          (item) =>
+            item.id !== id &&
+            item.channel === input.channel &&
+            item.name.toLowerCase() === input.name.trim().toLowerCase(),
+        )
+      )
+        throw new Error("Template name already exists for this channel");
+      Object.assign(template, input, {
+        status: input.channel === "whatsapp" ? "pending_approval" : "draft",
+        version: template.version + 1,
+        updatedAt: new Date().toISOString(),
+      });
       return { ...template };
     },
     async submitTemplateForApproval(actor, id) {
@@ -489,7 +526,13 @@ export function createMockApi(): DolfConnectApi {
       assertTenantAccess(actor, template.tenantId);
       const submittedAt = new Date().toISOString();
       template.status = "pending_approval";
-      template.approval = { provider: "Meta Cloud API", status: "pending", submittedAt, reviewedAt: null, rejectionReason: null };
+      template.approval = {
+        provider: "Meta Cloud API",
+        status: "pending",
+        submittedAt,
+        reviewedAt: null,
+        rejectionReason: null,
+      };
       return { ...template };
     },
     async activateTemplate(actor, id) {
@@ -513,24 +556,47 @@ export function createMockApi(): DolfConnectApi {
     async listApplications(actor, tenantId) {
       await delay();
       const tenantScope = authorizedTenantScope(actor, tenantId);
-      return applications.filter((application) => !tenantScope || application.tenantId === tenantScope).map((application) => ({ ...application, channels: [...application.channels], scopes: [...application.scopes] }));
+      return applications
+        .filter((application) => !tenantScope || application.tenantId === tenantScope)
+        .map((application) => ({
+          ...application,
+          channels: [...application.channels],
+          scopes: [...application.scopes],
+        }));
     },
     async listApplicationsPage(actor, query: ApplicationListQuery) {
       await delay();
       const tenantScope = authorizedTenantScope(actor, query.filters?.tenantId);
-      const rows = applications.filter((application) =>
-        (!tenantScope || application.tenantId === tenantScope) &&
-        (!query.filters?.status || query.filters.status === "all" || application.status === query.filters.status) &&
-        has(query.search, application.name, application.id, application.tenantName ?? application.tenantId),
+      const rows = applications.filter(
+        (application) =>
+          (!tenantScope || application.tenantId === tenantScope) &&
+          (!query.filters?.status ||
+            query.filters.status === "all" ||
+            application.status === query.filters.status) &&
+          has(
+            query.search,
+            application.name,
+            application.id,
+            application.tenantName ?? application.tenantId,
+          ),
       );
       const direction = query.sortDirection === "desc" ? -1 : 1;
       rows.sort((a, b) => {
         const field = query.sortBy ?? "name";
-        const aValue = field === "name" || field === "status" ? a[field] : a[field] ?? "";
-        const bValue = field === "name" || field === "status" ? b[field] : b[field] ?? "";
-        return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction;
+        const aValue = field === "name" || field === "status" ? a[field] : (a[field] ?? "");
+        const bValue = field === "name" || field === "status" ? b[field] : (b[field] ?? "");
+        return (
+          String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction
+        );
       });
-      return paginate(rows.map((application) => ({ ...application, channels: [...application.channels], scopes: [...application.scopes] })), query);
+      return paginate(
+        rows.map((application) => ({
+          ...application,
+          channels: [...application.channels],
+          scopes: [...application.scopes],
+        })),
+        query,
+      );
     },
     async listAllTenantApplications(actor, query) {
       if (actor.role !== "super_admin") {
@@ -553,7 +619,11 @@ export function createMockApi(): DolfConnectApi {
     async createApplication(actor, input) {
       await delay(500);
       assertTenantAccess(actor, input.tenantId);
-      if (applications.some((application) => application.name.toLowerCase() === input.name.trim().toLowerCase())) {
+      if (
+        applications.some(
+          (application) => application.name.toLowerCase() === input.name.trim().toLowerCase(),
+        )
+      ) {
         throw new Error("Application name already exists");
       }
       const now = new Date().toISOString();
@@ -566,46 +636,78 @@ export function createMockApi(): DolfConnectApi {
         lastActivityAt: now,
       };
       applications.push(application);
-      return { ...application, channels: [...application.channels], scopes: [...application.scopes] };
+      return {
+        ...application,
+        channels: [...application.channels],
+        scopes: [...application.scopes],
+      };
     },
     async updateApplication(actor, id, input) {
       await delay(450);
       const application = applications.find((item) => item.id === id);
       if (!application) throw new Error("Application was not found");
       assertTenantAccess(actor, application.tenantId);
-      if (applications.some((item) => item.id !== id && item.name.toLowerCase() === input.name.trim().toLowerCase())) throw new Error("Application name already exists");
-      Object.assign(application, input, { channels: [...input.channels], scopes: [...input.scopes] });
-      return { ...application, channels: [...application.channels], scopes: [...application.scopes] };
+      if (
+        applications.some(
+          (item) => item.id !== id && item.name.toLowerCase() === input.name.trim().toLowerCase(),
+        )
+      )
+        throw new Error("Application name already exists");
+      Object.assign(application, input, {
+        channels: [...input.channels],
+        scopes: [...input.scopes],
+      });
+      return {
+        ...application,
+        channels: [...application.channels],
+        scopes: [...application.scopes],
+      };
     },
     async setApplicationStatus(actor, id, status) {
       await delay(300);
       const application = applications.find((item) => item.id === id);
-      if (application) { assertTenantAccess(actor, application.tenantId); application.status = status; }
+      if (application) {
+        assertTenantAccess(actor, application.tenantId);
+        application.status = status;
+      }
     },
     async listCredentials(actor, query: ApiCredentialListQuery) {
       await delay();
       const tenantScope = authorizedTenantScope(actor, query.filters?.tenantId);
-      const rows = credentials.filter((credential) =>
-        (!tenantScope || credential.tenantId === tenantScope) &&
-        (!query.filters?.applicationId || credential.applicationId === query.filters.applicationId) &&
-        (!query.filters?.status || query.filters.status === "all" || credential.status === query.filters.status) &&
-        has(query.search, credential.clientId, credential.applicationName, credential.id),
+      const rows = credentials.filter(
+        (credential) =>
+          (!tenantScope || credential.tenantId === tenantScope) &&
+          (!query.filters?.applicationId ||
+            credential.applicationId === query.filters.applicationId) &&
+          (!query.filters?.status ||
+            query.filters.status === "all" ||
+            credential.status === query.filters.status) &&
+          has(query.search, credential.clientId, credential.applicationName, credential.id),
       );
       const direction = query.sortDirection === "asc" ? 1 : -1;
       rows.sort((a, b) => {
         const field = query.sortBy ?? "createdAt";
         const aValue = a[field] ?? "";
         const bValue = b[field] ?? "";
-        return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction;
+        return (
+          String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction
+        );
       });
-      return paginate(rows.map((credential) => ({ ...credential, scopes: [...credential.scopes] })), query);
+      return paginate(
+        rows.map((credential) => ({ ...credential, scopes: [...credential.scopes] })),
+        query,
+      );
     },
     async createCredential(actor, input) {
       await delay(500);
       const application = applications.find((item) => item.id === input.applicationId);
-      if (!application || application.status !== "active") throw new Error("Application is unavailable");
+      if (!application || application.status !== "active")
+        throw new Error("Application is unavailable");
       assertTenantAccess(actor, application.tenantId);
-      if (!input.scopes.length || input.scopes.some((scope) => !application.scopes.includes(scope))) {
+      if (
+        !input.scopes.length ||
+        input.scopes.some((scope) => !application.scopes.includes(scope))
+      ) {
         throw new Error("Credential scopes exceed application permissions");
       }
       const secret = `dck_live_${crypto.randomUUID().replaceAll("-", "")}`;
@@ -614,7 +716,7 @@ export function createMockApi(): DolfConnectApi {
       const credential: ApiCredential = {
         id: `CRD-${String(credentialSeq++).padStart(5, "0")}`,
         tenantId: application.tenantId,
-          ...(tenantName ? { tenantName } : {}),
+        ...(tenantName ? { tenantName } : {}),
         applicationId: application.id,
         applicationName: application.name,
         clientId: `dc-${application.id.toLowerCase()}-${credentialSeq}`,
@@ -623,7 +725,10 @@ export function createMockApi(): DolfConnectApi {
         status: "active",
         scopes: [...input.scopes],
         createdAt: now.toISOString(),
-        expiresAt: input.expiresAt === undefined ? new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString() : input.expiresAt,
+        expiresAt:
+          input.expiresAt === undefined
+            ? new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString()
+            : input.expiresAt,
         lastUsedAt: null,
         rateLimit: input.rateLimit ?? null,
       };
@@ -660,21 +765,33 @@ export function createMockApi(): DolfConnectApi {
     async revokeCredential(actor, id) {
       await delay(400);
       const c = credentials.find((x) => x.id === id);
-      if (c) { assertTenantAccess(actor, c.tenantId); c.status = "revoked"; }
+      if (c) {
+        assertTenantAccess(actor, c.tenantId);
+        c.status = "revoked";
+      }
     },
     async listAuditEvents(p, actor) {
       await delay();
       const tenantScope = authorizedTenantScope(actor, p.tenantId);
       const rows = auditEvents.filter(
-        (a) => (!tenantScope || a.tenantId === tenantScope) && (!p.status || p.status === "all" || a.result === p.status) && has(p.search, a.actor, a.action, a.resource),
+        (a) =>
+          (!tenantScope || a.tenantId === tenantScope) &&
+          (!p.status || p.status === "all" || a.result === p.status) &&
+          has(p.search, a.actor, a.action, a.resource),
       );
       const enrichedRows = rows.map((event) => {
-        const tenantName = event.tenantId ? tenants.find((tenant) => tenant.id === event.tenantId)?.name : undefined;
+        const tenantName = event.tenantId
+          ? tenants.find((tenant) => tenant.id === event.tenantId)?.name
+          : undefined;
         return { ...event, ...(tenantName ? { tenantName } : {}) };
       });
       return paginate(enrichedRows, p);
     },
-    async getUsage(actor, tenantId?: string, tableQuery?: TenantUsageTableQuery): Promise<UsageSummary> {
+    async getUsage(
+      actor,
+      tenantId?: string,
+      tableQuery?: TenantUsageTableQuery,
+    ): Promise<UsageSummary> {
       await delay();
       const tenantScope = authorizedTenantScope(actor, tenantId);
       const visibleTenants = tenants.filter((tenant) => {
@@ -686,18 +803,43 @@ export function createMockApi(): DolfConnectApi {
         const usagePercent = Math.max(0, Math.min(100, tenant.quotaPct));
         const entitlements = resolveEntitlements(tenant);
         const plan = planForTenant(tenant);
-        const channels = PLAN_CHANNELS
-          .filter((channel) => entitlements.channels[channel].enabled)
-          .map((channel) => ({ channel, used: Math.round(entitlements.channels[channel].monthly * usagePercent / 100), limit: entitlements.channels[channel].monthly }));
+        const channels = PLAN_CHANNELS.filter(
+          (channel) => entitlements.channels[channel].enabled,
+        ).map((channel) => ({
+          channel,
+          used: Math.round((entitlements.channels[channel].monthly * usagePercent) / 100),
+          limit: entitlements.channels[channel].monthly,
+        }));
         const used = channels.reduce((total, channel) => total + channel.used, 0);
         const limit = channels.reduce((total, channel) => total + channel.limit, 0);
-        const actualPercent = limit ? used / limit * 100 : 0;
-        const status = actualPercent >= 100 ? "at_limit" as const : actualPercent >= 90 ? "warning" as const : actualPercent >= 80 ? "approaching" as const : "normal" as const;
-        const tenantApplications = applications.filter((application) => application.tenantId === tenant.id);
+        const actualPercent = limit ? (used / limit) * 100 : 0;
+        const status =
+          actualPercent >= 100
+            ? ("at_limit" as const)
+            : actualPercent >= 90
+              ? ("warning" as const)
+              : actualPercent >= 80
+                ? ("approaching" as const)
+                : ("normal" as const);
+        const tenantApplications = applications.filter(
+          (application) => application.tenantId === tenant.id,
+        );
         const applicationUsage = tenantApplications.map((application) => ({
           applicationId: application.id,
           applicationName: application.name,
-          channels: channels.filter((channel) => application.channels.includes(channel.channel)).map((channel) => ({ channel: channel.channel, used: Math.round(channel.used / Math.max(1, tenantApplications.filter((item) => item.channels.includes(channel.channel)).length)) })),
+          channels: channels
+            .filter((channel) => application.channels.includes(channel.channel))
+            .map((channel) => ({
+              channel: channel.channel,
+              used: Math.round(
+                channel.used /
+                  Math.max(
+                    1,
+                    tenantApplications.filter((item) => item.channels.includes(channel.channel))
+                      .length,
+                  ),
+              ),
+            })),
         }));
         return {
           tenant: {
@@ -713,30 +855,60 @@ export function createMockApi(): DolfConnectApi {
             channels,
             applications: applicationUsage,
           },
-          row: { tenantId: tenant.id, tenantName: tenant.name, plan: plan.name, used, limit, remaining: Math.max(0, limit - used), usagePercent: actualPercent, status, quotaPolicy: entitlements.quotaPolicy },
+          row: {
+            tenantId: tenant.id,
+            tenantName: tenant.name,
+            plan: plan.name,
+            used,
+            limit,
+            remaining: Math.max(0, limit - used),
+            usagePercent: actualPercent,
+            status,
+            quotaPolicy: entitlements.quotaPolicy,
+          },
         };
       });
-      const filtered = summaries.filter(({ row }) =>
-        has(tableQuery?.search, row.tenantName, row.tenantId) &&
-        (!tableQuery?.plan || tableQuery.plan === "all" || row.plan === tableQuery.plan) &&
-        (!tableQuery?.status || tableQuery.status === "all" || row.status === tableQuery.status) &&
-        (!tableQuery?.quotaPolicy || tableQuery.quotaPolicy === "all" || row.quotaPolicy === tableQuery.quotaPolicy),
+      const filtered = summaries.filter(
+        ({ row }) =>
+          has(tableQuery?.search, row.tenantName, row.tenantId) &&
+          (!tableQuery?.plan || tableQuery.plan === "all" || row.plan === tableQuery.plan) &&
+          (!tableQuery?.status ||
+            tableQuery.status === "all" ||
+            row.status === tableQuery.status) &&
+          (!tableQuery?.quotaPolicy ||
+            tableQuery.quotaPolicy === "all" ||
+            row.quotaPolicy === tableQuery.quotaPolicy),
       );
       const sortBy = tableQuery?.sortBy ?? "usagePercent";
       const sortDirection = tableQuery?.sortDirection === "asc" ? 1 : -1;
       filtered.sort((a, b) => {
         const aValue = a.row[sortBy];
         const bValue = b.row[sortBy];
-        return (typeof aValue === "string" ? aValue.localeCompare(String(bValue)) : aValue - Number(bValue)) * sortDirection;
+        return (
+          (typeof aValue === "string"
+            ? aValue.localeCompare(String(bValue))
+            : aValue - Number(bValue)) * sortDirection
+        );
       });
       const page = tableQuery?.page ?? 1;
       const pageSize = tableQuery?.pageSize ?? 10;
-      const tenantTable = paginate(filtered.map(({ row }) => row), { page, pageSize });
+      const tenantTable = paginate(
+        filtered.map(({ row }) => row),
+        { page, pageSize },
+      );
       const tenantSummaries = summaries.map(({ tenant }) => tenant);
       const channelTotals = PLAN_CHANNELS.map((channel) => ({
         channel,
-        used: tenantSummaries.reduce((total, tenant) => total + (tenant.channels.find((item) => item.channel === channel)?.used ?? 0), 0),
-        limit: tenantSummaries.reduce((total, tenant) => total + (tenant.channels.find((item) => item.channel === channel)?.limit ?? 0), 0),
+        used: tenantSummaries.reduce(
+          (total, tenant) =>
+            total + (tenant.channels.find((item) => item.channel === channel)?.used ?? 0),
+          0,
+        ),
+        limit: tenantSummaries.reduce(
+          (total, tenant) =>
+            total + (tenant.channels.find((item) => item.channel === channel)?.limit ?? 0),
+          0,
+        ),
       }));
       return {
         periodStart,
@@ -752,13 +924,41 @@ export function createMockApi(): DolfConnectApi {
       const rows = tenants.filter((tenant) => {
         const administrator = users.find((user) => user.id === tenant.primaryAdministratorId);
         const plan = planForTenant(tenant);
-        return (!p.filters?.status || p.filters.status === "all" || tenant.status === p.filters.status) && has(p.search, tenant.name, tenant.id, tenant.code, plan.name, administrator?.name ?? null, administrator?.email ?? null);
+        return (
+          (!p.filters?.status ||
+            p.filters.status === "all" ||
+            tenant.status === p.filters.status) &&
+          has(
+            p.search,
+            tenant.name,
+            tenant.id,
+            tenant.code,
+            plan.name,
+            administrator?.name ?? null,
+            administrator?.email ?? null,
+          )
+        );
       });
       const direction = p.sortDirection === "desc" ? -1 : 1;
       rows.sort((a, b) => {
-        const aValue = p.sortBy === "quotaPct" ? a.quotaPct : p.sortBy === "plan" ? planForTenant(a).name : a[p.sortBy ?? "name"];
-        const bValue = p.sortBy === "quotaPct" ? b.quotaPct : p.sortBy === "plan" ? planForTenant(b).name : b[p.sortBy ?? "name"];
-        return (typeof aValue === "number" ? aValue - Number(bValue) : String(aValue).localeCompare(String(bValue), undefined, { numeric: true })) * direction;
+        const aValue =
+          p.sortBy === "quotaPct"
+            ? a.quotaPct
+            : p.sortBy === "plan"
+              ? planForTenant(a).name
+              : a[p.sortBy ?? "name"];
+        const bValue =
+          p.sortBy === "quotaPct"
+            ? b.quotaPct
+            : p.sortBy === "plan"
+              ? planForTenant(b).name
+              : b[p.sortBy ?? "name"];
+        return (
+          (typeof aValue === "number"
+            ? aValue - Number(bValue)
+            : String(aValue).localeCompare(String(bValue), undefined, { numeric: true })) *
+          direction
+        );
       });
       return paginate(rows.map(directoryItem), p);
     },
@@ -784,13 +984,15 @@ export function createMockApi(): DolfConnectApi {
         throw new Error("At least one tenant profile field is required");
       }
       if (input.name !== undefined) {
-        if (!input.name.trim() || input.name.trim().length > 200) throw new Error("Tenant name is invalid");
+        if (!input.name.trim() || input.name.trim().length > 200)
+          throw new Error("Tenant name is invalid");
         tenant.name = input.name.trim();
       }
       if (input.notes !== undefined) tenant.notes = input.notes?.trim() ?? "";
       if (input.defaultLanguage !== undefined) tenant.defaultLanguage = input.defaultLanguage;
       if (input.timezone !== undefined) {
-        if (!input.timezone.trim() || input.timezone.length > 64) throw new Error("Tenant time zone is invalid");
+        if (!input.timezone.trim() || input.timezone.length > 64)
+          throw new Error("Tenant time zone is invalid");
         tenant.timezone = input.timezone.trim();
       }
       tenant.updatedAt = new Date().toISOString();
@@ -847,10 +1049,14 @@ export function createMockApi(): DolfConnectApi {
         const channelOverride = overrides?.channels?.[channel];
         const quotaSource: EntitlementValueSource = !effective.enabled
           ? "unavailable"
-          : channelOverride?.monthly !== undefined ? "channel" : "plan";
+          : channelOverride?.monthly !== undefined
+            ? "channel"
+            : "plan";
         const tpsSource: EntitlementValueSource = !effective.enabled
           ? "unavailable"
-          : overrides?.tpsLimit !== undefined ? "subscription" : "plan";
+          : overrides?.tpsLimit !== undefined
+            ? "subscription"
+            : "plan";
         return {
           channel,
           enabled: effective.enabled,
@@ -862,17 +1068,20 @@ export function createMockApi(): DolfConnectApi {
         };
       });
       const configured = status === "trial" || status === "active" || status === "pending";
-      const operational = (tenant.status === "trial" || tenant.status === "active") &&
+      const operational =
+        (tenant.status === "trial" || tenant.status === "active") &&
         (status === "trial" || status === "active");
       const channelOverrides = PLAN_CHANNELS.flatMap((channel) => {
         const override = overrides?.channels?.[channel];
         if (!override) return [];
-        return [{
-          channel,
-          enabledOverride: override.enabled ?? null,
-          monthlyQuotaOverride: override.monthly ?? null,
-          tpsOverride: null,
-        }];
+        return [
+          {
+            channel,
+            enabledOverride: override.enabled ?? null,
+            monthlyQuotaOverride: override.monthly ?? null,
+            tpsOverride: null,
+          },
+        ];
       });
       return {
         subscription: {
@@ -941,7 +1150,19 @@ export function createMockApi(): DolfConnectApi {
         defaultLanguage: input.defaultLanguage,
         timezone: input.timezone.trim(),
         notes: input.notes.trim(),
-        subscription: { id: `SUB-${id.slice(-5)}`, planId: plan.id, status: input.status === "trial" ? "trial" : input.status === "inactive" ? "cancelled" : "active", overrides: input.overrides, createdAt: now, updatedAt: now },
+        subscription: {
+          id: `SUB-${id.slice(-5)}`,
+          planId: plan.id,
+          status:
+            input.status === "trial"
+              ? "trial"
+              : input.status === "inactive"
+                ? "cancelled"
+                : "active",
+          overrides: input.overrides,
+          createdAt: now,
+          updatedAt: now,
+        },
         primaryAdministratorId,
         users: 1,
         applications: 0,
@@ -982,9 +1203,25 @@ export function createMockApi(): DolfConnectApi {
       validateTenantInput(input, tenant);
       const previousPlanId = tenant.subscription.planId;
       const previousOverrides = JSON.stringify(tenant.subscription.overrides);
-      if (previousPlanId !== input.planId && tenant.subscription.overrides && input.overrides) throw new Error("Clear tenant overrides before changing plans");
-      Object.assign(tenant, { code: input.code.trim().toUpperCase(), name: input.name.trim(), status: input.status, region: input.region.trim(), dataRegion: input.dataRegion.trim(), defaultLanguage: input.defaultLanguage, timezone: input.timezone.trim(), notes: input.notes.trim(), updatedAt: new Date().toISOString() });
-      tenant.subscription = { ...tenant.subscription, planId: input.planId, overrides: input.overrides, updatedAt: tenant.updatedAt };
+      if (previousPlanId !== input.planId && tenant.subscription.overrides && input.overrides)
+        throw new Error("Clear tenant overrides before changing plans");
+      Object.assign(tenant, {
+        code: input.code.trim().toUpperCase(),
+        name: input.name.trim(),
+        status: input.status,
+        region: input.region.trim(),
+        dataRegion: input.dataRegion.trim(),
+        defaultLanguage: input.defaultLanguage,
+        timezone: input.timezone.trim(),
+        notes: input.notes.trim(),
+        updatedAt: new Date().toISOString(),
+      });
+      tenant.subscription = {
+        ...tenant.subscription,
+        planId: input.planId,
+        overrides: input.overrides,
+        updatedAt: tenant.updatedAt,
+      };
       const administrator = users.find((user) => user.id === tenant.primaryAdministratorId);
       if (!administrator) throw new Error("Primary administrator was not found");
       Object.assign(administrator, {
@@ -1001,7 +1238,8 @@ export function createMockApi(): DolfConnectApi {
       });
       recordTenantAudit(tenant, "tenant.updated");
       if (previousPlanId !== input.planId) recordTenantAudit(tenant, "subscription.plan_changed");
-      if (previousOverrides !== JSON.stringify(input.overrides)) recordTenantAudit(tenant, "tenant.override_changed");
+      if (previousOverrides !== JSON.stringify(input.overrides))
+        recordTenantAudit(tenant, "tenant.override_changed");
       return directoryItem(tenant);
     },
     async setTenantStatus(id, status) {
@@ -1011,23 +1249,44 @@ export function createMockApi(): DolfConnectApi {
       if (!tenant) throw new Error("Tenant was not found");
       tenant.status = status;
       tenant.updatedAt = new Date().toISOString();
-      recordTenantAudit(tenant, status === "suspended" ? "tenant.suspended" : status === "active" ? "tenant.reactivated" : "tenant.status_changed");
+      recordTenantAudit(
+        tenant,
+        status === "suspended"
+          ? "tenant.suspended"
+          : status === "active"
+            ? "tenant.reactivated"
+            : "tenant.status_changed",
+      );
     },
     async listProviders() {
       await delay();
       void BASE_TIME;
       return providers.map((provider) => ({ ...provider }));
-      },
+    },
     async getProviderUsageBilling(actor, providerId): Promise<ProviderUsageBilling | null> {
       await delay();
-      if (actor.role !== "super_admin") throw new Error("Provider usage is not available to this actor");
+      if (actor.role !== "super_admin")
+        throw new Error("Provider usage is not available to this actor");
       const usage = PROVIDER_USAGE_BILLING[providerId];
-      return usage ? { ...usage, ...(usage.categories ? { categories: usage.categories.map((category) => ({ ...category })) } : {}) } : null;
+      return usage
+        ? {
+            ...usage,
+            ...(usage.categories
+              ? { categories: usage.categories.map((category) => ({ ...category })) }
+              : {}),
+          }
+        : null;
     },
     async createProvider(input) {
       await delay(600);
-      if (!adapterHasRequiredValues(input.adapterConfig)) throw new Error("Provider configuration is incomplete");
-      if (providers.some((provider) => provider.name.toLowerCase() === input.name.trim().toLowerCase())) throw new Error("Provider name already exists");
+      if (!adapterHasRequiredValues(input.adapterConfig))
+        throw new Error("Provider configuration is incomplete");
+      if (
+        providers.some(
+          (provider) => provider.name.toLowerCase() === input.name.trim().toLowerCase(),
+        )
+      )
+        throw new Error("Provider name already exists");
       const now = new Date().toISOString();
       const provider: Provider = {
         ...input,
@@ -1041,7 +1300,15 @@ export function createMockApi(): DolfConnectApi {
         successRate: 0,
         checkedAt: now,
         lastConnectionTest: null,
-        health: { reason: "provider_unavailable", lastSuccessfulCheckAt: null, statusSince: now, requests24h: 0, failures24h: 0, lastFailureAt: null, lastFailureReason: null },
+        health: {
+          reason: "provider_unavailable",
+          lastSuccessfulCheckAt: null,
+          statusSince: now,
+          requests24h: 0,
+          failures24h: 0,
+          lastFailureAt: null,
+          lastFailureReason: null,
+        },
       };
       providers.push(provider);
       providerAdapterConfigs.set(provider.id, input.adapterConfig);
@@ -1051,11 +1318,20 @@ export function createMockApi(): DolfConnectApi {
       await delay(500);
       const provider = providers.find((item) => item.id === id);
       if (!provider) throw new Error("Provider was not found");
-      if (providers.some((item) => item.id !== id && item.name.toLowerCase() === input.name.trim().toLowerCase())) throw new Error("Provider name already exists");
+      if (
+        providers.some(
+          (item) => item.id !== id && item.name.toLowerCase() === input.name.trim().toLowerCase(),
+        )
+      )
+        throw new Error("Provider name already exists");
       const sameAdapter = provider.adapterId === input.adapterConfig.adapterId;
       const currentConfig = providerAdapterConfigs.get(id);
-      const adapterConfig = currentConfig && sameAdapter ? mergeAdapterSecrets(currentConfig, input.adapterConfig) : input.adapterConfig;
-      if (!adapterHasRequiredValues(adapterConfig, sameAdapter && provider.secretConfigured)) throw new Error("Provider configuration is incomplete");
+      const adapterConfig =
+        currentConfig && sameAdapter
+          ? mergeAdapterSecrets(currentConfig, input.adapterConfig)
+          : input.adapterConfig;
+      if (!adapterHasRequiredValues(adapterConfig, sameAdapter && provider.secretConfigured))
+        throw new Error("Provider configuration is incomplete");
       Object.assign(provider, {
         name: input.name,
         channel: input.channel,
@@ -1077,23 +1353,30 @@ export function createMockApi(): DolfConnectApi {
       await delay(700);
       const provider = providers.find((item) => item.id === id);
       if (!provider) throw new Error("Provider was not found");
-      const latencyMs = 250 + (provider.name.length * 37) % 500;
+      const latencyMs = 250 + ((provider.name.length * 37) % 500);
       provider.status = provider.enabled ? "healthy" : "unavailable";
       provider.latencyMs = provider.enabled ? latencyMs : 0;
       provider.successRate = provider.enabled ? 99.5 : 0;
       const testedAt = new Date().toISOString();
-      const result = { outcome: provider.enabled ? "success" as const : "provider_unavailable" as const, success: provider.enabled, latencyMs: provider.enabled ? latencyMs : 0, testedAt };
+      const result = {
+        outcome: provider.enabled ? ("success" as const) : ("provider_unavailable" as const),
+        success: provider.enabled,
+        latencyMs: provider.enabled ? latencyMs : 0,
+        testedAt,
+      };
       provider.checkedAt = testedAt;
       provider.lastConnectionTest = result;
       provider.health = {
         ...provider.health,
         reason: provider.enabled ? "operational" : "provider_disabled",
         lastSuccessfulCheckAt: provider.enabled ? testedAt : provider.health.lastSuccessfulCheckAt,
-        statusSince: provider.enabled ? null : provider.health.statusSince ?? testedAt,
+        statusSince: provider.enabled ? null : (provider.health.statusSince ?? testedAt),
         requests24h: provider.health.requests24h + 1,
         failures24h: provider.health.failures24h + (provider.enabled ? 0 : 1),
         lastFailureAt: provider.enabled ? provider.health.lastFailureAt : testedAt,
-        lastFailureReason: provider.enabled ? provider.health.lastFailureReason : "provider_disabled",
+        lastFailureReason: provider.enabled
+          ? provider.health.lastFailureReason
+          : "provider_disabled",
       };
       return result;
     },
@@ -1144,6 +1427,24 @@ export function createMockApi(): DolfConnectApi {
     },
     async getTenantPolicy() {
       throw new Error("Tenant policy reads require live mode");
+    },
+    getSmsAutomation() {
+      return Promise.reject(new Error("Live configuration required"));
+    },
+    updateSmsAutomation() {
+      return Promise.reject(new Error("Live configuration required"));
+    },
+    getDeliveryDispatchControl() {
+      return Promise.reject(new Error("Runtime delivery control is live-only"));
+    },
+    updateDeliveryDispatchControl() {
+      return Promise.reject(new Error("Runtime delivery control is live-only"));
+    },
+    getSmsDispatchControl() {
+      return Promise.reject(new Error("Runtime SMS control is live-only"));
+    },
+    updateSmsDispatchControl() {
+      return Promise.reject(new Error("Runtime SMS control is live-only"));
     },
     async getSmsPilotControl() {
       throw new Error("Pilot control monitoring requires live mode");
@@ -1226,7 +1527,9 @@ export function createMockApi(): DolfConnectApi {
     async recordTemplateEvidence() {
       throw new Error("Registry API requires live mode");
     },
-    async listBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
+    async listBulkJobHistory() {
+      throw new Error("Bulk monitoring is available in live mode only");
+    },
     async cancelHumanBulkJob() {
       throw new Error("Human bulk cancellation is available in live mode only");
     },
@@ -1245,9 +1548,15 @@ export function createMockApi(): DolfConnectApi {
     async renderContentTemplate() {
       throw new Error("Content versions require live API mode");
     },
-    async listAllTenantBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
-    async getBulkJobHistory() { throw new Error("Bulk monitoring is available in live mode only"); },
-    async listBulkJobHistoryItems() { throw new Error("Bulk monitoring is available in live mode only"); },
+    async listAllTenantBulkJobHistory() {
+      throw new Error("Bulk monitoring is available in live mode only");
+    },
+    async getBulkJobHistory() {
+      throw new Error("Bulk monitoring is available in live mode only");
+    },
+    async listBulkJobHistoryItems() {
+      throw new Error("Bulk monitoring is available in live mode only");
+    },
     async listBulkJobs(actor, query) {
       await delay();
 
@@ -1255,12 +1564,28 @@ export function createMockApi(): DolfConnectApi {
       const rows = bulkJobs
         .filter((job) => {
           if (actor.role !== "super_admin" && job.tenantId !== actor.tenantId) return false;
-          if (actor.role === "super_admin" && tenantScopedId && job.tenantId !== tenantScopedId) return false;
-          if (query.filters?.channel && query.filters.channel !== "all" && job.channel !== query.filters.channel) return false;
-          if (query.filters?.status && query.filters.status !== "all" && job.status !== query.filters.status) return false;
+          if (actor.role === "super_admin" && tenantScopedId && job.tenantId !== tenantScopedId)
+            return false;
+          if (
+            query.filters?.channel &&
+            query.filters.channel !== "all" &&
+            job.channel !== query.filters.channel
+          )
+            return false;
+          if (
+            query.filters?.status &&
+            query.filters.status !== "all" &&
+            job.status !== query.filters.status
+          )
+            return false;
           if (query.search) {
             const needle = query.search.toLowerCase();
-            const haystacks = [job.id, job.name, job.applicationName, job.tenantName ?? job.tenantId ?? ""];
+            const haystacks = [
+              job.id,
+              job.name,
+              job.applicationName,
+              job.tenantName ?? job.tenantId ?? "",
+            ];
             if (!haystacks.some((value) => value.toLowerCase().includes(needle))) return false;
           }
           return true;
@@ -1269,10 +1594,17 @@ export function createMockApi(): DolfConnectApi {
           const direction = query.sortDirection === "asc" ? 1 : -1;
           switch (query.sortBy) {
             case "status":
-              return (a.status.localeCompare(b.status) || b.createdAt.localeCompare(a.createdAt)) * direction;
+              return (
+                (a.status.localeCompare(b.status) || b.createdAt.localeCompare(a.createdAt)) *
+                direction
+              );
             case "progress": {
-              const aProgress = a.total ? Math.min(100, ((a.delivered + a.failed + (a.rejected ?? 0)) / a.total) * 100) : 0;
-              const bProgress = b.total ? Math.min(100, ((b.delivered + b.failed + (b.rejected ?? 0)) / b.total) * 100) : 0;
+              const aProgress = a.total
+                ? Math.min(100, ((a.delivered + a.failed + (a.rejected ?? 0)) / a.total) * 100)
+                : 0;
+              const bProgress = b.total
+                ? Math.min(100, ((b.delivered + b.failed + (b.rejected ?? 0)) / b.total) * 100)
+                : 0;
               return (aProgress - bProgress) * direction;
             }
             case "createdAt":
@@ -1298,26 +1630,49 @@ export function createMockApi(): DolfConnectApi {
       const application = applications.find((item) => item.id === applicationId);
       if (!application || !application.channels.includes(channel)) return [];
       if (actor.role !== "super_admin" && application.tenantId !== actor.tenantId) return [];
-      return templates.filter((template) => template.channel === channel && template.tenantId === application.tenantId && (template.status === "active" || template.status === "approved")).map((template) => ({ ...template }));
+      return templates
+        .filter(
+          (template) =>
+            template.channel === channel &&
+            template.tenantId === application.tenantId &&
+            (template.status === "active" || template.status === "approved"),
+        )
+        .map((template) => ({ ...template }));
     },
     async checkBulkSuppression(actor, applicationId, _candidates: BulkSuppressionCandidate[]) {
       await delay();
       const application = applications.find((item) => item.id === applicationId);
-      if (!application || (actor.role !== "super_admin" && application.tenantId !== actor.tenantId)) throw new Error("Application is not available to this actor");
+      if (!application || (actor.role !== "super_admin" && application.tenantId !== actor.tenantId))
+        throw new Error("Application is not available to this actor");
       return [];
     },
     async createBulkJob(actor, input) {
       await delay(800);
       const app = applications.find((a) => a.id === input.applicationId);
-      if (actor.role === "super_admin" || !app || app.tenantId !== actor.tenantId) throw new Error("Bulk job creation is not available to this actor");
+      if (actor.role === "super_admin" || !app || app.tenantId !== actor.tenantId)
+        throw new Error("Bulk job creation is not available to this actor");
       const tpl = templates.find((t) => t.id === input.templateId);
       const tenantName = tenants.find((tenant) => tenant.id === app.tenantId)?.name;
       const job: BulkJob = {
-        id: `BLK-20261003-${String(bulkSeq++).padStart(5, "0")}`, name: input.name, channel: input.channel,
-        tenantId: app.tenantId, ...(tenantName ? { tenantName } : {}),
-        applicationId: input.applicationId, senderIdentityId: input.senderIdentityId, templateId: input.templateId,
-        applicationName: app.name, templateName: tpl?.name ?? null, status: "queued" as const,
-        total: input.recipients, delivered: 0, failed: 0, pending: input.recipients, rejected: 0, results: [], createdAt: new Date().toISOString(), createdBy: "You",
+        id: `BLK-20261003-${String(bulkSeq++).padStart(5, "0")}`,
+        name: input.name,
+        channel: input.channel,
+        tenantId: app.tenantId,
+        ...(tenantName ? { tenantName } : {}),
+        applicationId: input.applicationId,
+        senderIdentityId: input.senderIdentityId,
+        templateId: input.templateId,
+        applicationName: app.name,
+        templateName: tpl?.name ?? null,
+        status: "queued" as const,
+        total: input.recipients,
+        delivered: 0,
+        failed: 0,
+        pending: input.recipients,
+        rejected: 0,
+        results: [],
+        createdAt: new Date().toISOString(),
+        createdBy: "You",
       };
       bulkJobs.push(job);
       const recipientRows = input.recipientRows ?? [];
@@ -1327,8 +1682,22 @@ export function createMockApi(): DolfConnectApi {
       setTimeout(() => {
         const results = recipientRows.map(({ recipient }) => {
           const score = [...recipient].reduce((sum, char) => sum + char.charCodeAt(0), 0);
-          const status = score % 23 === 0 ? "rejected" as const : score % 11 === 0 ? "failed" as const : "delivered" as const;
-          return { recipient, status, errorMessage: status === "failed" ? "Simulated delivery failure" : status === "rejected" ? "Simulated policy rejection" : null };
+          const status =
+            score % 23 === 0
+              ? ("rejected" as const)
+              : score % 11 === 0
+                ? ("failed" as const)
+                : ("delivered" as const);
+          return {
+            recipient,
+            status,
+            errorMessage:
+              status === "failed"
+                ? "Simulated delivery failure"
+                : status === "rejected"
+                  ? "Simulated policy rejection"
+                  : null,
+          };
         });
         job.results = results;
         job.delivered = results.filter((result) => result.status === "delivered").length;
@@ -1342,22 +1711,43 @@ export function createMockApi(): DolfConnectApi {
     },
     async listWebhooks() {
       await delay();
-      return webhooks.map((webhook) => ({ ...webhook, events: [...webhook.events], deliveries: webhook.deliveries.map((delivery) => ({ ...delivery })) }));
+      return webhooks.map((webhook) => ({
+        ...webhook,
+        events: [...webhook.events],
+        deliveries: webhook.deliveries.map((delivery) => ({ ...delivery })),
+      }));
     },
     async createWebhook(input) {
       await delay(500);
       const signingSecret = `whsec_${crypto.randomUUID().replaceAll("-", "")}`;
-      const webhook: Webhook = { ...input, id: `WHK-00${31 + webhooks.length}`, status: "active", signingConfigured: true, lastDeliveryAt: null, successRate: 100, deliveries: [] };
+      const webhook: Webhook = {
+        ...input,
+        id: `WHK-00${31 + webhooks.length}`,
+        status: "active",
+        signingConfigured: true,
+        lastDeliveryAt: null,
+        successRate: 100,
+        deliveries: [],
+      };
       webhooks.push(webhook);
-      return { webhook: { ...webhook, events: [...webhook.events], deliveries: [] }, signingSecret };
+      return {
+        webhook: { ...webhook, events: [...webhook.events], deliveries: [] },
+        signingSecret,
+      };
     },
     async updateWebhook(id, input) {
       await delay(400);
       const webhook = webhooks.find((item) => item.id === id);
       if (!webhook) throw new Error("Webhook was not found");
       const { signingSecret, ...config } = input;
-      Object.assign(webhook, config, { signingConfigured: webhook.signingConfigured || !!signingSecret?.trim() });
-      return { ...webhook, events: [...webhook.events], deliveries: webhook.deliveries.map((delivery) => ({ ...delivery })) };
+      Object.assign(webhook, config, {
+        signingConfigured: webhook.signingConfigured || !!signingSecret?.trim(),
+      });
+      return {
+        ...webhook,
+        events: [...webhook.events],
+        deliveries: webhook.deliveries.map((delivery) => ({ ...delivery })),
+      };
     },
     async setWebhookStatus(id, status) {
       await delay(300);
@@ -1373,7 +1763,14 @@ export function createMockApi(): DolfConnectApi {
       await delay(600);
       const webhook = webhooks.find((item) => item.id === id);
       if (!webhook || webhook.status !== "active") throw new Error("Webhook is not active");
-      const delivery: WebhookDelivery = { id: `DLV-${Date.now()}`, event: "message.delivered", at: new Date().toISOString(), result: "success", statusCode: 200, attempt: 1 };
+      const delivery: WebhookDelivery = {
+        id: `DLV-${Date.now()}`,
+        event: "message.delivered",
+        at: new Date().toISOString(),
+        result: "success",
+        statusCode: 200,
+        attempt: 1,
+      };
       webhook.deliveries.unshift(delivery);
       webhook.lastDeliveryAt = delivery.at;
       webhook.successRate = Math.min(100, webhook.successRate + 0.1);
@@ -1381,13 +1778,16 @@ export function createMockApi(): DolfConnectApi {
     },
     async listUsers(actor, query) {
       await delay();
-      if (actor.role !== "super_admin" && actor.role !== "client_admin") throw new Error("User list access is not permitted for this actor");
-      if (actor.role === "client_admin" && !actor.tenantId) throw new Error("Tenant context is required to view users");
+      if (actor.role !== "super_admin" && actor.role !== "client_admin")
+        throw new Error("User list access is not permitted for this actor");
+      if (actor.role === "client_admin" && !actor.tenantId)
+        throw new Error("Tenant context is required to view users");
 
       const tenantScopedId = authorizedTenantScope(actor, query.filters?.tenantId);
       const rows = users
         .filter((user) => {
-          if (actor.role === "super_admin") return !tenantScopedId || user.tenantId === tenantScopedId;
+          if (actor.role === "super_admin")
+            return !tenantScopedId || user.tenantId === tenantScopedId;
           return user.tenantId === actor.tenantId;
         })
         .map((user) => ({
@@ -1396,7 +1796,10 @@ export function createMockApi(): DolfConnectApi {
         }));
 
       const filtered = rows.filter((user) => {
-        const statusMatches = !query.filters?.status || query.filters.status === "all" || user.status === query.filters.status;
+        const statusMatches =
+          !query.filters?.status ||
+          query.filters.status === "all" ||
+          user.status === query.filters.status;
         const tenantMatches = !query.filters?.tenantId || user.tenantId === query.filters.tenantId;
         const searchMatches = hasAllTerms(
           query.search?.trim(),
@@ -1406,7 +1809,7 @@ export function createMockApi(): DolfConnectApi {
           user.firstNameArabic ?? "",
           user.lastNameArabic ?? "",
           user.email,
-          actor.role === "super_admin" && !tenantScopedId ? user.tenantName ?? "" : "",
+          actor.role === "super_admin" && !tenantScopedId ? (user.tenantName ?? "") : "",
         );
         return statusMatches && tenantMatches && searchMatches;
       });
@@ -1417,11 +1820,20 @@ export function createMockApi(): DolfConnectApi {
     },
     async inviteUser(actor, input, targetTenantId) {
       await delay(500);
-      if (actor.role !== "super_admin" && actor.role !== "client_admin") throw new Error("User invitation is not permitted");
+      if (actor.role !== "super_admin" && actor.role !== "client_admin")
+        throw new Error("User invitation is not permitted");
       const tenantId = targetTenantId ?? actor.tenantId;
       if (!tenantId) throw new Error("Tenant context is required to invite users");
-      if (actor.role === "client_admin" && !actor.tenantId) throw new Error("Tenant context is required to invite users");
-      if (actor.role === "super_admin" && !tenants.some((tenant) => tenant.id === tenantId && (tenant.status === "active" || tenant.status === "trial"))) throw new Error("Tenant is not available for invitations");
+      if (actor.role === "client_admin" && !actor.tenantId)
+        throw new Error("Tenant context is required to invite users");
+      if (
+        actor.role === "super_admin" &&
+        !tenants.some(
+          (tenant) =>
+            tenant.id === tenantId && (tenant.status === "active" || tenant.status === "trial"),
+        )
+      )
+        throw new Error("Tenant is not available for invitations");
       const u = {
         ...input,
         id: `usr-0${170 + users.length}`,
@@ -1479,7 +1891,9 @@ export function createMockApi(): DolfConnectApi {
     async getReport(actor, tenantId) {
       await delay();
       const tenantScope = authorizedTenantScope(actor, tenantId);
-      const reportMessages = messages.filter((message) => !tenantScope || message.tenantId === tenantScope);
+      const reportMessages = messages.filter(
+        (message) => !tenantScope || message.tenantId === tenantScope,
+      );
       const byStatus = new Map<MessageStatus, number>();
       const byApp = new Map<string, { count: number; failed: number }>();
       for (const m of reportMessages) {
@@ -1490,20 +1904,42 @@ export function createMockApi(): DolfConnectApi {
         byApp.set(m.applicationName, a);
       }
       return {
-        byStatus: [...byStatus].map(([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count),
-        byApplication: [...byApp].map(([applicationName, v]) => ({ applicationName, ...v })).sort((a, b) => b.count - a.count),
+        byStatus: [...byStatus]
+          .map(([status, count]) => ({ status, count }))
+          .sort((a, b) => b.count - a.count),
+        byApplication: [...byApp]
+          .map(([applicationName, v]) => ({ applicationName, ...v }))
+          .sort((a, b) => b.count - a.count),
         sampleSize: reportMessages.length,
-        trend: tenantScope ? TREND.map((point) => {
-          const dayMessages = reportMessages.filter((message) => message.createdAt.slice(0, 10) === point.date);
-          const delivered = dayMessages.filter((message) => ["sent", "delivered", "read"].includes(message.status)).length;
-          const failed = dayMessages.filter((message) => message.status === "failed" || message.status === "rejected").length;
-          return { date: point.date, delivered, failed, pending: dayMessages.length - delivered - failed };
-        }) : TREND,
+        trend: tenantScope
+          ? TREND.map((point) => {
+              const dayMessages = reportMessages.filter(
+                (message) => message.createdAt.slice(0, 10) === point.date,
+              );
+              const delivered = dayMessages.filter((message) =>
+                ["sent", "delivered", "read"].includes(message.status),
+              ).length;
+              const failed = dayMessages.filter(
+                (message) => message.status === "failed" || message.status === "rejected",
+              ).length;
+              return {
+                date: point.date,
+                delivered,
+                failed,
+                pending: dayMessages.length - delivered - failed,
+              };
+            })
+          : TREND,
       };
     },
     async listPlans(query?: PlanListQuery) {
       await delay();
-      const rows = plans.map((plan) => ({ ...plan, tenants: tenants.filter((tenant) => tenant.subscription.planId === plan.id).length, entitlements: plan.entitlements.map((e) => ({ ...e })), features: [...plan.features] }));
+      const rows = plans.map((plan) => ({
+        ...plan,
+        tenants: tenants.filter((tenant) => tenant.subscription.planId === plan.id).length,
+        entitlements: plan.entitlements.map((e) => ({ ...e })),
+        features: [...plan.features],
+      }));
       return slicePlanPage(rows, query);
     },
     async getPlan(id) {
@@ -1523,9 +1959,19 @@ export function createMockApi(): DolfConnectApi {
       if (plans.some((plan) => plan.code.toLowerCase() === input.code.toLowerCase())) {
         throw new Error("Plan code already exists");
       }
-      const plan = { ...input, entitlements: input.entitlements.map((item) => ({ ...item })), features: [...input.features], id: `PLN-${String(planSeq++).padStart(4, "0")}`, tenants: 0 };
+      const plan = {
+        ...input,
+        entitlements: input.entitlements.map((item) => ({ ...item })),
+        features: [...input.features],
+        id: `PLN-${String(planSeq++).padStart(4, "0")}`,
+        tenants: 0,
+      };
       plans.push(plan);
-      return { ...plan, entitlements: plan.entitlements.map((e) => ({ ...e })), features: [...plan.features] };
+      return {
+        ...plan,
+        entitlements: plan.entitlements.map((e) => ({ ...e })),
+        features: [...plan.features],
+      };
     },
     async updatePlan(id, input) {
       await delay(450);
@@ -1534,9 +1980,19 @@ export function createMockApi(): DolfConnectApi {
       if (plan.status === "archived") throw new Error("Archived plans are read-only");
       validatePlanInput(input);
       if (input.code !== plan.code) throw new Error("Plan code cannot be changed after creation");
-      if (plans.some((item) => item.id !== id && item.code.toLowerCase() === input.code.toLowerCase())) throw new Error("Plan code already exists");
-      Object.assign(plan, input, { entitlements: input.entitlements.map((item) => ({ ...item })), features: [...input.features] });
-      return { ...plan, entitlements: plan.entitlements.map((item) => ({ ...item })), features: [...plan.features] };
+      if (
+        plans.some((item) => item.id !== id && item.code.toLowerCase() === input.code.toLowerCase())
+      )
+        throw new Error("Plan code already exists");
+      Object.assign(plan, input, {
+        entitlements: input.entitlements.map((item) => ({ ...item })),
+        features: [...input.features],
+      });
+      return {
+        ...plan,
+        entitlements: plan.entitlements.map((item) => ({ ...item })),
+        features: [...plan.features],
+      };
     },
     async setPlanStatus(id, status) {
       await delay(350);
@@ -1556,7 +2012,9 @@ export function createMockApi(): DolfConnectApi {
     },
     async listRoutingRules() {
       await delay();
-      return [...routingRules].sort((a, b) => a.channel.localeCompare(b.channel) || a.priority - b.priority).map((rule) => ({ ...rule }));
+      return [...routingRules]
+        .sort((a, b) => a.channel.localeCompare(b.channel) || a.priority - b.priority)
+        .map((rule) => ({ ...rule }));
     },
     async createRoutingRule(input) {
       await delay(500);
@@ -1578,24 +2036,32 @@ export function createMockApi(): DolfConnectApi {
     },
     async listPlatformClients(p, actor) {
       await delay();
-      if (actor.role !== "super_admin") throw new Error("API Client monitoring is restricted to platform administrators");
+      if (actor.role !== "super_admin")
+        throw new Error("API Client monitoring is restricted to platform administrators");
       const tenantScope = authorizedTenantScope(actor, p.filters?.tenantId);
       const rows = platformClients.filter(
-        (c) => (!tenantScope || c.tenantId === tenantScope) && (!p.filters?.status || p.filters.status === "all" || c.status === p.filters.status) && has(p.search, c.clientId, c.tenantName),
+        (c) =>
+          (!tenantScope || c.tenantId === tenantScope) &&
+          (!p.filters?.status || p.filters.status === "all" || c.status === p.filters.status) &&
+          has(p.search, c.clientId, c.tenantName),
       );
       const direction = p.sortDirection === "desc" ? -1 : 1;
       rows.sort((a, b) => {
         const field = p.sortBy ?? "clientId";
         const aValue = a[field] ?? "";
         const bValue = b[field] ?? "";
-        return String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction;
+        return (
+          String(aValue).localeCompare(String(bValue), undefined, { numeric: true }) * direction
+        );
       });
       return paginate(rows, p);
     },
     async updatePlatformClient(actor, id, rateLimit) {
       await delay(400);
-      if (actor.role !== "super_admin") throw new Error("API Client management is restricted to platform administrators");
-      if (!Number.isFinite(rateLimit) || rateLimit < 1) throw new Error("Rate limit must be a positive number");
+      if (actor.role !== "super_admin")
+        throw new Error("API Client management is restricted to platform administrators");
+      if (!Number.isFinite(rateLimit) || rateLimit < 1)
+        throw new Error("Rate limit must be a positive number");
       const client = platformClients.find((item) => item.id === id);
       if (!client) throw new Error("API client was not found");
       assertTenantAccess(actor, client.tenantId);
@@ -1604,26 +2070,52 @@ export function createMockApi(): DolfConnectApi {
     },
     async setPlatformClientStatus(actor, id, status) {
       await delay(350);
-      if (actor.role !== "super_admin") throw new Error("API Client management is restricted to platform administrators");
+      if (actor.role !== "super_admin")
+        throw new Error("API Client management is restricted to platform administrators");
       const client = platformClients.find((item) => item.id === id);
-      if (client) { assertTenantAccess(actor, client.tenantId); client.status = status; }
+      if (client) {
+        assertTenantAccess(actor, client.tenantId);
+        client.status = status;
+      }
     },
     async listSenderIdentities(actor, query: SenderIdentityListQuery) {
       await delay();
       const requestedTenant = authorizedTenantScope(actor, query.filters?.tenantId);
       const rows = senderIdentities
-        .filter((identity) => actor.role === "super_admin" ? !requestedTenant || identity.tenantId === requestedTenant : identity.tenantId === actor.tenantId)
         .filter((identity) =>
-          (!query.filters?.channel || query.filters.channel === "all" || identity.channel === query.filters.channel) &&
-          (!query.filters?.verificationStatus || query.filters.verificationStatus === "all" || identity.verificationStatus === query.filters.verificationStatus) &&
-          (!query.filters?.operationalStatus || query.filters.operationalStatus === "all" || identity.operationalStatus === query.filters.operationalStatus) &&
-          has(query.search, identity.id, identity.identityValue, identity.displayName, tenants.find((tenant) => tenant.id === identity.tenantId)?.name ?? identity.tenantId),
+          actor.role === "super_admin"
+            ? !requestedTenant || identity.tenantId === requestedTenant
+            : identity.tenantId === actor.tenantId,
+        )
+        .filter(
+          (identity) =>
+            (!query.filters?.channel ||
+              query.filters.channel === "all" ||
+              identity.channel === query.filters.channel) &&
+            (!query.filters?.verificationStatus ||
+              query.filters.verificationStatus === "all" ||
+              identity.verificationStatus === query.filters.verificationStatus) &&
+            (!query.filters?.operationalStatus ||
+              query.filters.operationalStatus === "all" ||
+              identity.operationalStatus === query.filters.operationalStatus) &&
+            has(
+              query.search,
+              identity.id,
+              identity.identityValue,
+              identity.displayName,
+              tenants.find((tenant) => tenant.id === identity.tenantId)?.name ?? identity.tenantId,
+            ),
         );
       const direction = query.sortDirection === "asc" ? 1 : -1;
       rows.sort((a, b) => {
         const field = query.sortBy ?? "updatedAt";
-        const value = (identity: SenderIdentity) => field === "tenantName" ? tenants.find((tenant) => tenant.id === identity.tenantId)?.name ?? identity.tenantId : identity[field];
-        return String(value(a)).localeCompare(String(value(b)), undefined, { numeric: true }) * direction;
+        const value = (identity: SenderIdentity) =>
+          field === "tenantName"
+            ? (tenants.find((tenant) => tenant.id === identity.tenantId)?.name ?? identity.tenantId)
+            : identity[field];
+        return (
+          String(value(a)).localeCompare(String(value(b)), undefined, { numeric: true }) * direction
+        );
       });
       return paginate(rows.map(cloneSenderIdentity), query);
     },
@@ -1639,21 +2131,35 @@ export function createMockApi(): DolfConnectApi {
     async getSenderIdentity(actor, id) {
       await delay();
       const identity = senderIdentities.find((item) => item.id === id);
-      if (!identity || (actor.role !== "super_admin" && identity.tenantId !== actor.tenantId) || (actor.role === "super_admin" && actor.tenantId && identity.tenantId !== actor.tenantId)) return null;
+      if (
+        !identity ||
+        (actor.role !== "super_admin" && identity.tenantId !== actor.tenantId) ||
+        (actor.role === "super_admin" && actor.tenantId && identity.tenantId !== actor.tenantId)
+      )
+        return null;
       return cloneSenderIdentity(identity);
     },
     async listSendableSenderIdentities(actor, applicationId, channel) {
       await delay();
       const application = applications.find((item) => item.id === applicationId);
-      if (!application || (actor.role !== "super_admin" && application.tenantId !== actor.tenantId)) return [];
+      if (!application || (actor.role !== "super_admin" && application.tenantId !== actor.tenantId))
+        return [];
       return senderIdentities
-        .filter((identity) => identity.tenantId === application.tenantId && identity.channel === channel && identity.verificationStatus === "verified" && identity.operationalStatus === "active" && (!application.senderIdentityIds || application.senderIdentityIds.includes(identity.id)))
+        .filter(
+          (identity) =>
+            identity.tenantId === application.tenantId &&
+            identity.channel === channel &&
+            identity.verificationStatus === "verified" &&
+            identity.operationalStatus === "active" &&
+            (!application.senderIdentityIds || application.senderIdentityIds.includes(identity.id)),
+        )
         .map(cloneSenderIdentity);
     },
     async createSenderIdentity(actor, input: SenderIdentityInput) {
       await delay(500);
       const tenantId = actor.role === "super_admin" ? input.tenantId : actor.tenantId;
-      if (!tenantId || (actor.role !== "super_admin" && actor.role !== "client_admin")) throw new Error("Tenant context is required to register a sender identity");
+      if (!tenantId || (actor.role !== "super_admin" && actor.role !== "client_admin"))
+        throw new Error("Tenant context is required to register a sender identity");
       assertTenantAccess(actor, tenantId);
       const now = new Date().toISOString();
       const base = {
@@ -1675,69 +2181,156 @@ export function createMockApi(): DolfConnectApi {
         history: [{ action: "created" as const, at: now, actor: actor.name || "You", note: null }],
       };
       let identity: SenderIdentity;
-      if (input.channel === "sms") identity = { ...base, channel: "sms", identityType: "sms_sender_id", identityValue: input.identityValue, displayName: input.displayName, countryMarket: input.countryMarket, providerReference: input.providerReference };
-      else if (input.channel === "whatsapp") identity = { ...base, channel: "whatsapp", identityType: "whatsapp_business_number", identityValue: input.identityValue, displayName: input.displayName, businessDisplayName: input.businessDisplayName, phoneNumber: input.phoneNumber, countryCode: input.countryCode, wabaId: input.wabaId, phoneNumberId: input.phoneNumberId, providerReference: input.providerReference };
-      else identity = { ...base, channel: "email", identityType: "email_domain_sender", identityValue: input.identityValue, displayName: input.displayName, emailAddress: input.emailAddress, domain: input.domain, domainVerificationStatus: "unverified", spfStatus: "missing", dkimStatus: "missing", providerReference: input.providerReference };
+      if (input.channel === "sms")
+        identity = {
+          ...base,
+          channel: "sms",
+          identityType: "sms_sender_id",
+          identityValue: input.identityValue,
+          displayName: input.displayName,
+          countryMarket: input.countryMarket,
+          providerReference: input.providerReference,
+        };
+      else if (input.channel === "whatsapp")
+        identity = {
+          ...base,
+          channel: "whatsapp",
+          identityType: "whatsapp_business_number",
+          identityValue: input.identityValue,
+          displayName: input.displayName,
+          businessDisplayName: input.businessDisplayName,
+          phoneNumber: input.phoneNumber,
+          countryCode: input.countryCode,
+          wabaId: input.wabaId,
+          phoneNumberId: input.phoneNumberId,
+          providerReference: input.providerReference,
+        };
+      else
+        identity = {
+          ...base,
+          channel: "email",
+          identityType: "email_domain_sender",
+          identityValue: input.identityValue,
+          displayName: input.displayName,
+          emailAddress: input.emailAddress,
+          domain: input.domain,
+          domainVerificationStatus: "unverified",
+          spfStatus: "missing",
+          dkimStatus: "missing",
+          providerReference: input.providerReference,
+        };
       senderIdentities.push(identity);
       return cloneSenderIdentity(identity);
     },
     async updateSenderIdentity(actor, id, input: SenderIdentityInput) {
       await delay(400);
       const identity = senderIdentities.find((item) => item.id === id);
-      if (!identity || identity.channel !== input.channel || (actor.role !== "super_admin" && identity.tenantId !== actor.tenantId)) throw new Error("Sender identity is not available to this actor");
+      if (
+        !identity ||
+        identity.channel !== input.channel ||
+        (actor.role !== "super_admin" && identity.tenantId !== actor.tenantId)
+      )
+        throw new Error("Sender identity is not available to this actor");
       const now = new Date().toISOString();
-      Object.assign(identity, input, { tenantId: identity.tenantId, updatedAt: now, history: [...identity.history, { action: "metadata_updated" as const, at: now, actor: actor.name || "You", note: null }] });
+      Object.assign(identity, input, {
+        tenantId: identity.tenantId,
+        updatedAt: now,
+        history: [
+          ...identity.history,
+          { action: "metadata_updated" as const, at: now, actor: actor.name || "You", note: null },
+        ],
+      });
       return cloneSenderIdentity(identity);
     },
     async submitSenderIdentity(actor, id) {
       await delay(350);
       const identity = senderIdentities.find((item) => item.id === id);
-      if (!identity || (actor.role !== "super_admin" && identity.tenantId !== actor.tenantId)) throw new Error("Sender identity is not available to this actor");
+      if (!identity || (actor.role !== "super_admin" && identity.tenantId !== actor.tenantId))
+        throw new Error("Sender identity is not available to this actor");
       const now = new Date().toISOString();
       identity.verificationStatus = "submitted";
       identity.submittedAt = now;
       identity.updatedAt = now;
-      identity.history.push({ action: "submitted", at: now, actor: actor.name || "You", note: null });
+      identity.history.push({
+        action: "submitted",
+        at: now,
+        actor: actor.name || "You",
+        note: null,
+      });
       return cloneSenderIdentity(identity);
     },
     async startSenderIdentityVerification(actor, id) {
       await delay(350);
-      if (actor.role !== "super_admin") throw new Error("Sender identity verification is restricted to platform administrators");
+      if (actor.role !== "super_admin")
+        throw new Error("Sender identity verification is restricted to platform administrators");
       const identity = senderIdentities.find((item) => item.id === id);
       if (!identity) throw new Error("Sender identity was not found");
       const now = new Date().toISOString();
       identity.verificationStatus = "pending_verification";
       identity.verificationStartedAt = now;
       identity.updatedAt = now;
-      identity.history.push({ action: "verification_started", at: now, actor: actor.name || "Platform administrator", note: null });
+      identity.history.push({
+        action: "verification_started",
+        at: now,
+        actor: actor.name || "Platform administrator",
+        note: null,
+      });
       return cloneSenderIdentity(identity);
     },
-    async setSenderIdentityVerification(actor, id, result: { status: Extract<SenderIdentityVerificationStatus, "verified" | "rejected">; reason?: string }) {
+    async setSenderIdentityVerification(
+      actor,
+      id,
+      result: {
+        status: Extract<SenderIdentityVerificationStatus, "verified" | "rejected">;
+        reason?: string;
+      },
+    ) {
       await delay(400);
-      if (actor.role !== "super_admin") throw new Error("Sender identity verification is restricted to platform administrators");
+      if (actor.role !== "super_admin")
+        throw new Error("Sender identity verification is restricted to platform administrators");
       const identity = senderIdentities.find((item) => item.id === id);
       if (!identity) throw new Error("Sender identity was not found");
       const now = new Date().toISOString();
       identity.verificationStatus = result.status;
       identity.verifiedAt = result.status === "verified" ? now : null;
       identity.rejectedAt = result.status === "rejected" ? now : null;
-      identity.rejectionReason = result.status === "rejected" ? result.reason ?? "" : null;
+      identity.rejectionReason = result.status === "rejected" ? (result.reason ?? "") : null;
       identity.updatedAt = now;
-      identity.history.push({ action: result.status, at: now, actor: actor.name || "Platform administrator", note: result.status === "rejected" ? result.reason ?? "" : null });
+      identity.history.push({
+        action: result.status,
+        at: now,
+        actor: actor.name || "Platform administrator",
+        note: result.status === "rejected" ? (result.reason ?? "") : null,
+      });
       return cloneSenderIdentity(identity);
     },
     async setSenderIdentityOperationalStatus(actor, id, action, reason) {
       await delay(350);
-      if (actor.role !== "super_admin") throw new Error("Sender identity operations are restricted to platform administrators");
+      if (actor.role !== "super_admin")
+        throw new Error("Sender identity operations are restricted to platform administrators");
       const identity = senderIdentities.find((item) => item.id === id);
       if (!identity) throw new Error("Sender identity was not found");
-      if (action === "suspend" && !reason?.trim()) throw new Error("A suspension reason is required");
+      if (action === "suspend" && !reason?.trim())
+        throw new Error("A suspension reason is required");
       const now = new Date().toISOString();
       identity.operationalStatus = action === "suspend" ? "suspended" : "active";
-      if (action === "suspend") { identity.suspendedAt = now; identity.suspensionReason = reason!.trim(); }
+      if (action === "suspend") {
+        identity.suspendedAt = now;
+        identity.suspensionReason = reason!.trim();
+      }
       if (action === "activate" || action === "reactivate") identity.activatedAt = now;
       identity.updatedAt = now;
-      identity.history.push({ action: action === "activate" ? "activated" : action === "reactivate" ? "reactivated" : "suspended", at: now, actor: actor.name || "Platform administrator", note: action === "suspend" ? reason!.trim() : null });
+      identity.history.push({
+        action:
+          action === "activate"
+            ? "activated"
+            : action === "reactivate"
+              ? "reactivated"
+              : "suspended",
+        at: now,
+        actor: actor.name || "Platform administrator",
+        note: action === "suspend" ? reason!.trim() : null,
+      });
       return cloneSenderIdentity(identity);
     },
     async listConfig() {

@@ -126,11 +126,7 @@ function LoginPage() {
           <section className="login-visual-panel relative isolate flex flex-col overflow-hidden bg-sidebar p-6 text-sidebar-foreground sm:p-8 lg:justify-between xl:p-10">
             <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(145deg,transparent_15%,oklch(0.24_0.055_245/0.88)_68%,oklch(0.18_0.045_250)),radial-gradient(ellipse_at_82%_8%,oklch(0.36_0.11_245/0.72),transparent_35%)]" aria-hidden="true" />
             <div className="relative z-10 flex items-center gap-3">
-              <img src="/connect-logo.png" alt="" aria-hidden="true" className="size-11 rounded-md bg-white object-contain p-1.5 shadow-panel" />
-              <div className="leading-tight">
-                <div className="text-sm font-semibold text-sidebar-accent-foreground">{t("app.name")}</div>
-                <div className="mt-1 text-xs text-sidebar-muted">{t("app.tagline")}</div>
-              </div>
+              <img src="/logo-light.png" alt={t("app.name")} className="h-16 w-56 max-w-full rounded-md bg-white object-contain shadow-panel" />
             </div>
 
             <div className="relative z-10 mt-7 lg:mt-0">

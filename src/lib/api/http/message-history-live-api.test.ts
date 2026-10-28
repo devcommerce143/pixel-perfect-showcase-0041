@@ -469,3 +469,61 @@ describe("live message history API", () => {
     );
   });
 });
+
+describe("retained detail content contract", () => {
+  for (const channel of ["SMS", "EMAIL", "WHATSAPP"])
+    it(`maps stored ${channel} content and template metadata`, () => {
+      const content = {
+        state: "available",
+        body: channel === "WHATSAPP" ? null : "stored <b>text</b>",
+        subject: channel === "EMAIL" ? "stored subject" : null,
+        templateVariables: channel === "WHATSAPP" ? '{"name":"synthetic"}' : null,
+      };
+      const template =
+        channel === "WHATSAPP" ? { key: "appointment_notice", language: "ar" } : null;
+      const r = mapMessageHistoryDetail({
+        ...detailResponse(),
+        channel,
+        templateId: template ? senderId : null,
+        template,
+        content,
+      });
+      assert.deepEqual(r.content, content);
+      assert.deepEqual(r.template, template);
+    });
+  for (const state of ["purged", "expired", "unavailable"])
+    it(`preserves honest ${state} state and rejects leaked payload`, () => {
+      const content = { state, body: null, subject: null, templateVariables: null };
+      assert.deepEqual(mapMessageHistoryDetail({ ...detailResponse(), content }).content, content);
+      assert.throws(() =>
+        mapMessageHistoryDetail({ ...detailResponse(), content: { ...content, body: "private" } }),
+      );
+    });
+  it("keeps no-template and unresolved-template records distinct", () => {
+    assert.equal(mapMessageHistoryDetail({ ...detailResponse(), template: null }).templateId, null);
+    const missing = mapMessageHistoryDetail({
+      ...detailResponse(),
+      templateId: senderId,
+      template: null,
+    });
+    assert.equal(missing.templateId, senderId);
+    assert.equal(missing.template, null);
+  });
+});
+
+it("maps reusable room100 version provenance separately from WhatsApp registry IDs", () => {
+  const r = mapMessageHistoryDetail({
+    ...detailResponse(),
+    templateId: null,
+    contentTemplateId: senderId,
+    template: { key: "room100", language: "en", version: 1 },
+  });
+  assert.equal(r.contentTemplateId, senderId);
+  assert.deepEqual(r.template, { key: "room100", language: "en", version: 1 });
+  assert.throws(() =>
+    mapMessageHistoryDetail({
+      ...detailResponse(),
+      template: { key: "room100", language: "en", version: 0 },
+    }),
+  );
+});

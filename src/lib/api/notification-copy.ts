@@ -29,6 +29,14 @@ export const notificationCopy = {
     title: "notifications.senderApprovedTitle",
     body: "notifications.senderApprovedBody",
   },
+  SENDER_VERIFICATION_REQUESTED: {
+    title: "notifications.senderRequestedTitle",
+    body: "notifications.senderRequestedBody",
+  },
+  SENDER_SUSPENDED: {
+    title: "notifications.senderSuspendedTitle",
+    body: "notifications.senderSuspendedBody",
+  },
   SENDER_REJECTED: {
     title: "notifications.senderRejectedTitle",
     body: "notifications.senderRejectedBody",

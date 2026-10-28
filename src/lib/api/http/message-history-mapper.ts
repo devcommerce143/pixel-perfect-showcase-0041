@@ -206,7 +206,9 @@ export function mapMessageHistoryPage(value: unknown): Paginated<MessageHistoryI
   };
 }
 
-export function mapPlatformMessageHistoryPage(value: unknown): Paginated<PlatformMessageHistoryItem> {
+export function mapPlatformMessageHistoryPage(
+  value: unknown,
+): Paginated<PlatformMessageHistoryItem> {
   const response = record(value, "Platform message history response");
   const page = mapMessageHistoryPage(response);
   const rows = response["items"] as unknown[];
@@ -230,6 +232,15 @@ export function mapMessageHistoryDetail(value: unknown): MessageHistoryDetail {
   }
   return {
     ...mapMessageHistoryItem(response),
+    ...(response["contentTemplateId"] !== undefined
+      ? { contentTemplateId: nullableUuid(response["contentTemplateId"], "contentTemplateId") }
+      : {}),
+    ...(response["template"] !== undefined
+      ? { template: mapHistoryTemplate(response["template"]) }
+      : {}),
+    ...(response["content"] !== undefined
+      ? { content: mapHistoryContent(response["content"]) }
+      : {}),
     senderIdentityId: uuid(response["senderIdentityId"], "senderIdentityId"),
     templateId: nullableUuid(response["templateId"], "templateId"),
     correlationId: nullableString(response["correlationId"], "correlationId"),
@@ -373,5 +384,41 @@ function nonNegativeInteger(value: unknown, name: string): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     throw new MessageHistoryResponseError(`${name} must be a non-negative integer.`);
   }
+  return value;
+}
+
+function mapHistoryTemplate(value: unknown) {
+  if (value === null) return null;
+  const row = record(value, "History template");
+  return {
+    ...(row["version"] !== undefined ? { version: historyTemplateVersion(row["version"]) } : {}),
+    key: nonEmptyString(row["key"], "template key"),
+    language: nonEmptyString(row["language"], "template language"),
+  };
+}
+function mapHistoryContent(value: unknown): import("../types").MessageHistoryContent {
+  const row = record(value, "History content");
+  const state = row["state"];
+  if (state !== "available" && state !== "expired" && state !== "purged" && state !== "unavailable")
+    throw new MessageHistoryResponseError("Unsupported content state");
+  const field = (name: string): string | null => {
+    const value = row[name];
+    if (value !== null && typeof value !== "string")
+      throw new MessageHistoryResponseError("Invalid content field");
+    if (state !== "available" && value !== null)
+      throw new MessageHistoryResponseError("Redacted content contains payload");
+    return value;
+  };
+  return {
+    state,
+    body: field("body"),
+    subject: field("subject"),
+    templateVariables: field("templateVariables"),
+  };
+}
+
+function historyTemplateVersion(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1)
+    throw new MessageHistoryResponseError("Invalid template version");
   return value;
 }

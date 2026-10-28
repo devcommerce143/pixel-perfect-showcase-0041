@@ -164,6 +164,7 @@ function HumanMessageForm({
     [readingCsv, setReadingCsv] = useState(false);
   const [csvFileTypeError, setCsvFileTypeError] = useState(false);
   const csvReadToken = useRef(0);
+  const [contentTemplateId, setContentTemplateId] = useState<string | undefined>();
   const [channel, setChannel] = useState<Channel>("sms");
   const [sender, setSender] = useState<SenderIdentityRead | null>(null);
   const [template, setTemplate] = useState<RegistryTemplate | null>(null);
@@ -238,6 +239,7 @@ function HumanMessageForm({
       setOpen(false);
       setAcknowledged(false);
       setRecipient("");
+      setContentTemplateId(undefined);
       setBody("");
       setSubject("");
       setCsvText(null);
@@ -271,9 +273,21 @@ function HumanMessageForm({
     app.data && sender && humanMessageSenderEligible(app.data, sender, channel, scope);
   const draft: HumanMessageInput =
     channel === "sms"
-      ? { channel, senderId: sender?.id ?? "", recipient, sms: { body } }
+      ? {
+          channel,
+          ...(!bulk && contentTemplateId ? { contentTemplateId } : {}),
+          senderId: sender?.id ?? "",
+          recipient,
+          sms: { body },
+        }
       : channel === "email"
-        ? { channel, senderId: sender?.id ?? "", recipient, email: { subject, body } }
+        ? {
+            channel,
+            ...(!bulk && contentTemplateId ? { contentTemplateId } : {}),
+            senderId: sender?.id ?? "",
+            recipient,
+            email: { subject, body },
+          }
         : {
             channel,
             senderId: sender?.id ?? "",
@@ -456,6 +470,7 @@ function HumanMessageForm({
                 disabled={locked}
                 onValueChange={(value) => {
                   setChannel(value as Channel);
+                  setContentTemplateId(undefined);
                   setSender(null);
                   setTemplate(null);
                   setSenderPage(1);
@@ -660,7 +675,10 @@ function HumanMessageForm({
                       maxLength={200}
                       value={subject}
                       disabled={locked}
-                      onChange={(event) => setSubject(event.target.value)}
+                      onChange={(event) => {
+                        setContentTemplateId(undefined);
+                        setSubject(event.target.value);
+                      }}
                     />
                   </div>
                 )}
@@ -672,6 +690,7 @@ function HumanMessageForm({
                     channel={channel}
                     locked={locked}
                     onUse={(content) => {
+                      setContentTemplateId(content.templateId);
                       setBody(content.body);
                       setSubject(content.subject ?? "");
                     }}
@@ -686,7 +705,10 @@ function HumanMessageForm({
                       maxLength={channel === "sms" ? 1600 : 20_000}
                       value={body}
                       disabled={locked}
-                      onChange={(event) => setBody(event.target.value)}
+                      onChange={(event) => {
+                        setContentTemplateId(undefined);
+                        setBody(event.target.value);
+                      }}
                     />
                   </div>
                 ) : (

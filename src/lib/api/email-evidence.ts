@@ -31,7 +31,8 @@ export interface EmailEvidenceRecord {
 export interface EmailEvidencePage extends Paginated<EmailEvidenceRecord> {
   current: EmailEvidenceCurrent;
 }
-export const EMAIL_EVIDENCE_REFERENCE = /^(ticket|change|review):[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+export const EMAIL_EVIDENCE_REFERENCE =
+  /^(?:(?:ticket|change|review):)?[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 function fail(): never {
   throw new Error("Invalid email evidence contract");
 }
@@ -94,11 +95,12 @@ export function emailEvidencePath(
 }
 export function emailEvidenceBody(input: EmailEvidenceInput): EmailEvidenceInput {
   const domain = text(input.domain);
-  if (domain.length > 255 || !EMAIL_EVIDENCE_REFERENCE.test(input.evidenceReference)) fail();
+  const evidenceReference = text(input.evidenceReference).trim();
+  if (domain.length > 255 || !EMAIL_EVIDENCE_REFERENCE.test(evidenceReference)) fail();
   return {
     ...states(input),
     domain,
-    evidenceReference: input.evidenceReference,
+    evidenceReference,
     expected: states(input.expected),
     expectedRevision: count(input.expectedRevision),
   };

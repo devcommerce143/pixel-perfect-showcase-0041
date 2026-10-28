@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export function AppSidebar({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const { t, dir } = useI18n();
-  const { user, can, isPlatform } = useSession();
+  const { user, can } = useSession();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (!user) return null;
   const groups = getNavigation(user.role, can);
@@ -15,18 +15,12 @@ export function AppSidebar({ collapsed, onNavigate }: { collapsed: boolean; onNa
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className={cn("flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-4")}>
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white shadow-sm">
-          <img src="/connect-logo.png" alt="" aria-hidden="true" className="size-8 object-contain" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0 leading-tight">
-            <div className="truncate text-sm font-semibold text-sidebar-accent-foreground">{t("app.name")}</div>
-            <div className="truncate text-[0.6875rem] text-sidebar-muted">
-              {isPlatform ? t("header.platform") : user.tenantName}
-            </div>
-          </div>
-        )}
+      <div className={cn("flex h-14 shrink-0 items-center justify-center border-b border-sidebar-border", collapsed ? "px-2" : "px-4")}>
+        <img
+          src={collapsed ? "/collapse-logo.png" : "/connect-logo.png"}
+          alt={t("app.name")}
+          className={cn("object-contain", collapsed ? "size-10" : "h-12 w-full")}
+        />
       </div>
 
       <nav className="sidebar-scroll flex-1 overflow-y-auto py-3" aria-label={t("app.name")}>

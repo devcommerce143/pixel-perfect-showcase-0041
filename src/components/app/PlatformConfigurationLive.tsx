@@ -1,3 +1,4 @@
+import { DeliveryDispatchControl } from "./DeliveryDispatchControl";
 import { Link } from "@tanstack/react-router";
 import type { SenderIdentityActor } from "@/lib/api/types";
 import { useSession } from "@/lib/auth/session";
@@ -5,6 +6,7 @@ import { useI18n } from "@/lib/i18n/i18n";
 import { PageHeader, PageBody, Section } from "./PageHeader";
 import { AuditRetention } from "./AdministrativeAudit";
 import { SmsPilotControlState } from "./SmsPilotControlState";
+import { SmsDispatchControl } from "./SmsDispatchControl";
 
 export function PlatformConfigurationLive() {
   const { user } = useSession();
@@ -37,6 +39,9 @@ export function PlatformConfigurationLive() {
           </div>
         </Section>
         <AuditRetention actor={actor} />
+        <SmsDispatchControl actor={actor} />
+        <DeliveryDispatchControl actor={actor} channel="email" />
+        <DeliveryDispatchControl actor={actor} channel="whatsapp" />
         <SmsPilotControlState actor={actor} />
       </PageBody>
     </>

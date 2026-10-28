@@ -19,6 +19,7 @@ import { useGlobalTenantContext } from "@/lib/tenant-context";
 import { useI18n } from "@/lib/i18n/i18n";
 import { formatNumber, formatDate } from "@/lib/format";
 import type { SenderIdentityActor } from "@/lib/api/types";
+import { LiveQuotaWarnings } from "@/features/dashboard/QuotaWarnings";
 
 export function UsageReportLive({ view }: { view: "usage" | "reports" }) {
   const { user, isPlatform } = useSession();
@@ -53,6 +54,10 @@ export function UsageReportLive({ view }: { view: "usage" | "reports" }) {
     /* Invalid dates disable requests. */
   }
   const report = useQuery(queries.usageReport(actor, range, tenantId));
+  const quota = useQuery({
+    ...queries.usageQuota(actor, tenantId),
+    enabled: view === "usage" && Boolean(actor.userId) && (!isPlatform || Boolean(tenantId)),
+  });
   const title = t(view === "usage" ? "liveUsage.title" : "liveUsage.reportTitle");
   if (isPlatform && !tenantId)
     return (
@@ -178,6 +183,24 @@ export function UsageReportLive({ view }: { view: "usage" | "reports" }) {
         }
       />
       <PageBody>
+        {view === "usage" && (
+          <Section title={t("liveUsage.currentQuota")} description={t("liveUsage.currentQuotaHint")}>
+            <Button
+              className="m-4"
+              variant="outline"
+              disabled={quota.isFetching}
+              onClick={() => void quota.refetch()}
+            >
+              {t("common.refresh")}
+            </Button>
+            <LiveQuotaWarnings
+              data={quota.data}
+              isError={quota.isError}
+              onRetry={() => void quota.refetch()}
+              showAll
+            />
+          </Section>
+        )}
         <Section>
           <p className="p-4 text-subtle">{t("monitoringExport.usageNote")}</p>
           <div className="flex flex-wrap items-end gap-3 p-4">
